@@ -14,7 +14,13 @@ const summaryRouter = require('./routes/summary');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+// Allow CORS from production frontend
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type']
+}));
+
 app.use(express.json());
 
 // Routes
