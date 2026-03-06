@@ -10,8 +10,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'An unknown error occurred' }));
-    throw new Error(error.error || `HTTP error! status: ${response.status}`);
+    const errorData = await response.json().catch(() => ({ error: 'An unknown error occurred' }));
+    // Create an error that explicitly carries our metadata
+    const error: any = new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    error.status = response.status;
+    error.data = errorData;
+    throw error;
   }
 
   return response.json();

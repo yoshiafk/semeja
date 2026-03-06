@@ -28,7 +28,10 @@ router.post('/', async (req, res) => {
       // If user is admin/superadmin, password is REQUIRED
       if (user.role === 'admin' || user.role === 'superadmin') {
         if (!password) {
-          return res.status(401).json({ error: 'Password diperlukan untuk akun Admin', needsPassword: true });
+          return res.status(200).json({ 
+            needsPassword: true, 
+            message: 'Password diperlukan untuk akun Admin' 
+          });
         }
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {

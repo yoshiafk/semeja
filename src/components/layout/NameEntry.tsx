@@ -16,10 +16,11 @@ export function NameEntry() {
     e.preventDefault();
     if (!name.trim()) return;
 
-    setError("");
     try {
       await loadMember(name.trim(), password.trim() || undefined);
     } catch (err: any) {
+      console.log('Caught login error:', err.message);
+      
       if (err.message === 'PASSWORD_REQUIRED') {
         setShowPassword(true);
         setError("Akun ini memerlukan password.");
@@ -39,7 +40,7 @@ export function NameEntry() {
           <div>
             <CardTitle className="text-3xl font-black tracking-tighter text-stone-900">Semeja</CardTitle>
             <CardDescription className="text-base font-medium text-stone-500">
-              Siapa nama kamu? Supaya teman-teman coliving bisa mengenali kamu di Semeja.
+              Masuk dengan nama kamu untuk bergabung dengan meja makan coliving hari ini.
             </CardDescription>
           </div>
         </CardHeader>
@@ -97,7 +98,10 @@ export function NameEntry() {
             </Button>
           </form>
           <p className="mt-6 text-xs text-muted-foreground italic">
-            *Nama kamu akan diingat di perangkat ini. Tanpa password.
+            *Nama kamu akan diingat di perangkat ini.
+          </p>
+          <p className="mt-8 text-[10px] text-stone-300 font-mono">
+            Build: 2026-03-06.23:30
           </p>
         </CardContent>
       </Card>

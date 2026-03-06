@@ -32,12 +32,19 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const loadMember = useCallback(async (name: string, password?: string) => {
     try {
       setLoading(true);
-      const data = await api.post<Member>('/members', { name, password });
-      setMember(data);
+      const data = await api.post<any>('/members', { name, password });
+      
+      // Handle the robust 200-level signal
+      if (data.needsPassword) {
+        throw new Error('PASSWORD_REQUIRED');
+      }
+
+      setMember(data as Member);
       localStorage.setItem(STORAGE_KEY, name);
     } catch (err: any) {
       console.error('Failed to load member:', err);
-      if (err.message.includes('needsPassword')) {
+      // Fallback for old 401 style or other errors
+      if (err.data?.needsPassword || err.message === 'PASSWORD_REQUIRED') {
         throw new Error('PASSWORD_REQUIRED');
       }
       throw err;
