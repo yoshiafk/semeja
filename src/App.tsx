@@ -3,6 +3,7 @@ import { useMember } from "@/hooks/useMember";
 import { Header } from "@/components/layout/Header";
 import { BottomTabBar} from "@/components/layout/BottomTabBar";
 import { NameEntry } from "@/components/layout/NameEntry";
+import { Gatekeeper } from "@/components/layout/Gatekeeper";
 import { Loader2 } from "lucide-react";
 import Dashboard from "@/pages/Dashboard";
 import Members from "@/pages/Members";
@@ -11,7 +12,7 @@ import MealPlan from "@/pages/MealPlan";
 import Costs from "@/pages/Costs";
 
 function App() {
-  const { member, loading, isAdmin } = useMember();
+  const { member, loading, isAdmin, hasHouseKey, confirmHouseKey } = useMember();
 
   if (loading) {
     return (
@@ -19,6 +20,10 @@ function App() {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (!hasHouseKey) {
+    return <Gatekeeper onSuccess={confirmHouseKey} />;
   }
 
   if (!member) {

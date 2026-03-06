@@ -4,6 +4,11 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgres://mealplan:mealplan123@localhost:5432/mealplan',
 });
 
+// Prevent background pool errors from crashing the process
+pool.on('error', (err) => {
+  console.error('Unexpected pool error:', err);
+});
+
 async function initDB() {
   const client = await pool.connect();
   try {
@@ -11,7 +16,8 @@ async function initDB() {
       CREATE TABLE IF NOT EXISTS members (
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL UNIQUE,
-        role VARCHAR(20) DEFAULT 'member'
+        role VARCHAR(20) DEFAULT 'member',
+        password_hash VARCHAR(255)
       );
 
       CREATE TABLE IF NOT EXISTS ingredients (
@@ -71,6 +77,8 @@ async function initDB() {
         member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
         UNIQUE(meal_id, member_id)
       );
+
+      ALTER TABLE members ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
     `);
     console.log('Database schema initialized');
   } finally {

@@ -8,11 +8,24 @@ import { Loader2 } from "lucide-react";
 export function NameEntry() {
   const { loadMember, loading } = useMember();
   const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) {
-      loadMember(name.trim());
+    if (!name.trim()) return;
+
+    setError("");
+    try {
+      await loadMember(name.trim(), password.trim() || undefined);
+    } catch (err: any) {
+      if (err.message === 'PASSWORD_REQUIRED') {
+        setShowPassword(true);
+        setError("Akun ini memerlukan password.");
+      } else {
+        setError(err.message || "Gagal masuk");
+      }
     }
   };
 
@@ -32,15 +45,46 @@ export function NameEntry() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              placeholder="Ketik nama kamu..."
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="h-12 text-lg text-center"
-              autoFocus
-              disabled={loading}
-              required
-            />
+            <div className="space-y-3">
+              <Input
+                placeholder="Ketik nama kamu..."
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-12 text-lg text-center"
+                autoFocus={!showPassword}
+                disabled={loading || showPassword}
+                required
+              />
+              
+              {showPassword && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Input
+                    type="password"
+                    placeholder="Password Admin..."
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-12 text-lg text-center"
+                    autoFocus
+                    disabled={loading}
+                    required
+                  />
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="text-xs text-stone-400"
+                    onClick={() => {
+                      setShowPassword(false);
+                      setPassword("");
+                      setError("");
+                    }}
+                  >
+                    Bukan akun saya? Ganti nama
+                  </Button>
+                </div>
+              )}
+
+              {error && <p className="text-sm font-bold text-rose-500">{error}</p>}
+            </div>
             <Button type="submit" className="w-full h-12 text-lg font-semibold" disabled={loading}>
               {loading ? (
                 <>

@@ -1,6 +1,8 @@
+const bcrypt = require('bcryptjs');
 const { pool } = require('./db');
 
 const SUPERADMIN_NAME = process.env.SUPERADMIN_NAME || 'Admin';
+const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD || 'admin123';
 
 async function seed() {
   const client = await pool.connect();
@@ -14,10 +16,12 @@ async function seed() {
 
     console.log('Seeding database...');
 
-    // Seed superadmin
+    // Seed superadmin with hashed password
+    const hashedPW = await bcrypt.hash(SUPERADMIN_PASSWORD, 10);
     await client.query(
-      `INSERT INTO members (name, role) VALUES ($1, 'superadmin') ON CONFLICT (name) DO UPDATE SET role = 'superadmin'`,
-      [SUPERADMIN_NAME]
+      `INSERT INTO members (name, role, password_hash) VALUES ($1, 'superadmin', $2) 
+       ON CONFLICT (name) DO UPDATE SET role = 'superadmin', password_hash = $2`,
+      [SUPERADMIN_NAME, hashedPW]
     );
 
     // Seed ingredients

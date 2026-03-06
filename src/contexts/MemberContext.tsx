@@ -11,7 +11,9 @@ export interface Member {
 interface MemberContextType {
   member: Member | null;
   loading: boolean;
-  loadMember: (name: string) => Promise<void>;
+  hasHouseKey: boolean;
+  loadMember: (name: string, password?: string) => Promise<void>;
+  confirmHouseKey: (key: string) => void;
   logout: () => void;
   isAdmin: boolean;
   isSuperadmin: boolean;
@@ -22,23 +24,31 @@ const MemberContext = createContext<MemberContextType | undefined>(undefined);
 export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasHouseKey, setHasHouseKey] = useState(false);
 
   const STORAGE_KEY = 'meal_plan_user_name';
+  const HOUSE_KEY_STORAGE = 'semeja_house_key';
 
-  const loadMember = useCallback(async (name: string) => {
+  const loadMember = useCallback(async (name: string, password?: string) => {
     try {
       setLoading(true);
-      const data = await api.post<Member>('/members', { name });
+      const data = await api.post<Member>('/members', { name, password });
       setMember(data);
       localStorage.setItem(STORAGE_KEY, name);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load member:', err);
-      // Fallback if server is down but we have a name
-      setMember({ id: 0, name, role: 'member' });
-      localStorage.setItem(STORAGE_KEY, name);
+      if (err.message.includes('needsPassword')) {
+        throw new Error('PASSWORD_REQUIRED');
+      }
+      throw err;
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const confirmHouseKey = useCallback((key: string) => {
+    localStorage.setItem(HOUSE_KEY_STORAGE, key);
+    setHasHouseKey(true);
   }, []);
 
   const logout = useCallback(() => {
@@ -47,9 +57,15 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, []);
 
   useEffect(() => {
-    const savedName = localStorage.getItem(STORAGE_KEY);
-    if (savedName) {
-      loadMember(savedName);
+    const savedKey = localStorage.getItem(HOUSE_KEY_STORAGE);
+    if (savedKey) {
+      setHasHouseKey(true);
+      const savedName = localStorage.getItem(STORAGE_KEY);
+      if (savedName) {
+        loadMember(savedName);
+      } else {
+        setLoading(false);
+      }
     } else {
       setLoading(false);
     }
@@ -61,11 +77,13 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const value = useMemo(() => ({
     member,
     loading,
+    hasHouseKey,
     loadMember,
+    confirmHouseKey,
     logout,
     isAdmin,
     isSuperadmin
-  }), [member, loading, loadMember, logout, isAdmin, isSuperadmin]);
+  }), [member, loading, hasHouseKey, loadMember, confirmHouseKey, logout, isAdmin, isSuperadmin]);
 
   return (
     <MemberContext.Provider value={value}>

@@ -10,6 +10,7 @@ const mealPlansRouter = require('./routes/meal-plans');
 const mealsRouter = require('./routes/meals');
 const participationsRouter = require('./routes/participations');
 const summaryRouter = require('./routes/summary');
+const authRouter = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -31,6 +32,7 @@ app.use('/api/meal-plans', mealPlansRouter);
 app.use('/api/meals', mealsRouter);
 app.use('/api/participations', participationsRouter);
 app.use('/api/summary', summaryRouter);
+app.use('/api/auth', authRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -43,16 +45,23 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ error: 'Something went wrong' });
 });
 
-async function start() {
+async function start(retries = 5) {
   try {
+    console.log(`Connecting to database... (${6 - retries}/5)`);
     await initDB();
     await seed();
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`API server running on port ${PORT}`);
     });
   } catch (err) {
-    console.error('Failed to start:', err);
-    process.exit(1);
+    console.error('Failed to start:', err.message);
+    if (retries > 0) {
+      console.log('Retrying in 5 seconds...');
+      setTimeout(() => start(retries - 1), 5000);
+    } else {
+      console.error('Max retries reached. Exiting.');
+      process.exit(1);
+    }
   }
 }
 
