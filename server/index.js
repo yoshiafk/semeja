@@ -1,7 +1,20 @@
 const express = require('express');
 const cors = require('cors');
-const { initDB } = require('./db');
+const { pool, initDB } = require('./db');
 const { seed } = require('./seed');
+
+// Keep Neon database awake by pinging every 4 minutes
+function startHeartbeat() {
+  const HEARTBEAT_INTERVAL = 4 * 60 * 1000; // 4 minutes
+  setInterval(async () => {
+    try {
+      await pool.query('SELECT 1');
+    } catch (err) {
+      console.error('Heartbeat failed:', err.message);
+    }
+  }, HEARTBEAT_INTERVAL);
+  console.log('Database heartbeat started (every 4 minutes)');
+}
 
 const membersRouter = require('./routes/members');
 const ingredientsRouter = require('./routes/ingredients');
@@ -52,6 +65,7 @@ async function start(retries = 5) {
     await seed();
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`API server running on port ${PORT}`);
+      startHeartbeat();
     });
   } catch (err) {
     console.error('Failed to start:', err.message);
