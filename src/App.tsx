@@ -5,6 +5,8 @@ import { BottomTabBar} from "@/components/layout/BottomTabBar";
 import { NameEntry } from "@/components/layout/NameEntry";
 import { Gatekeeper } from "@/components/layout/Gatekeeper";
 import { Loader2 } from "lucide-react";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import Dashboard from "@/pages/Dashboard";
 import Members from "@/pages/Members";
 import Ingredients from "@/pages/Ingredients";
@@ -54,6 +56,8 @@ function App() {
         </Routes>
 
         <BottomTabBar />
+        <Analytics />
+        <SpeedInsights />
       </div>
     </Router>
   );
