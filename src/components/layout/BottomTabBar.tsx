@@ -15,15 +15,15 @@ export function BottomTabBar() {
   ].filter(tab => !tab.adminOnly || isAdmin);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[100] h-16 sm:h-20 lg:hidden px-4 pb-safe bg-white border-t border-stone-100 shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
-      <div className="flex h-full items-center justify-between sm:justify-around max-w-md mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 z-[100] h-16 sm:h-20 lg:hidden px-2 pb-safe bg-white border-t border-stone-100 shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
+      <div className="flex h-full items-center justify-around max-w-md mx-auto">
         {tabs.map((tab) => (
           <NavLink
             key={tab.to}
             to={tab.to}
             className={({ isActive }) =>
               cn(
-                "flex flex-col items-center justify-center gap-1 w-16 transition-all",
+                "flex flex-col items-center justify-center gap-1 flex-1 transition-all",
                 isActive ? "text-emerald-600" : "text-stone-400 hover:text-stone-600"
               )
             }

@@ -35,7 +35,7 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-[100dvh] bg-background relative overflow-x-hidden">
         <Header />
         
         <Routes>
