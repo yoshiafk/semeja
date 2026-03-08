@@ -9,7 +9,6 @@ import { Loader2, Plus, Calendar, ChefHat, LayoutGrid } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/utils";
-import { Search, DownloadCloud, Utensils } from "lucide-react";
 
 interface Recipe {
   id: number;
@@ -53,13 +52,6 @@ export default function MealPlanPage() {
     nextMonday.setDate(today.getDate() + ((1 + 7 - today.getDay()) % 7 || 7));
     return nextMonday.toISOString().split('T')[0];
   });
-
-  // State for external recipe search
-  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isImporting, setIsImporting] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -132,38 +124,6 @@ export default function MealPlanPage() {
     }
   };
 
-  const searchRecipes = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!searchQuery.trim()) return;
-    try {
-      setIsSearching(true);
-      const data = await api.get<any>(`/recipe-search?q=${encodeURIComponent(searchQuery)}`);
-      setSearchResults(data.results || []);
-    } catch (err: any) {
-      alert("Gagal mencari resep: " + (err.error || err.message));
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const importRecipe = async (externalId: string) => {
-    try {
-      setIsImporting(externalId);
-      await api.post("/recipe-search/import", { externalId });
-      
-      // Refresh local recipes list so it appears in the dropdowns immediately
-      const recipesData = await api.get<Recipe[]>("/recipes");
-      setRecipes(recipesData);
-      
-      alert("Resep berhasil diimpor! Silakan pilih dari dropdown menu.");
-      setIsSearchDialogOpen(false);
-    } catch (err: any) {
-      alert("Gagal impor resep: " + (err.error || err.message));
-    } finally {
-      setIsImporting(null);
-    }
-  };
-
   if (loading) {
     return (
       <PageContainer>
@@ -182,9 +142,9 @@ export default function MealPlanPage() {
             <h1 className="text-3xl font-black tracking-tight text-stone-900">Atur Jadwal Makan</h1>
             <p className="text-stone-500 font-medium">Klik menu untuk memperbarui atau pilih resep untuk kalkulasi otomatis.</p>
           </div>
-          <div className="flex items-center gap-3">
+           <div className="flex items-center gap-3">
              <Select value={activePlan?.id.toString()} onValueChange={(v) => setActivePlan(plans.find(p => p.id.toString() === v) || null)}>
-                <SelectTrigger className="h-12 w-[240px] bg-stone-50 border-stone-100 rounded-2xl font-bold">
+                <SelectTrigger className="h-10 w-[200px] bg-stone-50 border-stone-100 rounded-full font-bold shadow-none text-xs">
                   <SelectValue placeholder="Pilih Pekan" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-stone-200">
@@ -195,136 +155,159 @@ export default function MealPlanPage() {
                   ))}
                 </SelectContent>
              </Select>
-             <Button onClick={() => setIsSearchDialogOpen(true)} variant="outline" className="h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-widest text-stone-600 border-stone-200 hover:bg-stone-50">
-                <Search className="mr-2 h-4 w-4 stroke-[3px]" /> Cari Resep Online
-             </Button>
-             <Button onClick={() => setIsCreateDialogOpen(true)} className="h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20">
-                <Plus className="mr-2 h-4 w-4 stroke-[3px]" /> Buat Pekan Baru
+             <Button onClick={() => setIsCreateDialogOpen(true)} className="h-10 px-6 rounded-full font-black uppercase text-[10px] tracking-widest shadow-none bg-emerald-600 hover:bg-emerald-700">
+                <Plus className="mr-2 h-3.5 w-3.5 stroke-[3px]" /> Buat Pekan Baru
              </Button>
           </div>
         </div>
 
         {activePlan ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {activePlan.meals.map((meal) => (
-              <Card key={meal.id} className="border-stone-200 hover:border-primary/30 transition-all hover:shadow-lg hover:shadow-primary/5 rounded-3xl overflow-hidden group">
-                <CardHeader className="bg-stone-50/50 pb-4 group-hover:bg-primary/5 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                       <CardTitle className="text-xl font-black text-stone-900">{meal.day_name}</CardTitle>
-                       <CardDescription className="font-bold text-primary/60">{new Date(meal.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</CardDescription>
-                    </div>
-                    <Calendar className="h-5 w-5 text-stone-200 group-hover:text-primary transition-colors" />
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-6 space-y-8">
-                  {/* Main Course Section (Lauk) */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none">
-                      <Badge variant="outline" className="h-4 bg-orange-50 text-orange-600 border-orange-100 text-[8px] font-black uppercase tracking-tighter">Lauk</Badge>
-                      <span>Menu Utama</span>
-                    </div>
-                    <div className="space-y-3">
-                      <Select 
-                        disabled={isSaving[`${meal.id}-main_course_recipe_id`]}
-                        value={meal.main_course_recipe_id?.toString() || "placeholder"} 
-                        onValueChange={(v) => {
-                          const rid = v === "placeholder" ? null : parseInt(v);
-                          if (rid) {
-                            const r = recipes.find(rec => rec.id === rid);
-                            updateMeal(meal.id, { 
-                                main_course_recipe_id: rid, 
-                                ...(r ? { main_course_menu: r.name } : {}) 
-                            });
-                          } else {
-                            updateMeal(meal.id, { main_course_recipe_id: null, main_course_menu: "" });
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="h-10 bg-stone-50/50 border-stone-200 rounded-xl font-bold text-xs">
-                          {isSaving[`${meal.id}-main_course_recipe_id`] ? <Loader2 className="mr-2 h-3 w-3 animate-spin text-stone-400" /> : <ChefHat className="mr-2 h-3 w-3 text-stone-400" />}
-                          <SelectValue placeholder="Pilih Menu Lauk..." />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="placeholder" className="font-medium italic text-stone-400">Pilih Menu...</SelectItem>
-                          {recipes.filter(r => r.category === 'Lauk' || !r.category).map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+            {activePlan.meals.map((meal) => {
+               // English day name format to match screenshot exactly
+               const englishDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+               const mealDate = new Date(meal.date);
+               const engDayName = englishDays[mealDate.getDay()];
+               const formattedDateStr = `${mealDate.getDate()} ${mealDate.toLocaleDateString('en-US', { month: 'short' })}`;
 
-                  {/* Second Course Section (Sayur) */}
-                  <div className="space-y-4 pt-4 border-t border-stone-50">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none">
-                      <Badge variant="outline" className="h-4 bg-emerald-50 text-emerald-600 border-emerald-100 text-[8px] font-black uppercase tracking-tighter">Sayur</Badge>
-                      <span>Menu Sayuran</span>
+               return (
+                <Card key={meal.id} className="border-stone-100 shadow-sm hover:shadow-md transition-shadow rounded-3xl overflow-hidden group bg-white">
+                  <CardHeader className="pb-2 pt-6 px-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex flex-col gap-0.5">
+                         <CardTitle className="text-[22px] font-black tracking-tight text-stone-900">{engDayName}</CardTitle>
+                         <CardDescription className="text-sm font-bold text-emerald-500">{formattedDateStr}</CardDescription>
+                      </div>
+                      <Calendar className="h-5 w-5 text-stone-200" />
                     </div>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-8">
+                    {/* Main Course Section (Lauk) */}
                     <div className="space-y-3">
-                      <Select 
-                        disabled={isSaving[`${meal.id}-second_course_recipe_id`]}
-                        value={meal.second_course_recipe_id?.toString() || "placeholder"} 
-                        onValueChange={(v) => {
-                          const rid = v === "placeholder" ? null : parseInt(v);
-                          if (rid) {
-                            const r = recipes.find(rec => rec.id === rid);
-                            updateMeal(meal.id, { 
-                                second_course_recipe_id: rid, 
-                                ...(r ? { second_course_menu: r.name } : {}) 
-                            });
-                          } else {
-                            updateMeal(meal.id, { second_course_recipe_id: null, second_course_menu: "" });
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="h-10 bg-stone-50/50 border-stone-200 rounded-xl font-bold text-xs">
-                          {isSaving[`${meal.id}-second_course_recipe_id`] ? <Loader2 className="mr-2 h-3 w-3 animate-spin text-stone-400" /> : <ChefHat className="mr-2 h-3 w-3 text-stone-400" />}
-                          <SelectValue placeholder="Pilih Menu Sayur..." />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl font-medium">
-                          <SelectItem value="placeholder" className="font-medium italic text-stone-400">Pilih Menu...</SelectItem>
-                          {recipes.filter(r => r.category === 'Sayur').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest leading-none">
+                        <Badge variant="secondary" className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 font-black uppercase tracking-widest shadow-none hover:bg-orange-50 cursor-default">
+                           Lauk
+                        </Badge>
+                        <span className="font-black text-stone-400">Menu Utama</span>
+                      </div>
+                      <div>
+                        <Select 
+                          disabled={isSaving[`${meal.id}-main_course_recipe_id`]}
+                          value={meal.main_course_recipe_id?.toString() || "placeholder"} 
+                          onValueChange={(v) => {
+                            const rid = v === "placeholder" ? null : parseInt(v);
+                            if (rid) {
+                              const r = recipes.find(rec => rec.id === rid);
+                              updateMeal(meal.id, { 
+                                  main_course_recipe_id: rid, 
+                                  ...(r ? { main_course_menu: r.name } : {}) 
+                              });
+                            } else {
+                              updateMeal(meal.id, { main_course_recipe_id: null, main_course_menu: "" });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-11 w-full sm:w-[85%] bg-white border-stone-200 rounded-full font-bold text-sm shadow-sm hover:bg-stone-50 transition-colors">
+                            <div className="flex items-center truncate">
+                               {isSaving[`${meal.id}-main_course_recipe_id`] ? <Loader2 className="mr-2.5 h-4 w-4 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="mr-2.5 h-4 w-4 text-stone-400 shrink-0" />}
+                               <span className="truncate pr-2">
+                                 {meal.main_course_recipe_id ? meal.main_course_menu : <span className="text-stone-400 italic font-medium">Pilih Menu...</span>}
+                               </span>
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl border-stone-100 p-1">
+                            <SelectItem value="placeholder" className="font-medium italic text-stone-400">Pilih Menu...</SelectItem>
+                            {recipes.filter(r => r.category === 'Lauk' || !r.category).map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-black text-stone-700 py-2.5">{r.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Dessert Section (Pencuci Mulut) */}
-                  <div className="space-y-4 pt-4 border-t border-stone-50">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none">
-                      <Badge variant="outline" className="h-4 bg-indigo-50 text-indigo-600 border-indigo-100 text-[8px] font-black uppercase tracking-tighter">Pencuci Mulut</Badge>
-                      <span>Menu Penutup / Snack</span>
-                    </div>
+  
+                    {/* Second Course Section (Sayur) */}
                     <div className="space-y-3">
-                      <Select 
-                        disabled={isSaving[`${meal.id}-dessert_recipe_id`]}
-                        value={meal.dessert_recipe_id?.toString() || "placeholder"} 
-                        onValueChange={(v) => {
-                          const rid = v === "placeholder" ? null : parseInt(v);
-                          if (rid) {
-                            const r = recipes.find(rec => rec.id === rid);
-                            updateMeal(meal.id, { 
-                                dessert_recipe_id: rid, 
-                                ...(r ? { dessert_menu: r.name } : {}) 
-                            });
-                          } else {
-                            updateMeal(meal.id, { dessert_recipe_id: null, dessert_menu: "" });
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="h-10 bg-stone-50/50 border-stone-200 rounded-xl font-bold text-xs">
-                          {isSaving[`${meal.id}-dessert_recipe_id`] ? <Loader2 className="mr-2 h-3 w-3 animate-spin text-stone-400" /> : <ChefHat className="mr-2 h-3 w-3 text-stone-400" />}
-                          <SelectValue placeholder="Pilih Menu Pencuci Mulut..." />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl font-medium">
-                          <SelectItem value="placeholder" className="font-medium italic text-stone-400">Pilih Menu...</SelectItem>
-                          {recipes.filter(r => r.category === 'Dessert').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest leading-none">
+                        <Badge variant="secondary" className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-black uppercase tracking-widest shadow-none hover:bg-emerald-50 cursor-default">
+                           Sayur
+                        </Badge>
+                        <span className="font-black text-stone-400">Menu Sayuran</span>
+                      </div>
+                      <div>
+                        <Select 
+                          disabled={isSaving[`${meal.id}-second_course_recipe_id`]}
+                          value={meal.second_course_recipe_id?.toString() || "placeholder"} 
+                          onValueChange={(v) => {
+                            const rid = v === "placeholder" ? null : parseInt(v);
+                            if (rid) {
+                              const r = recipes.find(rec => rec.id === rid);
+                              updateMeal(meal.id, { 
+                                  second_course_recipe_id: rid, 
+                                  ...(r ? { second_course_menu: r.name } : {}) 
+                              });
+                            } else {
+                              updateMeal(meal.id, { second_course_recipe_id: null, second_course_menu: "" });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-11 w-full sm:w-[85%] bg-white border-stone-200 rounded-full font-bold text-sm shadow-sm hover:bg-stone-50 transition-colors">
+                            <div className="flex items-center truncate">
+                               {isSaving[`${meal.id}-second_course_recipe_id`] ? <Loader2 className="mr-2.5 h-4 w-4 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="mr-2.5 h-4 w-4 text-stone-400 shrink-0" />}
+                               <span className="truncate pr-2">
+                                 {meal.second_course_recipe_id ? meal.second_course_menu : <span className="text-stone-400 italic font-medium">Pilih Menu...</span>}
+                               </span>
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl border-stone-100 p-1 font-medium">
+                            <SelectItem value="placeholder" className="font-medium italic text-stone-400">Pilih Menu...</SelectItem>
+                            {recipes.filter(r => r.category === 'Sayur').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-black text-stone-700 py-2.5">{r.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+  
+                    {/* Dessert Section (Pencuci Mulut) */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest leading-none">
+                        <Badge variant="secondary" className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-500 font-black uppercase tracking-widest shadow-none hover:bg-indigo-50 cursor-default">
+                           Pencuci Mulut
+                        </Badge>
+                        <span className="font-black text-stone-400">Menu Penutup / Snack</span>
+                      </div>
+                      <div>
+                        <Select 
+                          disabled={isSaving[`${meal.id}-dessert_recipe_id`]}
+                          value={meal.dessert_recipe_id?.toString() || "placeholder"} 
+                          onValueChange={(v) => {
+                            const rid = v === "placeholder" ? null : parseInt(v);
+                            if (rid) {
+                              const r = recipes.find(rec => rec.id === rid);
+                              updateMeal(meal.id, { 
+                                  dessert_recipe_id: rid, 
+                                  ...(r ? { dessert_menu: r.name } : {}) 
+                              });
+                            } else {
+                              updateMeal(meal.id, { dessert_recipe_id: null, dessert_menu: "" });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-11 w-full sm:w-[85%] bg-white border-stone-200 rounded-full font-bold text-sm shadow-sm hover:bg-stone-50 transition-colors">
+                            <div className="flex items-center truncate">
+                               {isSaving[`${meal.id}-dessert_recipe_id`] ? <Loader2 className="mr-2.5 h-4 w-4 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="mr-2.5 h-4 w-4 text-stone-400 shrink-0" />}
+                               <span className="truncate pr-2">
+                                 {meal.dessert_recipe_id ? meal.dessert_menu : <span className="text-stone-400 italic font-medium">Pilih Menu...</span>}
+                               </span>
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl border-stone-100 p-1 font-medium">
+                            <SelectItem value="placeholder" className="font-medium italic text-stone-400">Pilih Menu...</SelectItem>
+                            {recipes.filter(r => r.category === 'Dessert').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-black text-stone-700 py-2.5">{r.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
@@ -366,94 +349,6 @@ export default function MealPlanPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Search external recipe dialog */}
-      <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
-        <DialogContent className="w-[95vw] max-w-2xl rounded-3xl p-6 sm:p-8 border-none overflow-hidden max-h-[90vh] flex flex-col">
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-500" />
-          <DialogHeader className="mb-2 shrink-0">
-            <DialogTitle className="text-2xl font-black text-stone-900">Cari Resep Online</DialogTitle>
-            <DialogDescription className="font-bold text-stone-400 uppercase text-[10px] tracking-widest">
-              Cari & impor resep masakan nusantara beserta takaran bahannya
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto space-y-6 pt-4 min-h-0 relative">
-            <form onSubmit={searchRecipes} className="sticky top-0 z-10 bg-white/80 backdrop-blur-md pb-4 pt-1">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
-                <Input
-                  autoFocus
-                  placeholder="Ketik nama masakan (misal: Sate Lilit...)"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="h-14 pl-12 bg-stone-50 border-stone-200 rounded-2xl font-bold text-lg"
-                />
-                <Button 
-                  type="submit" 
-                  disabled={isSearching || !searchQuery.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 h-10 px-4 rounded-xl text-xs font-black uppercase tracking-widest"
-                >
-                  {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Cari'}
-                </Button>
-              </div>
-            </form>
-
-            <div className="space-y-4 pb-4">
-              {searchResults.length === 0 && !isSearching && searchQuery.trim() && (
-                <div className="text-center py-12 text-stone-400 font-bold uppercase tracking-widest text-xs">
-                  Resep tidak ditemukan
-                </div>
-              )}
-              
-              {searchResults.length === 0 && !isSearching && !searchQuery && (
-                <div className="flex flex-col items-center justify-center py-16 text-stone-300">
-                   <Utensils className="h-16 w-16 mb-4" />
-                   <p className="font-bold uppercase tracking-widest text-xs text-center">Gunakan menu pencarian di atas untuk<br/>menemukan inspirasi masakan</p>
-                </div>
-              )}
-
-              {searchResults.map((recipe) => (
-                <div key={recipe.key} className="flex gap-4 p-4 rounded-2xl border border-stone-100 bg-white hover:border-blue-200 group transition-colors shadow-sm">
-                  {recipe.thumb && (
-                    <img src={recipe.thumb} alt={recipe.title} className="w-24 h-24 object-cover rounded-xl shrink-0 bg-stone-100" />
-                  )}
-                  <div className="flex flex-col flex-1 justify-center gap-2">
-                     <h3 className="font-black text-stone-800 leading-tight text-lg line-clamp-2 mix-blend-multiply">{recipe.title}</h3>
-                     <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 h-auto bg-stone-50 text-stone-500 border-stone-200 uppercase font-bold tracking-widest">
-                          {recipe.serving || "Takaran porsi tidak diketahui"} 
-                        </Badge>
-                        <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 h-auto bg-stone-50 text-stone-500 border-stone-200 uppercase font-bold tracking-widest">
-                          {recipe.times || "?"}
-                        </Badge>
-                        <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 h-auto bg-stone-50 text-stone-500 border-stone-200 uppercase font-bold tracking-widest">
-                          {recipe.difficulty || "?"}
-                        </Badge>
-                     </div>
-                  </div>
-                  <div className="flex items-center">
-                    <Button 
-                      onClick={() => importRecipe(recipe.key)} 
-                      disabled={isImporting === recipe.key}
-                      variant="outline"
-                      className="h-12 px-5 rounded-xl border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 font-black uppercase text-[10px] tracking-widest"
-                    >
-                      {isImporting === recipe.key ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <DownloadCloud className="h-4 w-4 mr-1.5" />
-                          Impor
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </PageContainer>
   );
 }
