@@ -288,7 +288,7 @@ export default function Ingredients() {
                              ing.stock_quantity <= ing.min_stock_threshold ? "bg-amber-50 text-amber-600" :
                              "bg-emerald-50 text-emerald-600"
                           }`}>
-                            {ing.stock_quantity.toFixed(3).replace(/\.?0+$/, '')} {ing.unit}
+                            {Number(ing.stock_quantity || 0).toFixed(3).replace(/\.?0+$/, '')} {ing.unit}
                           </Badge>
                        </div>
                     </div>
