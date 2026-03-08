@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
 import { cn } from "@/lib/utils";
-import { Home, ClipboardList, Users, Carrot, ReceiptText, Store } from "lucide-react";
+import { Home, ClipboardList, Users, Carrot, ReceiptText, Store, Utensils } from "lucide-react";
 
 export function BottomTabBar() {
   const { isAdmin } = useMember();
@@ -10,6 +10,7 @@ export function BottomTabBar() {
     { to: "/", icon: Home, label: "Home" },
     { to: "/meal-plan", icon: ClipboardList, label: "Plan", adminOnly: true },
     { to: "/members", icon: Users, label: isAdmin ? "Members" : "Join" },
+    { to: "/menus", icon: Utensils, label: "Menus", adminOnly: true },
     { to: "/ingredients", icon: Carrot, label: "Ingredients", adminOnly: true },
     { to: "/suppliers", icon: Store, label: "Vendor", adminOnly: true },
     { to: "/costs", icon: ReceiptText, label: "Costs" },

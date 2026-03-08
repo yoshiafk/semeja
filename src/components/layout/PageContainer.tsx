@@ -18,7 +18,7 @@ export function PageContainer({
       className={cn(
         "min-h-screen w-full mx-auto px-4 md:px-8 max-w-7xl",
         withHeader && "pt-24",
-        withTabBar && "pb-20 md:pb-12",
+        withTabBar && "pb-safe pb-28 md:pb-12",
         className
       )}
     >

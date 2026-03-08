@@ -34,6 +34,9 @@ async function initDB() {
         description VARCHAR(500) DEFAULT ''
       );
 
+      ALTER TABLE recipes ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'Lauk';
+      ALTER TABLE recipes ADD COLUMN IF NOT EXISTS source_url VARCHAR(500) DEFAULT '';
+
       CREATE TABLE IF NOT EXISTS recipe_ingredients (
         id SERIAL PRIMARY KEY,
         recipe_id INTEGER REFERENCES recipes(id) ON DELETE CASCADE,

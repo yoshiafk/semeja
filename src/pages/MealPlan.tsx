@@ -14,6 +14,7 @@ import { Search, DownloadCloud, Utensils } from "lucide-react";
 interface Recipe {
   id: number;
   name: string;
+  category: 'Lauk' | 'Sayur' | 'Dessert';
 }
 
 interface Meal {
@@ -42,6 +43,7 @@ export default function MealPlanPage() {
   const [loading, setLoading] = useState(true);
   const [activePlan, setActivePlan] = useState<MealPlan | null>(null);
   const [isSaving, setIsSaving] = useState<Record<string, boolean>>({});
+  const [isCreatingPlan, setIsCreatingPlan] = useState(false);
 
   // State for creating a new plan
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -85,11 +87,14 @@ export default function MealPlanPage() {
   const createNewPlan = async () => {
     if (!newPlanStartDate) return;
     try {
+      setIsCreatingPlan(true);
       await api.post("/meal-plans", { week_start: newPlanStartDate });
       setIsCreateDialogOpen(false);
       fetchData();
     } catch (err) {
       alert("Gagal membuat plan: " + err);
+    } finally {
+      setIsCreatingPlan(false);
     }
   };
 
@@ -222,9 +227,9 @@ export default function MealPlanPage() {
                     <div className="space-y-3">
                       <Select 
                         disabled={isSaving[`${meal.id}-main_course_recipe_id`]}
-                        value={meal.main_course_recipe_id?.toString() || "manual"} 
+                        value={meal.main_course_recipe_id?.toString() || "placeholder"} 
                         onValueChange={(v) => {
-                          const rid = v === "manual" ? null : parseInt(v);
+                          const rid = v === "placeholder" ? null : parseInt(v);
                           if (rid) {
                             const r = recipes.find(rec => rec.id === rid);
                             updateMeal(meal.id, { 
@@ -232,33 +237,19 @@ export default function MealPlanPage() {
                                 ...(r ? { main_course_menu: r.name } : {}) 
                             });
                           } else {
-                            updateMeal(meal.id, { main_course_recipe_id: null });
+                            updateMeal(meal.id, { main_course_recipe_id: null, main_course_menu: "" });
                           }
                         }}
                       >
                         <SelectTrigger className="h-10 bg-stone-50/50 border-stone-200 rounded-xl font-bold text-xs">
                           {isSaving[`${meal.id}-main_course_recipe_id`] ? <Loader2 className="mr-2 h-3 w-3 animate-spin text-stone-400" /> : <ChefHat className="mr-2 h-3 w-3 text-stone-400" />}
-                          <SelectValue placeholder="Pilih Resep..." />
+                          <SelectValue placeholder="Pilih Menu Lauk..." />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl">
-                          <SelectItem value="manual" className="font-medium italic">Input Manual</SelectItem>
-                          {recipes.map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
+                          <SelectItem value="placeholder" className="font-medium italic text-stone-400">Pilih Menu...</SelectItem>
+                          {recipes.filter(r => r.category === 'Lauk' || !r.category).map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <div className="relative group/input">
-                        <textarea
-                          placeholder="Atau ketik menu lauk..."
-                          className="w-full text-sm font-bold bg-white border border-stone-200 rounded-xl p-3 h-20 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none shadow-sm"
-                          value={meal.main_course_menu}
-                          disabled={isSaving[`${meal.id}-main_course_menu`]}
-                          onChange={(e) => updateMeal(meal.id, { main_course_menu: e.target.value })}
-                        />
-                         {isSaving[`${meal.id}-main_course_menu`] && (
-                            <div className="absolute top-3 right-3">
-                              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                            </div>
-                         )}
-                      </div>
                     </div>
                   </div>
 
@@ -271,9 +262,9 @@ export default function MealPlanPage() {
                     <div className="space-y-3">
                       <Select 
                         disabled={isSaving[`${meal.id}-second_course_recipe_id`]}
-                        value={meal.second_course_recipe_id?.toString() || "manual"} 
+                        value={meal.second_course_recipe_id?.toString() || "placeholder"} 
                         onValueChange={(v) => {
-                          const rid = v === "manual" ? null : parseInt(v);
+                          const rid = v === "placeholder" ? null : parseInt(v);
                           if (rid) {
                             const r = recipes.find(rec => rec.id === rid);
                             updateMeal(meal.id, { 
@@ -281,33 +272,19 @@ export default function MealPlanPage() {
                                 ...(r ? { second_course_menu: r.name } : {}) 
                             });
                           } else {
-                            updateMeal(meal.id, { second_course_recipe_id: null });
+                            updateMeal(meal.id, { second_course_recipe_id: null, second_course_menu: "" });
                           }
                         }}
                       >
                         <SelectTrigger className="h-10 bg-stone-50/50 border-stone-200 rounded-xl font-bold text-xs">
                           {isSaving[`${meal.id}-second_course_recipe_id`] ? <Loader2 className="mr-2 h-3 w-3 animate-spin text-stone-400" /> : <ChefHat className="mr-2 h-3 w-3 text-stone-400" />}
-                          <SelectValue placeholder="Pilih Resep..." />
+                          <SelectValue placeholder="Pilih Menu Sayur..." />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl font-medium">
-                          <SelectItem value="manual" className="font-medium italic">Input Manual</SelectItem>
-                          {recipes.map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
+                          <SelectItem value="placeholder" className="font-medium italic text-stone-400">Pilih Menu...</SelectItem>
+                          {recipes.filter(r => r.category === 'Sayur').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <div className="relative group/input">
-                        <textarea
-                          placeholder="Atau ketik menu sayuran..."
-                          className="w-full text-sm font-bold bg-white border border-stone-200 rounded-xl p-3 h-20 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none shadow-sm"
-                          value={meal.second_course_menu}
-                          disabled={isSaving[`${meal.id}-second_course_menu`]}
-                          onChange={(e) => updateMeal(meal.id, { second_course_menu: e.target.value })}
-                        />
-                         {isSaving[`${meal.id}-second_course_menu`] && (
-                            <div className="absolute top-3 right-3">
-                              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                            </div>
-                         )}
-                      </div>
                     </div>
                   </div>
 
@@ -320,9 +297,9 @@ export default function MealPlanPage() {
                     <div className="space-y-3">
                       <Select 
                         disabled={isSaving[`${meal.id}-dessert_recipe_id`]}
-                        value={meal.dessert_recipe_id?.toString() || "manual"} 
+                        value={meal.dessert_recipe_id?.toString() || "placeholder"} 
                         onValueChange={(v) => {
-                          const rid = v === "manual" ? null : parseInt(v);
+                          const rid = v === "placeholder" ? null : parseInt(v);
                           if (rid) {
                             const r = recipes.find(rec => rec.id === rid);
                             updateMeal(meal.id, { 
@@ -330,33 +307,19 @@ export default function MealPlanPage() {
                                 ...(r ? { dessert_menu: r.name } : {}) 
                             });
                           } else {
-                            updateMeal(meal.id, { dessert_recipe_id: null });
+                            updateMeal(meal.id, { dessert_recipe_id: null, dessert_menu: "" });
                           }
                         }}
                       >
                         <SelectTrigger className="h-10 bg-stone-50/50 border-stone-200 rounded-xl font-bold text-xs">
                           {isSaving[`${meal.id}-dessert_recipe_id`] ? <Loader2 className="mr-2 h-3 w-3 animate-spin text-stone-400" /> : <ChefHat className="mr-2 h-3 w-3 text-stone-400" />}
-                          <SelectValue placeholder="Pilih Resep..." />
+                          <SelectValue placeholder="Pilih Menu Pencuci Mulut..." />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl font-medium">
-                          <SelectItem value="manual" className="font-medium italic">Input Manual</SelectItem>
-                          {recipes.map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
+                          <SelectItem value="placeholder" className="font-medium italic text-stone-400">Pilih Menu...</SelectItem>
+                          {recipes.filter(r => r.category === 'Dessert').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <div className="relative group/input">
-                        <textarea
-                          placeholder="Atau ketik menu pencuci mulut..."
-                          className="w-full text-sm font-bold bg-white border border-stone-200 rounded-xl p-3 h-20 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none shadow-sm"
-                          value={meal.dessert_menu}
-                          disabled={isSaving[`${meal.id}-dessert_menu`]}
-                          onChange={(e) => updateMeal(meal.id, { dessert_menu: e.target.value })}
-                        />
-                         {isSaving[`${meal.id}-dessert_menu`] && (
-                            <div className="absolute top-3 right-3">
-                              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                            </div>
-                         )}
-                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -373,7 +336,7 @@ export default function MealPlanPage() {
       
       {/* Create Plan Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-md rounded-3xl p-8 border-none overflow-hidden">
+        <DialogContent className="w-[95vw] max-w-md rounded-3xl p-6 sm:p-8 border-none overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1.5 bg-primary" />
           <DialogHeader className="mb-6">
             <DialogTitle className="text-2xl font-black text-stone-900">Buat Pekan Baru</DialogTitle>
@@ -396,8 +359,8 @@ export default function MealPlanPage() {
             <Button variant="ghost" className="flex-1 h-12 rounded-2xl font-bold text-stone-400 hover:bg-stone-50" onClick={() => setIsCreateDialogOpen(false)}>
               Batal
             </Button>
-            <Button className="flex-1 h-12 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20" onClick={createNewPlan}>
-              Buat Jadwal
+            <Button disabled={isCreatingPlan} className="flex-1 h-12 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20" onClick={createNewPlan}>
+              {isCreatingPlan ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Merekap...</> : "Buat Jadwal"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -405,7 +368,7 @@ export default function MealPlanPage() {
 
       {/* Search external recipe dialog */}
       <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
-        <DialogContent className="max-w-2xl rounded-3xl p-8 border-none overflow-hidden max-h-[90vh] flex flex-col">
+        <DialogContent className="w-[95vw] max-w-2xl rounded-3xl p-6 sm:p-8 border-none overflow-hidden max-h-[90vh] flex flex-col">
           <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-500" />
           <DialogHeader className="mb-2 shrink-0">
             <DialogTitle className="text-2xl font-black text-stone-900">Cari Resep Online</DialogTitle>

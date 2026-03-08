@@ -13,6 +13,7 @@ import Ingredients from "@/pages/Ingredients";
 import MealPlan from "@/pages/MealPlan";
 import Costs from "@/pages/Costs";
 import Suppliers from "@/pages/Suppliers";
+import Menus from '@/pages/Menus'; // Added Menus import
 
 function App() {
   const { member, loading, isAdmin, hasHouseKey, confirmHouseKey } = useMember();
@@ -42,6 +43,7 @@ function App() {
           <Route path="/members" element={<Members />} />
           <Route path="/costs" element={<Costs />} />
           <Route path="/suppliers" element={<Suppliers />} />
+          <Route path="/menus" element={<Menus />} /> {/* Added Menus route */}
           
           {/* Admin Protected Routes */}
           <Route 
