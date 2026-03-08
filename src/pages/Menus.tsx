@@ -107,28 +107,35 @@ export default function Menus() {
     }
   };
 
-  const handleSaveEdit = async (e: React.FormEvent) => {
+  const handleSaveRecipe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingRecipe) return;
 
     try {
       setIsSavingEdit(true);
-      // Map frontend ingredients to expected backend structure
+      const isNew = editingRecipe.id === 0;
+      
       const payload = {
         name: editingRecipe.name,
+        description: editingRecipe.description,
         category: editingRecipe.category,
-        ingredients: editingRecipe.ingredients.map(ing => ({
-           ingredient_id: ing.ingredient_id || ing.id, // Fallback to id if it's already an active ingredient record
+        ingredients: (editingRecipe.ingredients || []).map(ing => ({
+           ingredient_id: ing.ingredient_id || (ing.id > 0 ? ing.id : null),
            quantity_per_person: parseFloat(ing.quantity_per_person.toString())
-        }))
+        })).filter(ing => ing.ingredient_id && ing.quantity_per_person > 0)
       };
       
-      await api.put(`/recipes/${editingRecipe.id}`, payload);
+      if (isNew) {
+        await api.post("/recipes", payload);
+      } else {
+        await api.put(`/recipes/${editingRecipe.id}`, payload);
+      }
+      
       setEditingRecipe(null);
       fetchRecipes();
-      toast.success("Resep berhasil diperbarui!");
+      toast.success(isNew ? "Resep berhasil ditambahkan!" : "Resep berhasil diperbarui!");
     } catch (err: any) {
-      toast.error("Gagal memperbarui resep: " + (err.data?.error || err.message));
+      toast.error("Gagal menyimpan resep: " + (err.data?.error || err.message));
     } finally {
       setIsSavingEdit(false);
     }
@@ -211,10 +218,14 @@ export default function Menus() {
               className="pl-9 w-full md:w-[250px] shadow-sm"
             />
           </div>
-          <Button onClick={() => setIsCookpadOpen(true)} className="shadow-sm font-bold tracking-wide">
+          <Button onClick={() => setIsCookpadOpen(true)} className="shadow-sm font-bold tracking-wide bg-emerald-600 hover:bg-emerald-700 text-white">
             <Link2 className="mr-2 h-4 w-4" /> Import Cookpad
           </Button>
-          <Button variant="outline" className="shadow-sm font-bold tracking-wide">
+          <Button 
+            onClick={() => setEditingRecipe({ id: 0, name: "", description: "", category: "Lauk", source_url: "", ingredients: [] })} 
+            variant="default" 
+            className="shadow-sm font-bold tracking-wide bg-orange-500 hover:bg-orange-600 text-white border-none"
+          >
             <Plus className="mr-2 h-4 w-4" /> Manual
           </Button>
         </div>
@@ -309,10 +320,13 @@ export default function Menus() {
       <Dialog open={!!editingRecipe} onOpenChange={(open) => !open && setEditingRecipe(null)}>
         <DialogContent className="w-[95vw] max-w-2xl rounded-3xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Menu Menu</DialogTitle>
+            <DialogTitle>{editingRecipe?.id === 0 ? "Tambah Menu Baru" : "Edit Menu"}</DialogTitle>
+            <DialogDescription>
+              {editingRecipe?.id === 0 ? "Masukkan detail menu dan bahan-bahan yang dibutuhkan." : "Perbarui informasi menu atau daftar bahan."}
+            </DialogDescription>
           </DialogHeader>
           {editingRecipe && (
-            <form onSubmit={handleSaveEdit} className="space-y-6 pt-4">
+            <form onSubmit={handleSaveRecipe} className="space-y-6 pt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nama Menu</Label>
@@ -338,6 +352,15 @@ export default function Menus() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Deskripsi</Label>
+                <Input 
+                  placeholder="Keterangan singkat..." 
+                  value={editingRecipe.description} 
+                  onChange={e => setEditingRecipe({ ...editingRecipe, description: e.target.value })} 
+                />
               </div>
 
               <div className="space-y-4">
@@ -430,7 +453,13 @@ export default function Menus() {
               <DialogFooter className="pt-6 mt-6 border-t border-stone-100">
                 <Button type="button" variant="ghost" onClick={() => setEditingRecipe(null)}>Batal</Button>
                 <Button type="submit" disabled={isSavingEdit} className="w-full sm:w-auto">
-                  {isSavingEdit ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : "Simpan Perubahan"}
+                  {isSavingEdit ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</>
+                  ) : editingRecipe.id === 0 ? (
+                    "Tambah Menu"
+                  ) : (
+                    "Simpan Perubahan"
+                  )}
                 </Button>
               </DialogFooter>
             </form>
