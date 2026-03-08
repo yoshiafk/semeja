@@ -25,7 +25,8 @@ router.put('/:id', async (req, res) => {
     dessert_menu, 
     main_course_recipe_id, 
     second_course_recipe_id, 
-    dessert_recipe_id 
+    dessert_recipe_id,
+    requires_rice
   } = req.body;
   
   const client = await pool.connect();
@@ -39,8 +40,9 @@ router.put('/:id', async (req, res) => {
         dessert_menu = COALESCE($3, dessert_menu),
         main_course_recipe_id = $4,
         second_course_recipe_id = $5,
-        dessert_recipe_id = $6
-       WHERE id = $7 RETURNING *`,
+        dessert_recipe_id = $6,
+        requires_rice = COALESCE($7, requires_rice)
+       WHERE id = $8 RETURNING *`,
       [
         main_course_menu, 
         second_course_menu, 
@@ -48,6 +50,7 @@ router.put('/:id', async (req, res) => {
         main_course_recipe_id || null, 
         second_course_recipe_id || null, 
         dessert_recipe_id || null, 
+        requires_rice,
         req.params.id
       ]
     );

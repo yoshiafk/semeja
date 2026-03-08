@@ -82,6 +82,7 @@ async function initDB() {
       ALTER TABLE meals DROP COLUMN IF EXISTS lunch_recipe_id;
       ALTER TABLE meals DROP COLUMN IF EXISTS dinner_menu;
       ALTER TABLE meals DROP COLUMN IF EXISTS dinner_recipe_id;
+      ALTER TABLE meals ADD COLUMN IF NOT EXISTS requires_rice BOOLEAN DEFAULT true;
 
       CREATE TABLE IF NOT EXISTS meal_ingredients (
         id SERIAL PRIMARY KEY,

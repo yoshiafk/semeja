@@ -16,6 +16,7 @@ interface Meal {
   second_course_menu: string;
   dessert_menu: string;
   participant_count: number;
+  requires_rice: boolean;
 }
 
 interface MealPlan {
@@ -167,6 +168,15 @@ export default function Dashboard() {
                         {meal.dessert_menu || <span className="text-stone-300 italic font-normal">Tidak ada menu</span>}
                       </p>
                     </div>
+
+                    {/* Rice Indicator */}
+                    {meal.requires_rice && (
+                      <div className="pt-3 border-t border-stone-100/50">
+                        <Badge variant="outline" className="bg-stone-50 text-stone-500 border-stone-200 font-bold text-[10px] py-1 px-3 rounded-lg">
+                          + Nasi Putih
+                        </Badge>
+                      </div>
+                    )}
                   </div>
 
                 <div className="flex items-center justify-between pt-4 border-t border-stone-100">

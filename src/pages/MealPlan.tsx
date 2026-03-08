@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Plus, Calendar, ChefHat, LayoutGrid } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { formatDate } from "@/lib/utils";
+import { formatDate, cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface Recipe {
@@ -27,6 +27,7 @@ interface Meal {
   second_course_recipe_id: number | null;
   dessert_menu: string;
   dessert_recipe_id: number | null;
+  requires_rice: boolean;
 }
 
 interface MealPlan {
@@ -299,6 +300,34 @@ export default function MealPlanPage() {
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+
+                    {/* Rice Toggle Section */}
+                    <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
+                       <div className="flex flex-col">
+                          <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none mb-1">Kebutuhan Pokok</span>
+                          <span className="text-sm font-bold text-stone-900">Sajikan Nasi Putih?</span>
+                       </div>
+                       <Button
+                         size="sm"
+                         variant={meal.requires_rice ? "default" : "outline"}
+                         className={cn(
+                           "h-9 px-4 rounded-xl font-bold transition-all",
+                           meal.requires_rice 
+                             ? "bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 text-white" 
+                             : "hover:bg-primary/5 hover:text-primary border-stone-200"
+                         )}
+                         disabled={isSaving[`${meal.id}-requires_rice`]}
+                         onClick={() => updateMeal(meal.id, { requires_rice: !meal.requires_rice })}
+                       >
+                         {isSaving[`${meal.id}-requires_rice`] ? (
+                           <Loader2 className="h-4 w-4 animate-spin text-stone-400 shrink-0" />
+                         ) : meal.requires_rice ? (
+                           "Ya"
+                         ) : (
+                           "Tidak"
+                         )}
+                       </Button>
                     </div>
                   </CardContent>
                 </Card>
