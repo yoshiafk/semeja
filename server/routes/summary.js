@@ -31,6 +31,39 @@ router.get('/:mealPlanId', async (req, res) => {
     const shoppingList = {};
     let weekTotal = 0;
 
+    // --- BATCH FETCH ALL REQUIRED DATA TO AVOID N+1 QUERIES ---
+    let manualIngredientRows = [];
+    const mealIds = meals.map(m => m.id);
+    if (mealIds.length > 0) {
+      const { rows } = await pool.query(
+        `SELECT mi.*, i.name, i.unit, i.price_per_unit, i.stock_quantity, i.category
+         FROM meal_ingredients mi
+         JOIN ingredients i ON mi.ingredient_id = i.id
+         WHERE mi.meal_id = ANY($1::int[])`,
+        [mealIds]
+      );
+      manualIngredientRows = rows;
+    }
+
+    const mainRecipeIds = meals.map(m => m.main_course_recipe_id).filter(id => id != null);
+    const secondRecipeIds = meals.map(m => m.second_course_recipe_id).filter(id => id != null);
+    const dessertRecipeIds = meals.map(m => m.dessert_recipe_id).filter(id => id != null);
+    const allRecipeIds = [...new Set([...mainRecipeIds, ...secondRecipeIds, ...dessertRecipeIds])];
+
+    let allRecipeIngredients = [];
+    if (allRecipeIds.length > 0) {
+      const { rows } = await pool.query(
+        `SELECT ri.*, i.price_per_unit, i.stock_quantity, i.category,
+                COALESCE(i.unit, ri.custom_unit) as unit
+         FROM recipe_ingredients ri
+         LEFT JOIN ingredients i ON ri.ingredient_id = i.id
+         WHERE ri.recipe_id = ANY($1::int[])`,
+        [allRecipeIds]
+      );
+      allRecipeIngredients = rows;
+    }
+    // ----------------------------------------------------------
+
     for (const meal of meals) {
       const pCount = parseInt(meal.participant_count) || 0;
       let dayCost = 0;
@@ -81,52 +114,24 @@ router.get('/:mealPlanId', async (req, res) => {
       };
 
       // 3. Process Manual Ingredients (meal_ingredients)
-      const { rows: manualIngredients } = await pool.query(
-        `SELECT mi.*, i.name, i.unit, i.price_per_unit, i.stock_quantity, i.category
-         FROM meal_ingredients mi
-         JOIN ingredients i ON mi.ingredient_id = i.id
-         WHERE mi.meal_id = $1`,
-        [meal.id]
-      );
-      
+      const manualIngredients = manualIngredientRows.filter(ing => ing.meal_id === meal.id);
       manualIngredients.forEach(ing => processIngredient(ing, ing.meal_type));
 
       // 4. Process Recipe Ingredients (Main Course - Lauk)
       if (meal.main_course_recipe_id) {
-         const { rows: mainRecipeIngs } = await pool.query(
-            `SELECT ri.*, i.price_per_unit, i.stock_quantity, i.category,
-                    COALESCE(i.unit, ri.custom_unit) as unit
-             FROM recipe_ingredients ri
-             LEFT JOIN ingredients i ON ri.ingredient_id = i.id
-             WHERE ri.recipe_id = $1`,
-            [meal.main_course_recipe_id]
-         );
+         const mainRecipeIngs = allRecipeIngredients.filter(ing => ing.recipe_id === meal.main_course_recipe_id);
          mainRecipeIngs.forEach(ing => processIngredient(ing, 'main'));
       }
 
       // 5. Process Recipe Ingredients (Second Course - Sayur)
       if (meal.second_course_recipe_id) {
-         const { rows: secondRecipeIngs } = await pool.query(
-            `SELECT ri.*, i.price_per_unit, i.stock_quantity, i.category,
-                    COALESCE(i.unit, ri.custom_unit) as unit
-             FROM recipe_ingredients ri
-             LEFT JOIN ingredients i ON ri.ingredient_id = i.id
-             WHERE ri.recipe_id = $1`,
-            [meal.second_course_recipe_id]
-         );
+         const secondRecipeIngs = allRecipeIngredients.filter(ing => ing.recipe_id === meal.second_course_recipe_id);
          secondRecipeIngs.forEach(ing => processIngredient(ing, 'second'));
       }
 
       // 6. Process Recipe Ingredients (Dessert - Pencuci Mulut)
       if (meal.dessert_recipe_id) {
-         const { rows: dessertRecipeIngs } = await pool.query(
-            `SELECT ri.*, i.price_per_unit, i.stock_quantity, i.category,
-                    COALESCE(i.unit, ri.custom_unit) as unit
-             FROM recipe_ingredients ri
-             LEFT JOIN ingredients i ON ri.ingredient_id = i.id
-             WHERE ri.recipe_id = $1`,
-            [meal.dessert_recipe_id]
-         );
+         const dessertRecipeIngs = allRecipeIngredients.filter(ing => ing.recipe_id === meal.dessert_recipe_id);
          dessertRecipeIngs.forEach(ing => processIngredient(ing, 'dessert'));
       }
 
@@ -204,31 +209,28 @@ router.get('/:mealPlanId', async (req, res) => {
 
     // Get cheapest suppliers for the required ingredients
     const finalShoppingList = [];
+    const ingredientIdsToFetch = formattedShoppingList.map(item => item.ingredient_id).filter(id => id != null);
+    
+    const supplierMap = {};
+    if (ingredientIdsToFetch.length > 0) {
+        const { rows: supplierRows } = await pool.query(
+            `SELECT DISTINCT ON (p.ingredient_id) 
+                p.ingredient_id, p.price_per_unit, s.name as supplier_name 
+             FROM purchases p
+             JOIN suppliers s ON p.supplier_id = s.id
+             WHERE p.ingredient_id = ANY($1::int[])
+             ORDER BY p.ingredient_id, p.price_per_unit ASC, p.purchased_at DESC`,
+            [ingredientIdsToFetch]
+        );
+        supplierRows.forEach(row => {
+            supplierMap[row.ingredient_id] = row.supplier_name;
+        });
+    }
+
     for (const item of formattedShoppingList) {
-       let cheapestSupplier = null;
-       
-       if (item.ingredient_id) {
-           const { rows: supplierRows } = await pool.query(
-               `SELECT p.price_per_unit, s.name as supplier_name 
-                FROM purchases p
-                JOIN suppliers s ON p.supplier_id = s.id
-                WHERE p.ingredient_id = $1
-                ORDER BY p.price_per_unit ASC
-                LIMIT 1`,
-               [item.ingredient_id]
-           );
-           
-           if (supplierRows.length > 0) {
-               cheapestSupplier = supplierRows[0].supplier_name;
-               // Optionally, if the user wants to use the cheapest historical price instead of the master ingredient price:
-               // Decide whether to override cost_to_buy based on historical best price or keep master price.
-               // We'll just provide the supplier name here as a hint.
-           }
-       }
-       
        finalShoppingList.push({
            ...item,
-           cheapest_supplier: cheapestSupplier
+           cheapest_supplier: item.ingredient_id ? (supplierMap[item.ingredient_id] || null) : null
        });
     }
 
