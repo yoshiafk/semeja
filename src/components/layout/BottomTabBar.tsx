@@ -90,7 +90,7 @@ export function BottomTabBar() {
 
       {/* Bottom Sheet for "More" links */}
       <Sheet open={isMoreOpen} onOpenChange={setIsMoreOpen}>
-        <SheetContent side="bottom" showCloseButton={false} className="rounded-t-3xl px-6 pt-4 pb-8 max-h-[60vh]">
+        <SheetContent side="bottom" showCloseButton={false} className="rounded-t-3xl px-6 pt-4 pb-24 max-h-[70vh]">
           {/* Drag handle indicator */}
           <div className="flex justify-center mb-4">
             <div className="w-10 h-1 rounded-full bg-stone-200" />
