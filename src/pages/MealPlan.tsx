@@ -210,9 +210,7 @@ export default function MealPlanPage() {
                           <SelectTrigger className="h-11 w-full sm:w-[85%] bg-white border-stone-200 rounded-full font-bold text-sm shadow-sm hover:bg-stone-50 transition-colors">
                             <div className="flex items-center truncate">
                                {isSaving[`${meal.id}-main_course_recipe_id`] ? <Loader2 className="mr-2.5 h-4 w-4 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="mr-2.5 h-4 w-4 text-stone-400 shrink-0" />}
-                               <span className="truncate pr-2">
-                                 {meal.main_course_recipe_id ? meal.main_course_menu : <span className="text-stone-400 italic font-medium">Pilih Menu...</span>}
-                               </span>
+                               <SelectValue placeholder="Pilih Menu..." />
                             </div>
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl border-stone-100 p-1">
@@ -251,9 +249,7 @@ export default function MealPlanPage() {
                           <SelectTrigger className="h-11 w-full sm:w-[85%] bg-white border-stone-200 rounded-full font-bold text-sm shadow-sm hover:bg-stone-50 transition-colors">
                             <div className="flex items-center truncate">
                                {isSaving[`${meal.id}-second_course_recipe_id`] ? <Loader2 className="mr-2.5 h-4 w-4 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="mr-2.5 h-4 w-4 text-stone-400 shrink-0" />}
-                               <span className="truncate pr-2">
-                                 {meal.second_course_recipe_id ? meal.second_course_menu : <span className="text-stone-400 italic font-medium">Pilih Menu...</span>}
-                               </span>
+                               <SelectValue placeholder="Pilih Menu..." />
                             </div>
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl border-stone-100 p-1 font-medium">
@@ -292,9 +288,7 @@ export default function MealPlanPage() {
                           <SelectTrigger className="h-11 w-full sm:w-[85%] bg-white border-stone-200 rounded-full font-bold text-sm shadow-sm hover:bg-stone-50 transition-colors">
                             <div className="flex items-center truncate">
                                {isSaving[`${meal.id}-dessert_recipe_id`] ? <Loader2 className="mr-2.5 h-4 w-4 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="mr-2.5 h-4 w-4 text-stone-400 shrink-0" />}
-                               <span className="truncate pr-2">
-                                 {meal.dessert_recipe_id ? meal.dessert_menu : <span className="text-stone-400 italic font-medium">Pilih Menu...</span>}
-                               </span>
+                               <SelectValue placeholder="Pilih Menu..." />
                             </div>
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl border-stone-100 p-1 font-medium">
