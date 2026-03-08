@@ -31,6 +31,7 @@ export default function Dashboard() {
   const [plan, setPlan] = useState<MealPlan | null>(null);
   const [participations, setParticipations] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  const [togglingMeals, setTogglingMeals] = useState<number[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -58,6 +59,7 @@ export default function Dashboard() {
   const toggleJoin = async (mealId: number) => {
     if (!member) return;
     const isJoined = participations.includes(mealId);
+    setTogglingMeals(prev => [...prev, mealId]);
     try {
       if (isJoined) {
         await api.delete(`/participations/${mealId}/${member.id}`);
@@ -79,6 +81,8 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error("Failed to toggle participation:", err);
+    } finally {
+      setTogglingMeals(prev => prev.filter(id => id !== mealId));
     }
   };
 
@@ -181,13 +185,17 @@ export default function Dashboard() {
                         ? "bg-primary hover:bg-primary/90 shadow-md shadow-primary/20" 
                         : "hover:bg-primary/5 hover:text-primary border-stone-200"
                     )}
+                    disabled={togglingMeals.includes(meal.id)}
                     onClick={() => toggleJoin(meal.id)}
                   >
-                    {participations.includes(meal.id) ? (
-                      <><Check className="mr-2 h-4 w-4 stroke-[3px]" /> Ikut!</>
+                    {togglingMeals.includes(meal.id) ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : participations.includes(meal.id) ? (
+                      <Check className="mr-2 h-4 w-4 stroke-[3px]" />
                     ) : (
-                      <><Plus className="mr-2 h-4 w-4 stroke-[3px]" /> Gabung</>
+                      <Plus className="mr-2 h-4 w-4 stroke-[3px]" />
                     )}
+                    {participations.includes(meal.id) ? "Ikut!" : "Gabung"}
                   </Button>
                 </div>
               </CardContent>
