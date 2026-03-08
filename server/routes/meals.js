@@ -19,19 +19,37 @@ router.get('/:mealPlanId', async (req, res) => {
 
 // PUT update a meal's menu and/or recipe
 router.put('/:id', async (req, res) => {
-  const { lunch_menu, dinner_menu, lunch_recipe_id, dinner_recipe_id } = req.body;
+  const { 
+    main_course_menu, 
+    second_course_menu, 
+    dessert_menu, 
+    main_course_recipe_id, 
+    second_course_recipe_id, 
+    dessert_recipe_id 
+  } = req.body;
+  
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     const { rows } = await client.query(
       `UPDATE meals SET 
-        lunch_menu = COALESCE($1, lunch_menu),
-        dinner_menu = COALESCE($2, dinner_menu),
-        lunch_recipe_id = $3,
-        dinner_recipe_id = $4
-       WHERE id = $5 RETURNING *`,
-      [lunch_menu, dinner_menu, lunch_recipe_id || null, dinner_recipe_id || null, req.params.id]
+        main_course_menu = COALESCE($1, main_course_menu),
+        second_course_menu = COALESCE($2, second_course_menu),
+        dessert_menu = COALESCE($3, dessert_menu),
+        main_course_recipe_id = $4,
+        second_course_recipe_id = $5,
+        dessert_recipe_id = $6
+       WHERE id = $7 RETURNING *`,
+      [
+        main_course_menu, 
+        second_course_menu, 
+        dessert_menu, 
+        main_course_recipe_id || null, 
+        second_course_recipe_id || null, 
+        dessert_recipe_id || null, 
+        req.params.id
+      ]
     );
     if (!rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Not found' }); }
 
@@ -39,24 +57,35 @@ router.put('/:id', async (req, res) => {
     // Clear existing meal_ingredients
     await client.query('DELETE FROM meal_ingredients WHERE meal_id = $1', [req.params.id]);
 
-    // Copy from lunch recipe
-    if (lunch_recipe_id) {
+    // Copy from main_course recipe
+    if (main_course_recipe_id) {
       await client.query(
         `INSERT INTO meal_ingredients (meal_id, ingredient_id, quantity_per_person, meal_type)
-         SELECT $1, ingredient_id, quantity_per_person, 'lunch'
+         SELECT $1, ingredient_id, quantity_per_person, 'main'
          FROM recipe_ingredients WHERE recipe_id = $2`,
-        [req.params.id, lunch_recipe_id]
+        [req.params.id, main_course_recipe_id]
       );
     }
 
-    // Copy from dinner recipe
-    if (dinner_recipe_id) {
+    // Copy from second_course recipe
+    if (second_course_recipe_id) {
       await client.query(
         `INSERT INTO meal_ingredients (meal_id, ingredient_id, quantity_per_person, meal_type)
-         SELECT $1, ingredient_id, quantity_per_person, 'dinner'
+         SELECT $1, ingredient_id, quantity_per_person, 'second'
          FROM recipe_ingredients WHERE recipe_id = $2
          ON CONFLICT (meal_id, ingredient_id, meal_type) DO UPDATE SET quantity_per_person = EXCLUDED.quantity_per_person`,
-        [req.params.id, dinner_recipe_id]
+        [req.params.id, second_course_recipe_id]
+      );
+    }
+
+    // Copy from dessert recipe
+    if (dessert_recipe_id) {
+      await client.query(
+        `INSERT INTO meal_ingredients (meal_id, ingredient_id, quantity_per_person, meal_type)
+         SELECT $1, ingredient_id, quantity_per_person, 'dessert'
+         FROM recipe_ingredients WHERE recipe_id = $2
+         ON CONFLICT (meal_id, ingredient_id, meal_type) DO UPDATE SET quantity_per_person = EXCLUDED.quantity_per_person`,
+        [req.params.id, dessert_recipe_id]
       );
     }
 

@@ -6,11 +6,14 @@ const { seed } = require('./seed');
 const membersRouter = require('./routes/members');
 const ingredientsRouter = require('./routes/ingredients');
 const recipesRouter = require('./routes/recipes');
+const recipeSearchRouter = require('./routes/recipe-search');
 const mealPlansRouter = require('./routes/meal-plans');
 const mealsRouter = require('./routes/meals');
 const participationsRouter = require('./routes/participations');
 const summaryRouter = require('./routes/summary');
 const authRouter = require('./routes/auth');
+const purchasesRouter = require('./routes/purchases');
+const suppliersRouter = require('./routes/suppliers');
 
 const app = express();
 
@@ -27,11 +30,14 @@ app.use(express.json());
 app.use('/api/members', membersRouter);
 app.use('/api/ingredients', ingredientsRouter);
 app.use('/api/recipes', recipesRouter);
+app.use('/api/recipe-search', recipeSearchRouter);
 app.use('/api/meal-plans', mealPlansRouter);
 app.use('/api/meals', mealsRouter);
 app.use('/api/participations', participationsRouter);
 app.use('/api/summary', summaryRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/purchases', purchasesRouter);
+app.use('/api/suppliers', suppliersRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

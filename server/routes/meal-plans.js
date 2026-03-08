@@ -63,12 +63,15 @@ router.post('/', async (req, res) => {
     const plan = rows[0];
 
     // Create 7 meal entries
+    const daysInIndonesian = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
     for (let i = 0; i < 7; i++) {
       const d = new Date(startDate);
       d.setDate(d.getDate() + i);
+      const dayName = daysInIndonesian[d.getDay()];
+      
       await client.query(
         'INSERT INTO meals (meal_plan_id, date, day_name) VALUES ($1, $2, $3)',
-        [plan.id, d.toISOString().split('T')[0], DAY_NAMES[i]]
+        [plan.id, d.toISOString().split('T')[0], dayName]
       );
     }
 

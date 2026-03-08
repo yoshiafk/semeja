@@ -4,6 +4,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Loader2, Receipt, TrendingUp, Users, ShoppingCart } from "lucide-react";
 import { formatRupiah } from "@/lib/utils";
 
@@ -13,8 +14,9 @@ interface CostSummary {
     meal_id: number;
     date: string;
     day_name: string;
-    lunch_menu: string;
-    dinner_menu: string;
+    main_course_menu: string;
+    second_course_menu: string;
+    dessert_menu: string;
     participant_count: number;
     total_cost: number;
     cost_per_person: number;
@@ -25,12 +27,16 @@ interface CostSummary {
     days_joined: number;
     total: number;
   }>;
+  total_shopping_cost: number;
   shopping_list: Array<{
     name: string;
     unit: string;
     total_quantity: number;
-    total_cost: number;
+    shortage_quantity: number;
+    has_enough_stock: boolean;
+    cost_to_buy: number;
     price_per_unit: number;
+    cheapest_supplier: string | null;
   }>;
 }
 
@@ -87,14 +93,20 @@ export default function Costs() {
         {/* Hero Section / Summary Box */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 bg-primary/5 p-8 rounded-3xl border border-primary/10 flex flex-col justify-center">
-            <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs mb-3">
-              <TrendingUp className="h-4 w-4" /> TOTAL PEKAN INI
+            <div className="flex justify-between items-start mb-3">
+               <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs">
+                 <TrendingUp className="h-4 w-4" /> BIAYA BELANJA PEKAN INI
+               </div>
+               <Badge variant="outline" className="bg-white text-stone-500 border-stone-200">
+                 Konsumsi Kotor: {formatRupiah(data.week_total)}
+               </Badge>
             </div>
             <div className="text-5xl font-black text-primary tracking-tight">
-              {formatRupiah(data.week_total)}
+              {formatRupiah(data.total_shopping_cost)}
             </div>
-            <p className="text-sm text-stone-500 mt-4 font-medium max-w-md">
-              Estimasi total biaya belanja untuk memenuhi kebutuhan menu {data.daily_breakdown.length} hari ke depan.
+            <p className="text-sm text-stone-500 mt-4 font-medium max-w-lg leading-relaxed">
+              Estimasi biaya ini <b>sudah dikurangi dengan bahan yang ada di stok dapur</b>.
+              Menghitung {data.daily_breakdown.length} hari ke depan untuk {data.member_totals.length} warga.
             </p>
           </div>
           
@@ -197,32 +209,50 @@ export default function Costs() {
                 <TableHeader className="bg-stone-50 border-b border-stone-100">
                   <TableRow>
                     <TableHead className="font-black uppercase text-[10px] tracking-widest h-14">Bahan Makanan</TableHead>
-                    <TableHead className="text-right font-black uppercase text-[10px] tracking-widest h-14">Jumlah</TableHead>
-                    <TableHead className="text-right font-black uppercase text-[10px] tracking-widest h-14">Total Biaya</TableHead>
+                    <TableHead className="text-right font-black uppercase text-[10px] tracking-widest h-14">Dibutuhkan</TableHead>
+                    <TableHead className="text-right font-black uppercase text-[10px] tracking-widest h-14">Beli Kekurangan</TableHead>
+                    <TableHead className="text-right font-black uppercase text-[10px] tracking-widest h-14">Estimasi Biaya</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data.shopping_list.map((ing, idx) => (
-                    <TableRow key={idx} className="hover:bg-primary/[0.02] transition-colors border-stone-100">
-                      <TableCell className="font-bold text-stone-700 py-4">{ing.name}</TableCell>
-                      <TableCell className="text-right font-bold text-stone-900 py-4">
-                        <span className="text-primary mr-1">
+                    <TableRow key={idx} className={`transition-colors border-stone-100 ${ing.has_enough_stock ? 'opacity-50 bg-stone-50/50 hover:bg-stone-50' : 'hover:bg-primary/[0.02]'}`}>
+                      <TableCell className="font-bold text-stone-700 py-4 flex flex-col gap-1">
+                        <span className={ing.has_enough_stock ? 'line-through decoration-stone-300' : ''}>{ing.name}</span>
+                        {ing.has_enough_stock ? (
+                          <span className="text-[9px] font-black tracking-widest uppercase text-emerald-600">Terpenuhi dari Stok</span>
+                        ) : ing.cheapest_supplier ? (
+                          <span className="text-[9px] font-bold tracking-widest uppercase text-blue-500">📍 Termurah di {ing.cheapest_supplier}</span>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-stone-500 py-4">
+                        <span className="mr-1">
                           {ing.total_quantity % 1 === 0 ? ing.total_quantity : ing.total_quantity.toFixed(2)}
                         </span>
-                        <span className="text-[10px] uppercase text-stone-400">{ing.unit}</span>
+                        <span className="text-[10px] uppercase">{ing.unit}</span>
                       </TableCell>
-                      <TableCell className="text-right font-black text-emerald-600 text-lg py-4">
-                        {formatRupiah(ing.total_cost)}
+                      <TableCell className="text-right font-black text-stone-900 py-4">
+                         {!ing.has_enough_stock ? (
+                           <>
+                              <span className="text-rose-600 mr-1">
+                                {ing.shortage_quantity % 1 === 0 ? ing.shortage_quantity : ing.shortage_quantity.toFixed(2)}
+                              </span>
+                              <span className="text-[10px] uppercase text-stone-400">{ing.unit}</span>
+                           </>
+                         ) : '-'}
+                      </TableCell>
+                      <TableCell className={`text-right font-black text-lg py-4 ${ing.has_enough_stock ? 'text-stone-300' : 'text-emerald-600'}`}>
+                        {formatRupiah(ing.cost_to_buy)}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </Card>
-            <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-3">
-              <div className="text-amber-500 text-lg">💡</div>
-              <p className="text-xs text-amber-800 font-medium leading-relaxed">
-                Tip: Daftar ini adalah kumpulan semua bahan yang dibutuhkan untuk menu pekan ini. Admin disarankan melakukan pengecekan stok di dapur sebelum berangkat belanja.
+            <div className="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-start gap-4">
+              <div className="text-blue-500 text-xl font-black mt-1">i</div>
+              <p className="text-xs text-blue-800 font-medium leading-relaxed">
+                Biaya di atas dihitung dengan mempertimbangkan jumlah stok saat ini. Kebutuhan yang sudah terpenuhi oleh stok gudang disorot warna <span className="text-emerald-600 font-bold uppercase tracking-wider text-[10px]">HIJAU</span> dan tidak ikut dihitung ke beban biaya belanja.
               </p>
             </div>
           </TabsContent>

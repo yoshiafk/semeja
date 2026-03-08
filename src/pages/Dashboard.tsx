@@ -6,14 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMember } from "@/hooks/useMember";
 import { cn, formatDate } from "@/lib/utils";
-import { Loader2, Plus, Check, CalendarDays, Utensils, Moon } from "lucide-react";
+import { Loader2, Plus, Check, CalendarDays, Utensils } from "lucide-react";
 
 interface Meal {
   id: number;
   date: string;
   day_name: string;
-  lunch_menu: string;
-  dinner_menu: string;
+  main_course_menu: string;
+  second_course_menu: string;
+  dessert_menu: string;
   participant_count: number;
 }
 
@@ -132,24 +133,37 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent className="pt-6 space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-stone-400 tracking-widest">
-                      <Utensils className="h-3 w-3" /> Makan Siang
+                  <div className="space-y-4">
+                    {/* Main Course */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-400 tracking-widest">
+                        <Utensils className="h-3 w-3" /> Menu Utama (Lauk)
+                      </div>
+                      <p className="font-bold text-stone-800 leading-tight">
+                        {meal.main_course_menu || <span className="text-stone-300 italic font-normal">Tidak ada menu</span>}
+                      </p>
                     </div>
-                    <p className="font-bold text-stone-800 leading-tight">
-                      {meal.lunch_menu || <span className="text-stone-300 italic font-normal">Tidak ada menu</span>}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-stone-400 tracking-widest">
-                      <Moon className="h-3 w-3" /> Makan Malam
+
+                    {/* Second Course */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-500 tracking-widest">
+                        <Utensils className="h-3 w-3" /> Sayuran
+                      </div>
+                      <p className="font-bold text-stone-800 leading-tight">
+                        {meal.second_course_menu || <span className="text-stone-300 italic font-normal">Tidak ada menu</span>}
+                      </p>
                     </div>
-                    <p className="font-bold text-stone-800 leading-tight">
-                      {meal.dinner_menu || <span className="text-stone-300 italic font-normal">Tidak ada menu</span>}
-                    </p>
+
+                    {/* Dessert */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase text-indigo-400 tracking-widest">
+                        <Utensils className="h-3 w-3" /> Pencuci Mulut
+                      </div>
+                      <p className="font-bold text-stone-800 leading-tight">
+                        {meal.dessert_menu || <span className="text-stone-300 italic font-normal">Tidak ada menu</span>}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
                 <div className="flex items-center justify-between pt-4 border-t border-stone-100">
                   <div className="flex flex-col">

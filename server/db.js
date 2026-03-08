@@ -55,12 +55,26 @@ async function initDB() {
         meal_plan_id INTEGER REFERENCES meal_plans(id) ON DELETE CASCADE,
         date DATE NOT NULL,
         day_name VARCHAR(20) NOT NULL,
-        lunch_menu VARCHAR(200) DEFAULT '',
-        lunch_recipe_id INTEGER REFERENCES recipes(id),
-        dinner_menu VARCHAR(200) DEFAULT '',
-        dinner_recipe_id INTEGER REFERENCES recipes(id),
+        main_course_menu VARCHAR(200) DEFAULT '',
+        main_course_recipe_id INTEGER REFERENCES recipes(id),
+        second_course_menu VARCHAR(200) DEFAULT '',
+        second_course_recipe_id INTEGER REFERENCES recipes(id),
+        dessert_menu VARCHAR(200) DEFAULT '',
+        dessert_recipe_id INTEGER REFERENCES recipes(id),
         UNIQUE(meal_plan_id, date)
       );
+
+      ALTER TABLE meals ADD COLUMN IF NOT EXISTS main_course_menu VARCHAR(200) DEFAULT '';
+      ALTER TABLE meals ADD COLUMN IF NOT EXISTS main_course_recipe_id INTEGER REFERENCES recipes(id);
+      ALTER TABLE meals ADD COLUMN IF NOT EXISTS second_course_menu VARCHAR(200) DEFAULT '';
+      ALTER TABLE meals ADD COLUMN IF NOT EXISTS second_course_recipe_id INTEGER REFERENCES recipes(id);
+      ALTER TABLE meals ADD COLUMN IF NOT EXISTS dessert_menu VARCHAR(200) DEFAULT '';
+      ALTER TABLE meals ADD COLUMN IF NOT EXISTS dessert_recipe_id INTEGER REFERENCES recipes(id);
+
+      ALTER TABLE meals DROP COLUMN IF EXISTS lunch_menu;
+      ALTER TABLE meals DROP COLUMN IF EXISTS lunch_recipe_id;
+      ALTER TABLE meals DROP COLUMN IF EXISTS dinner_menu;
+      ALTER TABLE meals DROP COLUMN IF EXISTS dinner_recipe_id;
 
       CREATE TABLE IF NOT EXISTS meal_ingredients (
         id SERIAL PRIMARY KEY,
@@ -79,6 +93,31 @@ async function initDB() {
       );
 
       ALTER TABLE members ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+
+      ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS stock_quantity DECIMAL(10,3) DEFAULT 0;
+      ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS min_stock_threshold DECIMAL(10,3) DEFAULT 0;
+      ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS last_restocked TIMESTAMP;
+
+      CREATE TABLE IF NOT EXISTS suppliers (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(200) NOT NULL UNIQUE,
+        location VARCHAR(300) DEFAULT '',
+        notes VARCHAR(500) DEFAULT ''
+      );
+
+      CREATE TABLE IF NOT EXISTS purchases (
+        id SERIAL PRIMARY KEY,
+        ingredient_id INTEGER REFERENCES ingredients(id) ON DELETE CASCADE,
+        supplier_id INTEGER REFERENCES suppliers(id) ON DELETE SET NULL,
+        quantity DECIMAL(10,3) NOT NULL,
+        total_price INTEGER NOT NULL,
+        price_per_unit INTEGER GENERATED ALWAYS AS (
+          CASE WHEN quantity > 0 THEN ROUND(total_price / quantity) ELSE 0 END
+        ) STORED,
+        purchased_at DATE DEFAULT CURRENT_DATE,
+        notes VARCHAR(300) DEFAULT '',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
     console.log('Database schema initialized');
   } finally {

@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, Home, ClipboardList, Users, Carrot, ReceiptText } from "lucide-react";
+import { User, LogOut, Home, ClipboardList, Users, Carrot, ReceiptText, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Header() {
@@ -13,6 +13,7 @@ export function Header() {
     { to: "/meal-plan", icon: ClipboardList, label: "Plan", adminOnly: true },
     { to: "/members", icon: Users, label: isAdmin ? "Members" : "Join" },
     { to: "/ingredients", icon: Carrot, label: "Ingredients", adminOnly: true },
+    { to: "/suppliers", icon: Store, label: "Vendor", adminOnly: true },
     { to: "/costs", icon: ReceiptText, label: "Costs" },
   ].filter(item => !item.adminOnly || isAdmin);
 
