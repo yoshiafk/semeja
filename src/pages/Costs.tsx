@@ -72,6 +72,8 @@ export default function Costs() {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
