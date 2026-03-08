@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Plus, Calendar, ChefHat, LayoutGrid } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { formatDate, cn } from "@/lib/utils";
+import { formatDate, cn, formatDayName, formatShortDate } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface Recipe {
@@ -167,18 +167,15 @@ export default function MealPlanPage() {
         {activePlan ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {activePlan.meals.map((meal) => {
-               // English day name format to match screenshot exactly
-               const englishDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-               const mealDate = new Date(meal.date);
-               const engDayName = englishDays[mealDate.getDay()];
-               const formattedDateStr = `${mealDate.getDate()} ${mealDate.toLocaleDateString('en-US', { month: 'short' })}`;
+               const dayName = formatDayName(meal.date);
+               const formattedDateStr = formatShortDate(meal.date);
 
                return (
                 <Card key={meal.id} className="border-stone-100 shadow-sm hover:shadow-md transition-shadow rounded-3xl overflow-hidden group bg-white">
                   <CardHeader className="pb-2 pt-6 px-6">
                     <div className="flex items-start justify-between">
                       <div className="flex flex-col gap-0.5">
-                         <CardTitle className="text-[22px] font-black tracking-tight text-stone-900">{engDayName}</CardTitle>
+                         <CardTitle className="text-[22px] font-black tracking-tight text-stone-900">{dayName}</CardTitle>
                          <CardDescription className="text-sm font-bold text-emerald-500">{formattedDateStr}</CardDescription>
                       </div>
                       <Calendar className="h-5 w-5 text-stone-200" />

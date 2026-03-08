@@ -23,6 +23,21 @@ export function formatDate(dateStr: string) {
   }).format(date);
 }
 
+export function formatDayName(dateStr: string) {
+  const date = new Date(dateStr);
+  return new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+  }).format(date);
+}
+
+export function formatShortDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "short",
+  }).format(date);
+}
+
 export function getWeekDates(startDateStr: string) {
   const dates = [];
   const start = new Date(startDateStr);
