@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Plus, Search, Filter, Pencil, Trash2, Carrot } from "lucide-react";
 import { formatRupiah } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Ingredient {
   id: number;
@@ -89,13 +90,15 @@ export default function Ingredients() {
     try {
       if (currentIng.id) {
         await api.put(`/ingredients/${currentIng.id}`, currentIng);
+        toast.success("Bahan berhasil diperbarui!");
       } else {
         await api.post("/ingredients", currentIng);
+        toast.success("Bahan baru berhasil ditambahkan!");
       }
       setIsDialogOpen(false);
       fetchIngredients();
     } catch (err) {
-      alert("Gagal menyimpan: " + err);
+      toast.error("Gagal menyimpan: " + err);
     }
   };
 
@@ -104,8 +107,9 @@ export default function Ingredients() {
     try {
       await api.delete(`/ingredients/${id}`);
       fetchIngredients();
+      toast.success("Bahan berhasil dihapus!");
     } catch (err) {
-      alert("Gagal menghapus: " + err);
+      toast.error("Gagal menghapus: " + err);
     }
   };
 
@@ -115,11 +119,12 @@ export default function Ingredients() {
       await api.post("/purchases", purchaseData);
       setIsPurchaseDialogOpen(false);
       fetchIngredients(); // Refresh to get updated stock
+      toast.success("Pembelian berhasil dicatat!");
       if (expandedIngredientId === purchaseData.ingredient_id) {
         fetchHistory(purchaseData.ingredient_id);
       }
     } catch (err) {
-      alert("Gagal mencatat pembelian: " + err);
+      toast.error("Gagal mencatat pembelian: " + err);
     }
   };
 
@@ -132,8 +137,9 @@ export default function Ingredients() {
       });
       setIsStockDialogOpen(false);
       fetchIngredients();
+      toast.success("Stok berhasil disesuaikan!");
     } catch (err) {
-      alert("Gagal menyesuaikan stok: " + err);
+      toast.error("Gagal menyesuaikan stok: " + err);
     }
   };
 

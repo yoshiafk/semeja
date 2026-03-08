@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ShieldCheck, UserCheck, Trash2, CheckCircle2, Circle, Users, LayoutDashboard } from "lucide-react";
+import { toast } from "sonner";
 
 interface Member {
   id: number;
@@ -59,8 +60,9 @@ export default function Members() {
         requestedBy: currentMember.name
       });
       setMembers(members.map(m => m.id === targetId ? { ...m, role: newRole as any } : m));
+      toast.success(`Role ${members.find(m => m.id === targetId)?.name} berhasil diubah.`);
     } catch (err) {
-      alert("Gagal update role: " + err);
+      toast.error("Gagal update role: " + err);
     }
   };
 
@@ -69,8 +71,9 @@ export default function Members() {
     try {
       await api.delete(`/members/${targetId}`);
       setMembers(members.filter(m => m.id !== targetId));
+      toast.success("Warga berhasil dihapus.");
     } catch (err) {
-      alert("Gagal hapus: " + err);
+      toast.error("Gagal hapus: " + err);
     }
   };
 

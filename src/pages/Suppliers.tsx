@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Search, MapPin, Search as SearchIcon, FileText, CalendarDays } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface Supplier {
   id: number;
@@ -50,8 +51,9 @@ export default function Suppliers() {
       await api.put(`/suppliers/${currentSupplier.id}`, currentSupplier);
       setIsDialogOpen(false);
       fetchSuppliers();
+      toast.success("Data supplier berhasil diperbarui!");
     } catch (err) {
-      alert("Gagal menyimpan: " + err);
+      toast.error("Gagal menyimpan: " + err);
     }
   };
 

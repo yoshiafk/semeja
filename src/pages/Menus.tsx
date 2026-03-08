@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Link2, Plus, Edit2, Trash2, Search, Utensils, Carrot, IceCream, X } from "lucide-react";
+import { toast } from "sonner";
 
 interface Recipe {
   id: number;
@@ -68,7 +69,7 @@ export default function Menus() {
       const data = await api.get<Recipe[]>("/recipes");
       setRecipes(data);
     } catch (err: any) {
-      alert("Error: " + err.message);
+      toast.error("Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -84,9 +85,9 @@ export default function Menus() {
       setIsCookpadOpen(false);
       setCookpadUrl("");
       fetchRecipes();
-      alert("Resep berhasil diimport!");
+      toast.success("Resep berhasil diimport!");
     } catch (err: any) {
-      alert("Gagal mengimport resep: " + (err.data?.error || err.message));
+      toast.error("Gagal mengimport resep: " + (err.data?.error || err.message));
     } finally {
       setIsImporting(false);
     }
@@ -98,8 +99,9 @@ export default function Menus() {
       setIsDeleting(id);
       await api.delete(`/recipes/${id}`);
       fetchRecipes();
+      toast.success("Resep berhasil dihapus!");
     } catch (err: any) {
-      alert("Gagal menghapus: " + err.message);
+      toast.error("Gagal menghapus: " + err.message);
     } finally {
       setIsDeleting(null);
     }
@@ -124,9 +126,9 @@ export default function Menus() {
       await api.put(`/recipes/${editingRecipe.id}`, payload);
       setEditingRecipe(null);
       fetchRecipes();
-      alert("Resep berhasil diperbarui!");
+      toast.success("Resep berhasil diperbarui!");
     } catch (err: any) {
-      alert("Gagal memperbarui resep: " + (err.data?.error || err.message));
+      toast.error("Gagal memperbarui resep: " + (err.data?.error || err.message));
     } finally {
       setIsSavingEdit(false);
     }

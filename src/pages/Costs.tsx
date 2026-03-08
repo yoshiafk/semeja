@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface CostSummary {
   week_total: number;
@@ -115,6 +116,7 @@ export default function Costs() {
       });
       setIsPurchaseOpen(false);
       setFormData({ supplier_name: "", quantity: "", total_price: "", notes: "" });
+      toast.success("Pembelian berhasil dicatat dan ditagihkan!");
       
       // Refresh to get the new actual costs
       setLoading(true);
@@ -122,7 +124,7 @@ export default function Costs() {
       setData(summary);
       setLoading(false);
     } catch (err: any) {
-      alert("Gagal mencatat: " + (err.error || err.message));
+      toast.error("Gagal mencatat: " + (err.error || err.message));
       setIsSaving(false);
     }
   };

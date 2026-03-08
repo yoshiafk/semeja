@@ -9,6 +9,7 @@ import { Loader2, Plus, Calendar, ChefHat, LayoutGrid } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Recipe {
   id: number;
@@ -83,8 +84,9 @@ export default function MealPlanPage() {
       await api.post("/meal-plans", { week_start: newPlanStartDate });
       setIsCreateDialogOpen(false);
       fetchData();
+      toast.success("Jadwal pekan baru berhasil dibuat!");
     } catch (err) {
-      alert("Gagal membuat plan: " + err);
+      toast.error("Gagal membuat plan: " + err);
     } finally {
       setIsCreatingPlan(false);
     }
