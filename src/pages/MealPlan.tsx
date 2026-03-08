@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Calendar, ChefHat, LayoutGrid } from "lucide-react";
+import { Loader2, Plus, Calendar, ChefHat, LayoutGrid, Archive, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { formatDate, cn, formatDayName, formatShortDate } from "@/lib/utils";
@@ -45,6 +45,8 @@ export default function MealPlanPage() {
   const [activePlan, setActivePlan] = useState<MealPlan | null>(null);
   const [isSaving, setIsSaving] = useState<Record<string, boolean>>({});
   const [isCreatingPlan, setIsCreatingPlan] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // State for creating a new plan
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -127,6 +129,35 @@ export default function MealPlanPage() {
     }
   };
 
+  const archivePlan = async () => {
+    if (!activePlan) return;
+    try {
+      setIsUpdatingStatus(true);
+      await api.put(`/meal-plans/${activePlan.id}`, { status: 'archived' });
+      toast.success("Pekan berhasil diarsipkan!");
+      fetchData();
+    } catch (err) {
+      toast.error("Gagal mengarsipkan: " + err);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const deletePlan = async () => {
+    if (!activePlan) return;
+    try {
+      setIsUpdatingStatus(true);
+      await api.delete(`/meal-plans/${activePlan.id}`);
+      toast.success("Pekan berhasil dihapus!");
+      setIsDeleteDialogOpen(false);
+      fetchData();
+    } catch (err) {
+      toast.error("Gagal menghapus: " + err);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   if (loading) {
     return (
       <PageContainer>
@@ -145,7 +176,7 @@ export default function MealPlanPage() {
             <h1 className="text-3xl font-black tracking-tight text-stone-900">Atur Jadwal Makan</h1>
             <p className="text-stone-500 font-medium">Klik menu untuk memperbarui atau pilih resep untuk kalkulasi otomatis.</p>
           </div>
-           <div className="flex items-center gap-3">
+           <div className="flex flex-wrap items-center gap-3">
              <Select value={activePlan?.id.toString()} onValueChange={(v) => setActivePlan(plans.find(p => p.id.toString() === v) || null)}>
                 <SelectTrigger className="h-10 w-[200px] bg-stone-50 border-stone-100 rounded-full font-bold shadow-none text-xs">
                   <SelectValue placeholder="Pilih Pekan" />
@@ -153,12 +184,66 @@ export default function MealPlanPage() {
                 <SelectContent className="rounded-2xl border-stone-200">
                   {plans.map(p => (
                     <SelectItem key={p.id} value={p.id.toString()} className="font-medium">
-                      {formatDate(p.week_start)}
+                      {formatDate(p.week_start)} {p.status === 'archived' ? '(Arsip)' : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
              </Select>
-             <Button onClick={() => setIsCreateDialogOpen(true)} className="h-10 px-6 rounded-full font-black uppercase text-[10px] tracking-widest shadow-none bg-emerald-600 hover:bg-emerald-700">
+             
+             {activePlan && activePlan.status === 'active' && (
+               <Button 
+                variant="outline" 
+                size="sm"
+                onClick={archivePlan}
+                disabled={isUpdatingStatus}
+                className="h-10 px-6 rounded-full font-black uppercase text-[10px] tracking-widest border-stone-100 text-stone-400 hover:text-amber-600 hover:bg-amber-50 gap-2"
+               >
+                 {isUpdatingStatus ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Archive className="h-3.5 w-3.5" />}
+                 Arsipkan
+               </Button>
+             )}
+
+             {activePlan && (
+               <>
+                 <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    className="h-10 w-10 rounded-full text-stone-300 hover:text-rose-600 hover:bg-rose-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+
+                  <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                    <DialogContent className="w-[95vw] max-w-md rounded-3xl p-6 sm:p-8 border-none overflow-hidden">
+                      <div className="absolute top-0 left-0 w-full h-1.5 bg-rose-500" />
+                      <DialogHeader className="mb-6">
+                        <DialogTitle className="text-2xl font-black text-stone-900">Hapus Jadwal Pekan?</DialogTitle>
+                        <DialogDescription className="font-bold text-stone-400 uppercase text-[10px] tracking-widest">
+                          Tindakan ini tidak dapat dibatalkan
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="py-4 text-stone-600 font-medium">
+                        Seluruh data menu dan partisipasi pada pekan ini akan dihapus secara permanen.
+                      </div>
+                      <DialogFooter className="mt-8 flex gap-3">
+                        <Button variant="ghost" className="flex-1 h-12 rounded-2xl font-bold text-stone-400 hover:bg-stone-50" onClick={() => setIsDeleteDialogOpen(false)}>
+                          Batal
+                        </Button>
+                        <Button 
+                          disabled={isUpdatingStatus} 
+                          className="flex-1 h-12 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-rose-200 bg-rose-600 hover:bg-rose-700" 
+                          onClick={deletePlan}
+                        >
+                          {isUpdatingStatus ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Ya, Hapus Permanen"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+               </>
+             )}
+
+             <Button onClick={() => setIsCreateDialogOpen(true)} className="h-10 px-6 rounded-full font-black uppercase text-[10px] tracking-widest shadow-none bg-emerald-600 hover:bg-emerald-700 ml-auto">
                 <Plus className="mr-2 h-3.5 w-3.5 stroke-[3px]" /> Buat Pekan Baru
              </Button>
           </div>

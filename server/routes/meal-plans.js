@@ -23,22 +23,23 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET active meal plan
+// GET active meal plans
 router.get('/active', async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      "SELECT * FROM meal_plans WHERE status = 'active' ORDER BY week_start DESC LIMIT 1"
+    const { rows: plans } = await pool.query(
+      "SELECT * FROM meal_plans WHERE status = 'active' ORDER BY week_start ASC"
     );
-    if (!rows.length) return res.json(null);
-    const plan = rows[0];
-    const { rows: meals } = await pool.query(
-      `SELECT m.*,
-        (SELECT COUNT(*) FROM participations p WHERE p.meal_id = m.id) as participant_count
-       FROM meals m WHERE m.meal_plan_id = $1 ORDER BY m.date`,
-      [plan.id]
-    );
-    plan.meals = meals;
-    res.json(plan);
+    
+    for (const plan of plans) {
+      const { rows: meals } = await pool.query(
+        `SELECT m.*,
+          (SELECT COUNT(*) FROM participations p WHERE p.meal_id = m.id) as participant_count
+         FROM meals m WHERE m.meal_plan_id = $1 ORDER BY m.date`,
+        [plan.id]
+      );
+      plan.meals = meals;
+    }
+    res.json(plans);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

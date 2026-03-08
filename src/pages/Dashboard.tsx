@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useMember } from "@/hooks/useMember";
 import { cn, formatDate, formatDayName, formatShortDate } from "@/lib/utils";
 import { Loader2, Plus, Check, CalendarDays, Utensils } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Meal {
   id: number;
@@ -29,31 +30,54 @@ interface MealPlan {
 
 export default function Dashboard() {
   const { member } = useMember();
+  const [plans, setPlans] = useState<MealPlan[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [plan, setPlan] = useState<MealPlan | null>(null);
   const [participations, setParticipations] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [togglingMeals, setTogglingMeals] = useState<number[]>([]);
 
   useEffect(() => {
-    fetchData();
+    fetchActivePlans();
   }, [member]);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (selectedPlanId) {
+       const selected = plans.find(p => p.id.toString() === selectedPlanId);
+       if (selected) {
+         setPlan(selected);
+         fetchParticipations(selected.id);
+       }
+    }
+  }, [selectedPlanId, plans]);
+
+  const fetchActivePlans = async () => {
     try {
       setLoading(true);
-      const activePlan = await api.get<MealPlan>("/meal-plans/active");
-      if (activePlan) {
-        setPlan(activePlan);
-        const userParts = await api.get<any[]>(`/participations/${activePlan.id}`);
-        const mealIds = userParts
-          .filter((p) => p.member_id === member?.id)
-          .map((p) => p.meal_id);
-        setParticipations(mealIds);
+      const activePlans = await api.get<MealPlan[]>("/meal-plans/active");
+      setPlans(activePlans);
+      if (activePlans.length > 0) {
+        setSelectedPlanId(activePlans[0].id.toString());
+      } else {
+        setPlan(null);
       }
     } catch (err) {
-      console.error("Failed to fetch dashboard data:", err);
+      console.error("Failed to fetch plans:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchParticipations = async (planId: number) => {
+    if (!member) return;
+    try {
+      const userParts = await api.get<any[]>(`/participations/${planId}`);
+      const mealIds = userParts
+        .filter((p) => p.member_id === member?.id)
+        .map((p) => p.meal_id);
+      setParticipations(mealIds);
+    } catch (err) {
+      console.error("Failed to fetch participations:", err);
     }
   };
 
@@ -114,16 +138,32 @@ export default function Dashboard() {
   return (
     <PageContainer>
       <div className="space-y-6">
-        <div className="flex items-center justify-between pb-2 border-b border-stone-100">
+        <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 gap-6 border-b border-stone-100">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-stone-900">Menu Pekanan</h1>
+            <h1 className="text-3xl font-black tracking-tight text-stone-900 leading-none mb-2">Menu Pekanan</h1>
             <p className="text-stone-500 font-medium">
               {formatDate(plan.week_start)} — {formatDate(plan.week_end)}
             </p>
           </div>
-          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 uppercase font-black text-[10px] tracking-widest">
-            {plan.status.toUpperCase()}
-          </Badge>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+             {plans.length > 1 && (
+               <Select value={selectedPlanId || ""} onValueChange={setSelectedPlanId}>
+                  <SelectTrigger className="h-11 w-[220px] bg-stone-50 border-stone-100 rounded-full font-bold shadow-none text-xs">
+                    <SelectValue placeholder="Pilih Pekan" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-stone-200">
+                    {plans.map(p => (
+                      <SelectItem key={p.id} value={p.id.toString()} className="font-medium">
+                        {formatDate(p.week_start)} {p.id === plans[0].id ? '(Pekan Ini)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+               </Select>
+             )}
+             <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-6 py-2 uppercase font-black text-[10px] tracking-widest rounded-full">
+               {plan.status.toUpperCase()}
+             </Badge>
+          </div>
         </div>
 
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">

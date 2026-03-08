@@ -155,13 +155,26 @@ export default function Costs() {
                 <SelectValue placeholder="Pilih Pekan" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-stone-200 shadow-xl">
-                {plans.map((p) => (
-                  <SelectItem key={p.id} value={p.id.toString()} className="font-medium rounded-lg">
-                    Pekan: {format(new Date(p.week_start), "d MMM", { locale: id })} -{" "}
-                    {format(new Date(p.week_end), "d MMM yyyy", { locale: id })}
-                    {p.status === 'active' && <span className="ml-2 text-[10px] text-emerald-600 font-black uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-full">Aktif</span>}
-                  </SelectItem>
-                ))}
+                 <div className="px-2 py-1.5 text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none mb-1">Pekan Aktif</div>
+                 {plans.filter(p => p.status === 'active').map((p) => (
+                    <SelectItem key={p.id} value={p.id.toString()} className="font-medium rounded-lg">
+                      {format(new Date(p.week_start), "d MMM", { locale: id })} -{" "}
+                      {format(new Date(p.week_end), "d MMM yyyy", { locale: id })}
+                      <span className="ml-2 text-[9px] text-emerald-600 font-black uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-full">Aktif</span>
+                    </SelectItem>
+                  ))}
+                  
+                  {plans.some(p => p.status === 'archived') && (
+                    <>
+                      <div className="px-2 py-1.5 mt-2 border-t border-stone-100 text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none mb-1">Riwayat (Arsip)</div>
+                      {plans.filter(p => p.status === 'archived').map((p) => (
+                        <SelectItem key={p.id} value={p.id.toString()} className="font-medium rounded-lg text-stone-500">
+                          {format(new Date(p.week_start), "d MMM", { locale: id })} -{" "}
+                          {format(new Date(p.week_end), "d MMM yyyy", { locale: id })}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
               </SelectContent>
             </Select>
           </div>
