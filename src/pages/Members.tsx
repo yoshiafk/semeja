@@ -145,7 +145,7 @@ export default function Members() {
                               )}
                             </div>
                           </TableCell>
-                          {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => {
+                          {["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"].map(day => {
                             const joined = userParts.some(p => p.day_name === day);
                             return (
                               <TableCell key={day} className="text-center p-0">
