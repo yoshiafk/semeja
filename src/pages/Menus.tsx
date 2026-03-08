@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Link2, Plus, Edit2, Trash2, Search, Utensils, Carrot, IceCream } from "lucide-react";
+import { Loader2, Link2, Plus, Edit2, Trash2, Search, Utensils, Carrot, IceCream, X } from "lucide-react";
 
 interface Recipe {
   id: number;
@@ -21,7 +21,15 @@ interface Recipe {
     name: string;
     quantity_per_person: number;
     unit: string;
+    ingredient_id?: number; // Added to map back to ingredients table
   }>;
+}
+
+interface Ingredient {
+  id: number;
+  name: string;
+  unit: string;
+  category: string;
 }
 
 export default function Menus() {
@@ -35,9 +43,24 @@ export default function Menus() {
   const [isImporting, setIsImporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
 
+  // Edit State
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
+
   useEffect(() => {
     fetchRecipes();
+    fetchIngredients();
   }, []);
+
+  const fetchIngredients = async () => {
+    try {
+      const data = await api.get<Ingredient[]>("/ingredients");
+      setAvailableIngredients(data);
+    } catch (err: any) {
+      console.error("Failed to load ingredients: " + err.message);
+    }
+  };
 
   const fetchRecipes = async () => {
     try {
@@ -82,6 +105,33 @@ export default function Menus() {
     }
   };
 
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRecipe) return;
+
+    try {
+      setIsSavingEdit(true);
+      // Map frontend ingredients to expected backend structure
+      const payload = {
+        name: editingRecipe.name,
+        category: editingRecipe.category,
+        ingredients: editingRecipe.ingredients.map(ing => ({
+           ingredient_id: ing.ingredient_id || ing.id, // Fallback to id if it's already an active ingredient record
+           quantity_per_person: parseFloat(ing.quantity_per_person.toString())
+        }))
+      };
+      
+      await api.put(`/recipes/${editingRecipe.id}`, payload);
+      setEditingRecipe(null);
+      fetchRecipes();
+      alert("Resep berhasil diperbarui!");
+    } catch (err: any) {
+      alert("Gagal memperbarui resep: " + (err.data?.error || err.message));
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const filteredRecipes = recipes.filter(r => r.name.toLowerCase().includes(search.toLowerCase()));
   const laukRecipes = filteredRecipes.filter(r => r.category === 'Lauk' || !r.category);
   const sayurRecipes = filteredRecipes.filter(r => r.category === 'Sayur');
@@ -101,7 +151,12 @@ export default function Menus() {
             {!recipe.source_url && <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Manual Entry</p>}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="h-8 w-8 text-stone-400 hover:text-stone-900" onClick={() => {/* TODO Edit */}}>
+            <Button 
+                variant="outline" 
+                size="icon" 
+                className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50 border-amber-200" 
+                onClick={() => setEditingRecipe(recipe)}
+            >
               <Edit2 className="h-4 w-4" />
             </Button>
             <Button 
@@ -245,6 +300,139 @@ export default function Menus() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Recipe Dialog */}
+      <Dialog open={!!editingRecipe} onOpenChange={(open) => !open && setEditingRecipe(null)}>
+        <DialogContent className="w-[95vw] max-w-2xl rounded-3xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Menu Menu</DialogTitle>
+          </DialogHeader>
+          {editingRecipe && (
+            <form onSubmit={handleSaveEdit} className="space-y-6 pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nama Menu</Label>
+                  <Input 
+                    required 
+                    value={editingRecipe.name} 
+                    onChange={e => setEditingRecipe({ ...editingRecipe, name: e.target.value })} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Kategori</Label>
+                  <Select 
+                    value={editingRecipe.category} 
+                    onValueChange={(val: any) => setEditingRecipe({ ...editingRecipe, category: val })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Lauk">Lauk Utama</SelectItem>
+                      <SelectItem value="Sayur">Sayuran</SelectItem>
+                      <SelectItem value="Dessert">Pencuci Mulut / Dessert</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                   <Label className="text-base font-bold">Daftar Bahan Makanan</Label>
+                   <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 font-bold text-blue-600 border-blue-200 hover:bg-blue-50"
+                      onClick={() => setEditingRecipe({
+                          ...editingRecipe, 
+                          ingredients: [...(editingRecipe.ingredients || []), { id: Date.now() * -1, name: '', quantity_per_person: 1, unit: '' }]
+                      })}
+                   >
+                     <Plus className="h-4 w-4 mr-1" /> Tambah Bahan
+                   </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  {(editingRecipe.ingredients || []).map((ing, idx) => {
+                    const isNew = ing.id < 0; // Negative ID means it's a new row added by the user in this session
+                    return (
+                      <div key={idx} className="flex items-center gap-3 p-3 bg-stone-50 rounded-xl border border-stone-100">
+                        <div className="flex-1">
+                          {isNew ? (
+                             <Select 
+                                value={ing.ingredient_id?.toString() || ""}
+                                onValueChange={(val) => {
+                                   const selected = availableIngredients.find(a => a.id.toString() === val);
+                                   if (selected) {
+                                      const newIngs = [...editingRecipe.ingredients];
+                                      newIngs[idx] = { ...newIngs[idx], ingredient_id: selected.id, name: selected.name, unit: selected.unit };
+                                      setEditingRecipe({ ...editingRecipe, ingredients: newIngs });
+                                   }
+                                }}
+                             >
+                                <SelectTrigger className="h-9 bg-white">
+                                  <SelectValue placeholder="Pilih bahan baku..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                   {availableIngredients.map(a => (
+                                     <SelectItem key={a.id} value={a.id.toString()}>{a.name} ({a.unit})</SelectItem>
+                                   ))}
+                                </SelectContent>
+                             </Select>
+                          ) : (
+                             <div className="font-bold text-stone-700 text-sm pl-2">{ing.name} <span className="text-stone-400 font-normal ml-1">({ing.unit})</span></div>
+                          )}
+                        </div>
+                        <div className="w-[120px]">
+                           <Input 
+                             type="number" 
+                             step="0.01" 
+                             required
+                             min="0"
+                             value={ing.quantity_per_person}
+                             onChange={(e) => {
+                               const newIngs = [...editingRecipe.ingredients];
+                               newIngs[idx].quantity_per_person = parseFloat(e.target.value) || 0;
+                               setEditingRecipe({ ...editingRecipe, ingredients: newIngs });
+                             }}
+                             className="h-9 bg-white"
+                           />
+                        </div>
+                        <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-stone-400 hover:text-red-500 hover:bg-red-50"
+                            onClick={() => {
+                               const newIngs = [...editingRecipe.ingredients];
+                               newIngs.splice(idx, 1);
+                               setEditingRecipe({ ...editingRecipe, ingredients: newIngs });
+                            }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                  {(!editingRecipe.ingredients || editingRecipe.ingredients.length === 0) && (
+                     <div className="text-center py-6 text-stone-400 text-sm font-medium italic">
+                        Belum ada bahan makanan yang terdaftar.
+                     </div>
+                  )}
+                </div>
+              </div>
+
+              <DialogFooter className="pt-6 mt-6 border-t border-stone-100">
+                <Button type="button" variant="ghost" onClick={() => setEditingRecipe(null)}>Batal</Button>
+                <Button type="submit" disabled={isSavingEdit} className="w-full sm:w-auto">
+                  {isSavingEdit ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : "Simpan Perubahan"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </PageContainer>

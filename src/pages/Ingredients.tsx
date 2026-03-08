@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Search, Filter, Pencil, Trash2, Carrot, ChefHat } from "lucide-react";
+import { Loader2, Plus, Search, Filter, Pencil, Trash2, Carrot } from "lucide-react";
 import { formatRupiah } from "@/lib/utils";
 
 interface Ingredient {
@@ -161,11 +161,7 @@ export default function Ingredients() {
     }
   };
 
-  const getStockBadgeColor = (stock: number, threshold: number) => {
-    if (stock <= 0) return "bg-rose-100 text-rose-700 border-rose-200";
-    if (stock <= threshold) return "bg-amber-100 text-amber-700 border-amber-200";
-    return "bg-emerald-100 text-emerald-700 border-emerald-200";
-  };
+
 
   const filtered = ingredients.filter(ing => {
     const matchesSearch = ing.name.toLowerCase().includes(search.toLowerCase());
@@ -239,117 +235,131 @@ export default function Ingredients() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filtered.map(ing => (
-              <Card key={ing.id} className="border-stone-200 hover:border-primary/30 transition-all hover:shadow-lg hover:shadow-primary/5 group rounded-2xl overflow-hidden bg-white">
+              <Card key={ing.id} className="border-stone-100/80 shadow-sm hover:shadow-md transition-all group rounded-3xl overflow-hidden bg-white">
                 <CardContent className="p-0">
-                  <div className="p-5 space-y-4">
-                    <div className="flex items-start justify-between gap-2">
-                       <div className="flex flex-col gap-1">
-                          <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-4 w-fit bg-stone-50 text-stone-500 border-stone-200 uppercase font-black tracking-widest">
-                            {ing.category}
-                          </Badge>
-                          <h3 className="text-lg font-black text-stone-900 group-hover:text-primary transition-colors line-clamp-1">{ing.name}</h3>
-                       </div>
-                       <ChefHat className="h-4 w-4 shrink-0 text-stone-100 group-hover:text-primary/20 transition-colors" />
-                    </div>
-
-                    <div className="space-y-4">
-                       <div className="flex items-end justify-between">
-                         <div className="flex flex-col">
-                            <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none mb-1">Harga Estimasi</span>
-                            <span className="text-xl font-black text-stone-700 tracking-tight">{formatRupiah(ing.price_per_unit)}<span className="text-sm text-stone-400 font-medium">/{ing.unit}</span></span>
-                         </div>
-                         <div className="flex flex-col items-end">
-                            <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none mb-1">Sisa Stok</span>
-                            <Badge variant="outline" className={`font-black text-sm tracking-tight border ${getStockBadgeColor(ing.stock_quantity, ing.min_stock_threshold)}`}>
-                              {ing.stock_quantity} {ing.unit}
-                            </Badge>
-                         </div>
-                       </div>
-
-                       <div className="flex items-center gap-2 pt-4 border-t border-stone-50">
+                  <div className="p-6 space-y-6">
+                    {/* Header: Badge & Subtle secondary actions */}
+                    <div className="flex items-start justify-between">
+                       <Badge variant="outline" className="text-[9px] px-2 py-0.5 rounded-full bg-stone-50 text-stone-500 border-stone-200 uppercase font-black tracking-widest shadow-none">
+                         {ing.category}
+                       </Badge>
+                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button 
-                            variant="secondary" 
-                            size="sm" 
-                            className="flex-1 rounded-xl h-10 font-bold text-xs bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all"
-                            onClick={() => {
-                              setPurchaseData({
-                                ingredient_id: ing.id,
-                                supplier_name: "",
-                                quantity: 0,
-                                total_price: 0,
-                                purchased_at: new Date().toISOString().split('T')[0],
-                                notes: "",
-                                update_stock: true
-                              });
-                              setIsPurchaseDialogOpen(true);
-                            }}
-                          >
-                            + Beli
-                          </Button>
-                          <Button 
-                            variant="secondary" 
-                            size="sm" 
-                            className="flex-1 rounded-xl h-10 font-bold text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-all"
-                            onClick={() => fetchHistory(ing.id)}
-                          >
-                            Riwayat
-                          </Button>
-                          <Button 
-                            variant="secondary" 
-                            size="sm" 
-                            className="rounded-xl w-10 h-10 bg-amber-50 hover:bg-amber-100 text-amber-600 transition-all p-0"
-                            onClick={() => {
-                              setStockAdjustment({ ingredient_id: ing.id, adjustment: 0, type: "consume" });
-                              setIsStockDialogOpen(true);
-                            }}
-                          >
-                            <span className="font-black text-lg leading-none">-</span>
-                          </Button>
-                          <Button 
-                            variant="secondary" 
-                            size="sm" 
-                            className="rounded-xl w-10 h-10 bg-stone-100 hover:bg-primary/10 hover:text-primary transition-all p-0"
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 rounded-full text-stone-400 hover:text-primary hover:bg-stone-50"
                             onClick={() => {
                               setCurrentIng(ing);
                               setIsDialogOpen(true);
                             }}
                           >
-                            <Pencil className="h-3.5 w-3.5" />
+                            <Pencil className="h-3 w-3" />
                           </Button>
                           <Button 
-                            variant="secondary" 
-                            size="sm" 
-                            className="rounded-xl w-10 h-10 bg-stone-100 hover:bg-rose-50 hover:text-rose-600 transition-all p-0"
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 rounded-full text-stone-400 hover:text-red-500 hover:bg-red-50"
                             onClick={() => deleteIngredient(ing.id)}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                        </div>
                     </div>
 
+                    {/* Title */}
+                    <div>
+                       <h3 className="text-xl font-black text-stone-900 group-hover:text-primary transition-colors leading-tight line-clamp-2">
+                         {ing.name}
+                       </h3>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex items-end justify-between">
+                       <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none">Harga Estimasi</span>
+                          <span className="text-lg font-black text-stone-800 tracking-tight">
+                            {formatRupiah(ing.price_per_unit)}<span className="text-xs text-stone-400 font-bold ml-0.5">/{ing.unit}</span>
+                          </span>
+                       </div>
+                       <div className="flex flex-col items-end gap-1">
+                          <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none">Sisa Stok</span>
+                          <Badge variant="secondary" className={`font-black uppercase tracking-wider text-xs px-3 py-1 rounded-full shadow-none ${
+                             ing.stock_quantity <= 0 ? "bg-rose-50 text-rose-600" :
+                             ing.stock_quantity <= ing.min_stock_threshold ? "bg-amber-50 text-amber-600" :
+                             "bg-emerald-50 text-emerald-600"
+                          }`}>
+                            {ing.stock_quantity.toFixed(3).replace(/\.?0+$/, '')} {ing.unit}
+                          </Badge>
+                       </div>
+                    </div>
+
+                    {/* Primary Actions */}
+                    <div className="flex items-center gap-2 pt-2">
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          className="flex-1 rounded-2xl h-10 font-black text-xs bg-emerald-50/80 text-emerald-600 hover:bg-emerald-100 transition-colors shadow-none"
+                          onClick={() => {
+                            setPurchaseData({
+                              ingredient_id: ing.id,
+                              supplier_name: "",
+                              quantity: 0,
+                              total_price: 0,
+                              purchased_at: new Date().toISOString().split('T')[0],
+                              notes: "",
+                              update_stock: true
+                            });
+                            setIsPurchaseDialogOpen(true);
+                          }}
+                        >
+                          + Beli
+                        </Button>
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          className="flex-[1.2] rounded-2xl h-10 font-bold text-xs bg-indigo-50/60 text-indigo-600 hover:bg-indigo-100 transition-colors shadow-none"
+                          onClick={() => fetchHistory(ing.id)}
+                        >
+                          Riwayat
+                        </Button>
+                        <Button 
+                          variant="secondary" 
+                          size="icon" 
+                          className="rounded-2xl w-10 h-10 bg-amber-50/80 text-amber-600 hover:bg-amber-100 transition-colors shadow-none"
+                          onClick={() => {
+                            setStockAdjustment({ ingredient_id: ing.id, adjustment: 0, type: "consume" });
+                            setIsStockDialogOpen(true);
+                          }}
+                        >
+                          <span className="font-black text-xl leading-none -mt-1">-</span>
+                        </Button>
+                    </div>
+
                     {/* Expandable History Section */}
                     {expandedIngredientId === ing.id && (
-                      <div className="mt-4 pt-4 border-t border-stone-100 bg-stone-50 -mx-5 -mb-5 p-5">
-                        <h4 className="text-[10px] font-black uppercase text-stone-500 tracking-widest mb-3 flex items-center justify-between">
+                      <div className="mt-4 pt-4 border-t border-stone-100 bg-stone-50/50 -mx-6 -mb-6 p-6">
+                        <h4 className="text-[10px] font-black uppercase text-stone-500 tracking-widest mb-4 flex items-center justify-between">
                           Riwayat Pembelian
-                          {loadingHistory && <Loader2 className="h-3 w-3 animate-spin" />}
+                          {loadingHistory && <Loader2 className="h-4 w-4 animate-spin text-stone-400" />}
                         </h4>
                         
                         {purchaseHistory.length === 0 && !loadingHistory ? (
-                          <div className="text-xs text-stone-400 font-medium text-center py-4 bg-white rounded-xl border border-stone-100">Belum ada riwayat</div>
+                          <div className="text-xs text-stone-400 font-medium text-center py-6 bg-white rounded-2xl border border-stone-100">Belum ada riwayat tercatat</div>
                         ) : (
-                          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                          <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                             {purchaseHistory.map(ph => (
-                              <div key={ph.id} className="bg-white p-3 rounded-xl border border-stone-100 flex flex-col gap-1 shadow-sm">
+                              <div key={ph.id} className="bg-white p-4 rounded-2xl border border-stone-100 flex flex-col gap-1.5 shadow-sm">
                                 <div className="flex justify-between items-start">
-                                  <span className="font-bold text-stone-700 text-sm">{ph.supplier_name}</span>
-                                  <span className="text-[10px] font-bold text-stone-400">{new Date(ph.purchased_at).toLocaleDateString('id-ID')}</span>
+                                  <span className="font-black text-stone-700 text-sm">{ph.supplier_name || 'Tanpa Supplier'}</span>
+                                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 rounded bg-stone-50 text-stone-400 font-bold tracking-wider shadow-none border-stone-200">
+                                     {new Date(ph.purchased_at).toLocaleDateString('id-ID')}
+                                  </Badge>
                                 </div>
                                 <div className="flex justify-between items-end mt-1">
-                                  <span className="text-xs font-medium text-stone-500">{ph.quantity} {ing.unit}</span>
+                                  <span className="text-sm font-bold text-stone-500">{ph.quantity} <span className="text-xs">{ing.unit}</span></span>
                                   <div className="flex flex-col items-end">
-                                    <span className="text-xs font-black text-emerald-600">{formatRupiah(ph.price_per_unit)}/{ing.unit}</span>
-                                    <span className="text-[9px] font-bold text-stone-400 capitalize">Total: {formatRupiah(ph.total_price)}</span>
+                                    <span className="text-sm font-black text-emerald-600">{formatRupiah(ph.price_per_unit)}<span className="text-[10px] text-emerald-600/60 ml-0.5">/{ing.unit}</span></span>
+                                    <span className="text-[10px] font-bold text-stone-400">Total {formatRupiah(ph.total_price)}</span>
                                   </div>
                                 </div>
                               </div>
