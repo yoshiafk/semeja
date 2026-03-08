@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMember } from "@/hooks/useMember";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatDayName, formatShortDate } from "@/lib/utils";
 import { Loader2, Plus, Check, CalendarDays, Utensils } from "lucide-react";
 
 interface Meal {
@@ -131,9 +131,9 @@ export default function Dashboard() {
             <Card key={meal.id} className="overflow-hidden border-stone-200 hover:border-primary/30 transition-all hover:shadow-lg hover:shadow-primary/5 group">
               <CardHeader className="bg-stone-50/50 pb-3 group-hover:bg-primary/5 transition-colors">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-bold text-stone-900">{meal.day_name}</CardTitle>
+                  <CardTitle className="text-xl font-bold text-stone-900">{formatDayName(meal.date)}</CardTitle>
                   <CardDescription className="font-bold text-primary/60">
-                    {new Date(meal.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                    {formatShortDate(meal.date)}
                   </CardDescription>
                 </div>
               </CardHeader>
