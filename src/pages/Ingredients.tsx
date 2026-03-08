@@ -65,13 +65,17 @@ export default function Ingredients() {
   const [purchaseHistory, setPurchaseHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  // UX Loading States
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
+
   useEffect(() => {
     fetchIngredients();
   }, []);
 
-  const fetchIngredients = async () => {
+  const fetchIngredients = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [ingRes, supRes] = await Promise.all([
         api.get<Ingredient[]>("/ingredients"),
         api.get<{id: number, name: string}[]>("/suppliers")
@@ -81,13 +85,14 @@ export default function Ingredients() {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   const saveIngredient = async () => {
     if (!currentIng.name || !currentIng.unit || (currentIng.price_per_unit ?? 0) < 0) return;
     try {
+      setIsSaving(true);
       if (currentIng.id) {
         await api.put(`/ingredients/${currentIng.id}`, currentIng);
         toast.success("Bahan berhasil diperbarui!");
@@ -96,50 +101,61 @@ export default function Ingredients() {
         toast.success("Bahan baru berhasil ditambahkan!");
       }
       setIsDialogOpen(false);
-      fetchIngredients();
+      fetchIngredients(true);
     } catch (err) {
       toast.error("Gagal menyimpan: " + err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const deleteIngredient = async (id: number) => {
     if (!confirm("Hapus bahan ini?")) return;
     try {
+      setIsDeleting(id);
       await api.delete(`/ingredients/${id}`);
-      fetchIngredients();
+      fetchIngredients(true);
       toast.success("Bahan berhasil dihapus!");
     } catch (err) {
       toast.error("Gagal menghapus: " + err);
+    } finally {
+      setIsDeleting(null);
     }
   };
 
   const savePurchase = async () => {
     if (!purchaseData.ingredient_id || !purchaseData.supplier_name || purchaseData.quantity <= 0 || purchaseData.total_price <= 0) return;
     try {
+      setIsSaving(true);
       await api.post("/purchases", purchaseData);
       setIsPurchaseDialogOpen(false);
-      fetchIngredients(); // Refresh to get updated stock
+      fetchIngredients(true); // Refresh to get updated stock
       toast.success("Pembelian berhasil dicatat!");
       if (expandedIngredientId === purchaseData.ingredient_id) {
         fetchHistory(purchaseData.ingredient_id);
       }
     } catch (err) {
       toast.error("Gagal mencatat pembelian: " + err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const saveStockAdjustment = async () => {
     if (!stockAdjustment.ingredient_id || stockAdjustment.adjustment <= 0) return;
     try {
+      setIsSaving(true);
       await api.put(`/ingredients/${stockAdjustment.ingredient_id}/stock`, {
         adjustment: stockAdjustment.adjustment,
         type: stockAdjustment.type
       });
       setIsStockDialogOpen(false);
-      fetchIngredients();
+      fetchIngredients(true);
       toast.success("Stok berhasil disesuaikan!");
     } catch (err) {
       toast.error("Gagal menyesuaikan stok: " + err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -264,10 +280,15 @@ export default function Ingredients() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-7 w-7 rounded-full text-stone-400 hover:text-red-500 hover:bg-red-50"
+                            disabled={isDeleting === ing.id}
+                            className="h-7 w-7 rounded-full text-stone-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-50"
                             onClick={() => deleteIngredient(ing.id)}
                           >
-                            <Trash2 className="h-3 w-3" />
+                            {isDeleting === ing.id ? (
+                               <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                               <Trash2 className="h-3 w-3" />
+                            )}
                           </Button>
                        </div>
                     </div>
@@ -444,7 +465,8 @@ export default function Ingredients() {
             <Button variant="ghost" className="flex-1 h-12 rounded-2xl font-bold text-stone-400 hover:bg-stone-50" onClick={() => setIsDialogOpen(false)}>
               Batal
             </Button>
-            <Button className="flex-1 h-12 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20" onClick={saveIngredient}>
+            <Button className="flex-1 h-12 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20" onClick={saveIngredient} disabled={isSaving}>
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Simpan Data
             </Button>
           </DialogFooter>
@@ -531,7 +553,8 @@ export default function Ingredients() {
             <Button variant="ghost" className="flex-1 h-12 rounded-2xl font-bold text-stone-400 hover:bg-stone-50" onClick={() => setIsPurchaseDialogOpen(false)}>
               Batal
             </Button>
-            <Button className="flex-1 h-12 rounded-2xl font-black uppercase text-xs tracking-widest bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20" onClick={savePurchase}>
+            <Button className="flex-1 h-12 rounded-2xl font-black uppercase text-xs tracking-widest bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20" onClick={savePurchase} disabled={isSaving}>
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Simpan
             </Button>
           </DialogFooter>
@@ -567,7 +590,8 @@ export default function Ingredients() {
             <Button variant="ghost" className="flex-1 h-12 rounded-2xl font-bold text-stone-400 hover:bg-stone-50" onClick={() => setIsStockDialogOpen(false)}>
               Batal
             </Button>
-            <Button className="flex-1 h-12 rounded-2xl font-black uppercase text-xs tracking-widest bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20" onClick={saveStockAdjustment}>
+            <Button className="flex-1 h-12 rounded-2xl font-black uppercase text-xs tracking-widest bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20" onClick={saveStockAdjustment} disabled={isSaving}>
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Kurangi
             </Button>
           </DialogFooter>
