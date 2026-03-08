@@ -42,6 +42,10 @@ async function initDB() {
         UNIQUE(recipe_id, ingredient_id)
       );
 
+      ALTER TABLE recipe_ingredients ADD COLUMN IF NOT EXISTS name VARCHAR(150);
+      ALTER TABLE recipe_ingredients ADD COLUMN IF NOT EXISTS custom_unit VARCHAR(50);
+      ALTER TABLE recipe_ingredients ADD COLUMN IF NOT EXISTS is_optional BOOLEAN DEFAULT false;
+
       CREATE TABLE IF NOT EXISTS meal_plans (
         id SERIAL PRIMARY KEY,
         week_start DATE NOT NULL,
@@ -109,6 +113,7 @@ async function initDB() {
         id SERIAL PRIMARY KEY,
         ingredient_id INTEGER REFERENCES ingredients(id) ON DELETE CASCADE,
         supplier_id INTEGER REFERENCES suppliers(id) ON DELETE SET NULL,
+        meal_plan_id INTEGER REFERENCES meal_plans(id) ON DELETE SET NULL,
         quantity DECIMAL(10,3) NOT NULL,
         total_price INTEGER NOT NULL,
         price_per_unit INTEGER GENERATED ALWAYS AS (
@@ -118,6 +123,8 @@ async function initDB() {
         notes VARCHAR(300) DEFAULT '',
         created_at TIMESTAMP DEFAULT NOW()
       );
+
+      ALTER TABLE purchases ADD COLUMN IF NOT EXISTS meal_plan_id INTEGER REFERENCES meal_plans(id) ON DELETE SET NULL;
     `);
     console.log('Database schema initialized');
   } finally {

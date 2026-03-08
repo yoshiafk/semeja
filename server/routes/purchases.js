@@ -67,9 +67,26 @@ router.get('/compare/:ingredientId', async (req, res) => {
   }
 });
 
+// GET purchases for a specific ingredient
+router.get('/ingredient/:id', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT p.*, s.name as supplier_name, i.name as ingredient_name, i.unit
+      FROM purchases p
+      LEFT JOIN suppliers s ON p.supplier_id = s.id
+      JOIN ingredients i ON p.ingredient_id = i.id
+      WHERE p.ingredient_id = $1
+      ORDER BY p.purchased_at DESC, p.created_at DESC
+    `, [req.params.id]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST new purchase
 router.post('/', async (req, res) => {
-  const { ingredient_id, supplier_name, quantity, total_price, purchased_at, notes, update_stock } = req.body;
+  const { ingredient_id, supplier_name, quantity, total_price, purchased_at, notes, update_stock, meal_plan_id } = req.body;
 
   if (!ingredient_id || !supplier_name || !quantity || !total_price) {
     return res.status(400).json({ error: 'ingredient_id, supplier_name, quantity, and total_price are required' });
@@ -97,10 +114,10 @@ router.post('/', async (req, res) => {
     const purchaseDate = purchased_at || new Date().toISOString().split('T')[0];
     const { rows: purchaseRows } = await client.query(
       `INSERT INTO purchases 
-        (ingredient_id, supplier_id, quantity, total_price, purchased_at, notes) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
+        (ingredient_id, supplier_id, quantity, total_price, purchased_at, notes, meal_plan_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
        RETURNING *`,
-      [ingredient_id, supplier_id, quantity, total_price, purchaseDate, notes || '']
+      [ingredient_id, supplier_id, quantity, total_price, purchaseDate, notes || '', meal_plan_id || null]
     );
 
     const newPurchase = purchaseRows[0];

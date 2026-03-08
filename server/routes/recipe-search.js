@@ -176,7 +176,7 @@ router.post('/import', async (req, res) => {
 
       await client.query(
         `INSERT INTO recipe_ingredients 
-         (recipe_id, name, amount_per_person, custom_unit, is_optional, ingredient_id) 
+         (recipe_id, name, quantity_per_person, custom_unit, is_optional, ingredient_id) 
          VALUES ($1, $2, $3, $4, false, $5)`,
         [localRecipeId, parsed.name, amountPerPerson, parsed.unit, dbIngredientId]
       );

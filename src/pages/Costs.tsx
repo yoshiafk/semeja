@@ -5,8 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Receipt, TrendingUp, Users, ShoppingCart } from "lucide-react";
+import { Loader2, Receipt, TrendingUp, Users, ShoppingCart, Check, Plus } from "lucide-react";
 import { formatRupiah } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface CostSummary {
   week_total: number;
@@ -26,9 +29,12 @@ interface CostSummary {
     name: string;
     days_joined: number;
     total: number;
+    actual_total?: number;
   }>;
   total_shopping_cost: number;
+  total_actual_cost: number;
   shopping_list: Array<{
+    ingredient_id?: number;
     name: string;
     unit: string;
     total_quantity: number;
@@ -43,6 +49,13 @@ interface CostSummary {
 export default function Costs() {
   const [data, setData] = useState<CostSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activePlanId, setActivePlanId] = useState<number | null>(null);
+  
+  // Purchase Modal State
+  const [isPurchaseOpen, setIsPurchaseOpen] = useState(false);
+  const [selectedIngredient, setSelectedIngredient] = useState<{ id?: number; name: string; qty: number; unit: string } | null>(null);
+  const [formData, setFormData] = useState({ supplier_name: "", quantity: "", total_price: "", notes: "" });
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -53,13 +66,36 @@ export default function Costs() {
       setLoading(true);
       const activePlan = await api.get<any>("/meal-plans/active");
       if (activePlan) {
+        setActivePlanId(activePlan.id);
         const summary = await api.get<CostSummary>(`/summary/${activePlan.id}`);
         setData(summary);
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const recordPurchase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedIngredient?.id || !activePlanId) return;
+    
+    try {
+      setIsSaving(true);
+      await api.post("/purchases", {
+        ingredient_id: selectedIngredient.id,
+        supplier_name: formData.supplier_name,
+        quantity: parseFloat(formData.quantity),
+        total_price: parseInt(formData.total_price),
+        update_stock: true,
+        meal_plan_id: activePlanId
+      });
+      setIsPurchaseOpen(false);
+      setFormData({ supplier_name: "", quantity: "", total_price: "", notes: "" });
+      fetchData(); // Refresh to get the new actual costs
+    } catch (err: any) {
+      alert("Gagal mencatat: " + (err.error || err.message));
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -101,9 +137,27 @@ export default function Costs() {
                  Konsumsi Kotor: {formatRupiah(data.week_total)}
                </Badge>
             </div>
-            <div className="text-5xl font-black text-primary tracking-tight">
-              {formatRupiah(data.total_shopping_cost)}
-            </div>
+            
+            {data.total_actual_cost > 0 ? (
+              <div>
+                <div className="flex items-end gap-3 mb-1">
+                  <div className="text-5xl font-black text-primary tracking-tight">
+                    {formatRupiah(data.total_actual_cost)}
+                  </div>
+                  <Badge className="bg-emerald-50 text-emerald-600 hover:bg-emerald-50 border-emerald-200 uppercase font-black tracking-widest text-[9px] mb-2 shadow-sm">
+                    Biaya Aktual
+                  </Badge>
+                </div>
+                <div className="text-sm font-bold text-stone-400 line-through">
+                  Estimasi awal: {formatRupiah(data.total_shopping_cost)}
+                </div>
+              </div>
+            ) : (
+              <div className="text-5xl font-black text-primary tracking-tight">
+                {formatRupiah(data.total_shopping_cost)}
+              </div>
+            )}
+            
             <p className="text-sm text-stone-500 mt-4 font-medium max-w-lg leading-relaxed">
               Estimasi biaya ini <b>sudah dikurangi dengan bahan yang ada di stok dapur</b>.
               Menghitung {data.daily_breakdown.length} hari ke depan untuk {data.member_totals.length} warga.
@@ -164,8 +218,21 @@ export default function Costs() {
                                 </p>
                               </div>
                             </div>
-                            <div className="text-2xl font-black text-rose-600 tracking-tight">
-                              {formatRupiah(member.total)}
+                            <div className="text-right">
+                              {member.actual_total && member.actual_total > 0 ? (
+                                <>
+                                  <div className="text-2xl font-black text-rose-600 tracking-tight">
+                                    {formatRupiah(member.actual_total)}
+                                  </div>
+                                  <div className="text-[10px] text-stone-400 font-bold line-through">
+                                    Est: {formatRupiah(member.total)}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="text-2xl font-black text-rose-600 tracking-tight">
+                                  {formatRupiah(member.total)}
+                                </div>
+                              )}
                             </div>
                           </CardContent>
                         </Card>
@@ -212,6 +279,7 @@ export default function Costs() {
                     <TableHead className="text-right font-black uppercase text-[10px] tracking-widest h-14">Dibutuhkan</TableHead>
                     <TableHead className="text-right font-black uppercase text-[10px] tracking-widest h-14">Beli Kekurangan</TableHead>
                     <TableHead className="text-right font-black uppercase text-[10px] tracking-widest h-14">Estimasi Biaya</TableHead>
+                    <TableHead className="w-[80px] text-center"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -244,6 +312,20 @@ export default function Costs() {
                       <TableCell className={`text-right font-black text-lg py-4 ${ing.has_enough_stock ? 'text-stone-300' : 'text-emerald-600'}`}>
                         {formatRupiah(ing.cost_to_buy)}
                       </TableCell>
+                      <TableCell className="text-center">
+                        {!ing.has_enough_stock && ing.ingredient_id && (
+                          <Button 
+                            variant="default" size="sm" className="h-8 rounded-lg shadow-sm font-bold text-[10px] uppercase tracking-wider"
+                            onClick={() => {
+                              setSelectedIngredient({ id: ing.ingredient_id, name: ing.name, qty: ing.shortage_quantity, unit: ing.unit });
+                              setFormData({ ...formData, quantity: ing.shortage_quantity.toString(), total_price: ing.cost_to_buy.toString() });
+                              setIsPurchaseOpen(true);
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" /> Catat
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -258,6 +340,38 @@ export default function Costs() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={isPurchaseOpen} onOpenChange={setIsPurchaseOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Catat Pembelian: {selectedIngredient?.name}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={recordPurchase} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Beli di (Nama Toko/Suplier)</label>
+              <Input required value={formData.supplier_name} onChange={e => setFormData({ ...formData, supplier_name: e.target.value })} placeholder="Cth: Pasar Palmerah / Indomaret" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+               <div className="space-y-2">
+                 <label className="text-sm font-medium">Kuantitas ({selectedIngredient?.unit})</label>
+                 <Input type="number" step="0.01" required value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })} />
+               </div>
+               <div className="space-y-2">
+                 <label className="text-sm font-medium">Total Harga Akhir (Rp)</label>
+                 <Input type="number" required value={formData.total_price} onChange={e => setFormData({ ...formData, total_price: e.target.value })} />
+               </div>
+            </div>
+            <div className="flex items-center gap-2 p-3 bg-blue-50/50 rounded-lg border border-blue-100 mt-2">
+              <Check className="h-4 w-4 text-blue-500" />
+              <p className="text-xs font-semibold text-blue-800">Biaya ini akan langsung ditagihkan ke warga secara otomatis.</p>
+            </div>
+            <Button type="submit" disabled={isSaving} className="w-full h-11">
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Simpan Tagihan Aktual
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

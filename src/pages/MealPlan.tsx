@@ -93,26 +93,37 @@ export default function MealPlanPage() {
     }
   };
 
-  const updateMeal = async (mealId: number, field: string, value: any) => {
+  const updateMeal = async (mealId: number, updates: Partial<Meal>) => {
     if (!activePlan) return;
-    const saveKey = `${mealId}-${field}`;
+    
+    setIsSaving(prev => {
+      const next = { ...prev };
+      Object.keys(updates).forEach(k => next[`${mealId}-${k}`] = true);
+      return next;
+    });
     
     try {
-      setIsSaving(prev => ({ ...prev, [saveKey]: true }));
       const meal = activePlan.meals.find(m => m.id === mealId);
       if (!meal) return;
 
-      const updateData = { ...meal, [field]: value };
+      const updateData = { ...meal, ...updates };
       await api.put(`/meals/${mealId}`, updateData);
       
-      setActivePlan({
-        ...activePlan,
-        meals: activePlan.meals.map(m => m.id === mealId ? { ...m, [field]: value } : m)
+      setActivePlan(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          meals: prev.meals.map(m => m.id === mealId ? { ...m, ...updates } : m)
+        };
       });
     } catch (err) {
       console.error(err);
     } finally {
-      setIsSaving(prev => ({ ...prev, [saveKey]: false }));
+      setIsSaving(prev => {
+        const next = { ...prev };
+        Object.keys(updates).forEach(k => next[`${mealId}-${k}`] = false);
+        return next;
+      });
     }
   };
 
@@ -214,10 +225,14 @@ export default function MealPlanPage() {
                         value={meal.main_course_recipe_id?.toString() || "manual"} 
                         onValueChange={(v) => {
                           const rid = v === "manual" ? null : parseInt(v);
-                          updateMeal(meal.id, "main_course_recipe_id", rid);
                           if (rid) {
                             const r = recipes.find(rec => rec.id === rid);
-                            if (r) updateMeal(meal.id, "main_course_menu", r.name);
+                            updateMeal(meal.id, { 
+                                main_course_recipe_id: rid, 
+                                ...(r ? { main_course_menu: r.name } : {}) 
+                            });
+                          } else {
+                            updateMeal(meal.id, { main_course_recipe_id: null });
                           }
                         }}
                       >
@@ -236,7 +251,7 @@ export default function MealPlanPage() {
                           className="w-full text-sm font-bold bg-white border border-stone-200 rounded-xl p-3 h-20 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none shadow-sm"
                           value={meal.main_course_menu}
                           disabled={isSaving[`${meal.id}-main_course_menu`]}
-                          onChange={(e) => updateMeal(meal.id, "main_course_menu", e.target.value)}
+                          onChange={(e) => updateMeal(meal.id, { main_course_menu: e.target.value })}
                         />
                          {isSaving[`${meal.id}-main_course_menu`] && (
                             <div className="absolute top-3 right-3">
@@ -259,10 +274,14 @@ export default function MealPlanPage() {
                         value={meal.second_course_recipe_id?.toString() || "manual"} 
                         onValueChange={(v) => {
                           const rid = v === "manual" ? null : parseInt(v);
-                          updateMeal(meal.id, "second_course_recipe_id", rid);
                           if (rid) {
                             const r = recipes.find(rec => rec.id === rid);
-                            if (r) updateMeal(meal.id, "second_course_menu", r.name);
+                            updateMeal(meal.id, { 
+                                second_course_recipe_id: rid, 
+                                ...(r ? { second_course_menu: r.name } : {}) 
+                            });
+                          } else {
+                            updateMeal(meal.id, { second_course_recipe_id: null });
                           }
                         }}
                       >
@@ -281,7 +300,7 @@ export default function MealPlanPage() {
                           className="w-full text-sm font-bold bg-white border border-stone-200 rounded-xl p-3 h-20 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none shadow-sm"
                           value={meal.second_course_menu}
                           disabled={isSaving[`${meal.id}-second_course_menu`]}
-                          onChange={(e) => updateMeal(meal.id, "second_course_menu", e.target.value)}
+                          onChange={(e) => updateMeal(meal.id, { second_course_menu: e.target.value })}
                         />
                          {isSaving[`${meal.id}-second_course_menu`] && (
                             <div className="absolute top-3 right-3">
@@ -304,10 +323,14 @@ export default function MealPlanPage() {
                         value={meal.dessert_recipe_id?.toString() || "manual"} 
                         onValueChange={(v) => {
                           const rid = v === "manual" ? null : parseInt(v);
-                          updateMeal(meal.id, "dessert_recipe_id", rid);
                           if (rid) {
                             const r = recipes.find(rec => rec.id === rid);
-                            if (r) updateMeal(meal.id, "dessert_menu", r.name);
+                            updateMeal(meal.id, { 
+                                dessert_recipe_id: rid, 
+                                ...(r ? { dessert_menu: r.name } : {}) 
+                            });
+                          } else {
+                            updateMeal(meal.id, { dessert_recipe_id: null });
                           }
                         }}
                       >
@@ -326,7 +349,7 @@ export default function MealPlanPage() {
                           className="w-full text-sm font-bold bg-white border border-stone-200 rounded-xl p-3 h-20 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none shadow-sm"
                           value={meal.dessert_menu}
                           disabled={isSaving[`${meal.id}-dessert_menu`]}
-                          onChange={(e) => updateMeal(meal.id, "dessert_menu", e.target.value)}
+                          onChange={(e) => updateMeal(meal.id, { dessert_menu: e.target.value })}
                         />
                          {isSaving[`${meal.id}-dessert_menu`] && (
                             <div className="absolute top-3 right-3">

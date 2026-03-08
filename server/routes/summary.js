@@ -157,6 +157,23 @@ router.get('/:mealPlanId', async (req, res) => {
       });
     }
 
+    // 7. Calculate Actual Costs based on Purchases
+    const { rows: purchaseSumObj } = await pool.query(
+      `SELECT SUM(total_price) as actual_shopping_cost FROM purchases WHERE meal_plan_id = $1`,
+      [planId]
+    );
+    const totalActualCost = parseInt(purchaseSumObj[0]?.actual_shopping_cost) || 0;
+    
+    // Distribute actual cost fairly based on portions
+    let totalSystemPortions = 0;
+    Object.values(memberTotals).forEach(m => totalSystemPortions += m.days_joined);
+
+    const actualCostPerPortion = totalSystemPortions > 0 ? (totalActualCost / totalSystemPortions) : 0;
+    
+    Object.keys(memberTotals).forEach(member_id => {
+      memberTotals[member_id].actual_total = Math.round(memberTotals[member_id].days_joined * actualCostPerPortion);
+    });
+
     // Convert shopping list object to array and calculate exact shortage (to buy)
     const formattedShoppingList = Object.values(shoppingList).map(item => {
        // If stock > total_quantity, shortage is 0 (we have enough). 
@@ -221,6 +238,7 @@ router.get('/:mealPlanId', async (req, res) => {
     // The 'week_total' represents raw consumption value. We'll return it, but also return 'total_shopping_cost'
     res.json({
       week_total: Math.round(weekTotal),
+      total_actual_cost: totalActualCost,
       total_shopping_cost: Math.round(totalShoppingCost),
       daily_breakdown: dailyBreakdown,
       member_totals: Object.values(memberTotals),
