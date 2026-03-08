@@ -84,6 +84,15 @@ async function initDB() {
       ALTER TABLE meals DROP COLUMN IF EXISTS dinner_recipe_id;
       ALTER TABLE meals ADD COLUMN IF NOT EXISTS requires_rice BOOLEAN DEFAULT false;
       UPDATE meals SET requires_rice = false WHERE requires_rice IS true; -- Reset existing state for consistency
+      
+      -- Migrate day names to Indonesian
+      UPDATE meals SET day_name = 'Senin' WHERE day_name = 'Monday';
+      UPDATE meals SET day_name = 'Selasa' WHERE day_name = 'Tuesday';
+      UPDATE meals SET day_name = 'Rabu' WHERE day_name = 'Wednesday';
+      UPDATE meals SET day_name = 'Kamis' WHERE day_name = 'Thursday';
+      UPDATE meals SET day_name = 'Jumat' WHERE day_name = 'Friday';
+      UPDATE meals SET day_name = 'Sabtu' WHERE day_name = 'Saturday';
+      UPDATE meals SET day_name = 'Minggu' WHERE day_name = 'Sunday';
 
       CREATE TABLE IF NOT EXISTS meal_ingredients (
         id SERIAL PRIMARY KEY,

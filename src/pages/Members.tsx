@@ -8,12 +8,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ShieldCheck, UserCheck, Trash2, CheckCircle2, Circle, Users, LayoutDashboard } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface Member {
   id: number;
   name: string;
   role: 'superadmin' | 'admin' | 'member';
+}
+
+interface Meal {
+  id: number;
+  date: string;
+  day_name: string;
+}
+
+interface MealPlan {
+  id: number;
+  week_start: string;
+  week_end: string;
+  status: string;
+  meals: Meal[];
 }
 
 interface Participation {
@@ -27,6 +43,8 @@ interface Participation {
 export default function Members() {
   const { member: currentMember, isSuperadmin } = useMember();
   const [members, setMembers] = useState<Member[]>([]);
+  const [plans, setPlans] = useState<MealPlan[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [participations, setParticipations] = useState<Participation[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,21 +52,39 @@ export default function Members() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (selectedPlanId) {
+      fetchParticipations(parseInt(selectedPlanId));
+    }
+  }, [selectedPlanId]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      const mList = await api.get<Member[]>("/members");
+      const [mList, pList] = await Promise.all([
+        api.get<Member[]>("/members"),
+        api.get<MealPlan[]>("/meal-plans")
+      ]);
       setMembers(mList);
+      setPlans(pList);
 
-      const activePlan = await api.get<any>("/meal-plans/active");
-      if (activePlan) {
-        const pList = await api.get<Participation[]>(`/participations/${activePlan.id}`);
-        setParticipations(pList);
+      const active = pList.find(p => p.status === 'active') || pList[0];
+      if (active) {
+        setSelectedPlanId(active.id.toString());
       }
     } catch (err) {
       console.error("Failed to fetch members data:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchParticipations = async (planId: number) => {
+    try {
+      const pList = await api.get<Participation[]>(`/participations/${planId}`);
+      setParticipations(pList);
+    } catch (err) {
+      console.error("Failed to fetch participations:", err);
     }
   };
 
@@ -95,13 +131,27 @@ export default function Members() {
             <h1 className="text-3xl font-black tracking-tight text-stone-900">Warga Coliving</h1>
             <p className="text-stone-500 font-medium font-medium">Monitoring kehadiran dan manajemen peran warga.</p>
           </div>
-          <div className="flex items-center gap-4 bg-stone-50 px-4 py-2 rounded-2xl border border-stone-100">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Total Warga</span>
-              <span className="text-lg font-black text-stone-900">{members.length} Orang</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+             <Select value={selectedPlanId || ""} onValueChange={setSelectedPlanId}>
+                <SelectTrigger className="h-11 w-[200px] bg-stone-50 border-stone-100 rounded-full font-bold shadow-none text-xs">
+                  <SelectValue placeholder="Pilih Pekan" />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-stone-200">
+                  {plans.map(p => (
+                    <SelectItem key={p.id} value={p.id.toString()} className="font-medium">
+                      {formatDate(p.week_start)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+             </Select>
+            <div className="flex items-center gap-4 bg-stone-50 px-4 py-2 rounded-2xl border border-stone-100 h-11">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none mb-0.5">Total Warga</span>
+                <span className="text-sm font-black text-stone-900">{members.length} Orang</span>
+              </div>
+              <div className="w-px h-6 bg-stone-200" />
+              <Users className="h-4 w-4 text-primary/40" />
             </div>
-            <div className="w-px h-8 bg-stone-200" />
-            <Users className="h-5 w-5 text-primary/40" />
           </div>
         </div>
 
