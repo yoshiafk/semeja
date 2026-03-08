@@ -170,7 +170,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* Rice Indicator */}
-                    {meal.requires_rice && (
+                    {Boolean(meal.requires_rice) === true && (
                       <div className="pt-3 border-t border-stone-100/50">
                         <Badge variant="outline" className="bg-stone-50 text-stone-500 border-stone-200 font-bold text-[10px] py-1 px-3 rounded-lg">
                           + Nasi Putih

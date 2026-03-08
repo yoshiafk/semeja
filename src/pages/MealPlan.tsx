@@ -305,24 +305,24 @@ export default function MealPlanPage() {
                           <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none mb-1">Kebutuhan Pokok</span>
                           <span className="text-sm font-bold text-stone-900">Sajikan Nasi Putih?</span>
                        </div>
-                       <Button
+                        <Button
                          size="sm"
                          variant={meal.requires_rice ? "default" : "outline"}
                          className={cn(
                            "h-9 px-4 rounded-xl font-bold transition-all",
                            meal.requires_rice 
-                             ? "bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 text-white" 
-                             : "hover:bg-primary/5 hover:text-primary border-stone-200"
+                             ? "bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200 text-white" 
+                             : "hover:bg-primary/5 hover:text-primary border-stone-200 text-stone-500"
                          )}
                          disabled={isSaving[`${meal.id}-requires_rice`]}
                          onClick={() => updateMeal(meal.id, { requires_rice: !meal.requires_rice })}
                        >
                          {isSaving[`${meal.id}-requires_rice`] ? (
                            <Loader2 className="h-4 w-4 animate-spin text-stone-400 shrink-0" />
-                         ) : meal.requires_rice ? (
-                           "Ya"
                          ) : (
-                           "Tidak"
+                           <span className="flex items-center gap-1.5">
+                             {meal.requires_rice ? "Ya, Sajikan" : "Tidak"}
+                           </span>
                          )}
                        </Button>
                     </div>
