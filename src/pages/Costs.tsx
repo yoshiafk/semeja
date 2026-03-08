@@ -4,11 +4,14 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Receipt, TrendingUp, Users, ShoppingCart, Check, Plus } from "lucide-react";
+import { Loader2, Receipt, TrendingUp, Users, ShoppingCart, Check, Plus, CalendarDays } from "lucide-react";
 import { formatRupiah } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 
 interface CostSummary {
   week_total: number;
@@ -48,6 +51,7 @@ interface CostSummary {
 export default function Costs() {
   const [data, setData] = useState<CostSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [plans, setPlans] = useState<any[]>([]);
   const [activePlanId, setActivePlanId] = useState<number | null>(null);
   
   // Purchase Modal State
@@ -56,25 +60,44 @@ export default function Costs() {
   const [formData, setFormData] = useState({ supplier_name: "", quantity: "", total_price: "", notes: "" });
   const [isSaving, setIsSaving] = useState(false);
 
+  // 1. Initial Load: Fetch all plans
   useEffect(() => {
-    fetchData();
+    const fetchPlans = async () => {
+      try {
+        setLoading(true);
+        const allPlans = await api.get<any[]>("/meal-plans");
+        setPlans(allPlans);
+        if (allPlans.length > 0) {
+          const active = allPlans.find(p => p.status === 'active') || allPlans[0];
+          setActivePlanId(active.id);
+        } else {
+          setLoading(false); // No plans exist
+        }
+      } catch (err) {
+        console.error(err);
+        setLoading(false);
+      }
+    };
+    fetchPlans();
   }, []);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const activePlan = await api.get<any>("/meal-plans/active");
-      if (activePlan) {
-        setActivePlanId(activePlan.id);
-        const summary = await api.get<CostSummary>(`/summary/${activePlan.id}`);
+  // 2. Secondary Load: Fetch summary when activePlanId changes
+  useEffect(() => {
+    if (!activePlanId) return;
+    
+    const fetchSummary = async () => {
+      try {
+        setLoading(true);
+        const summary = await api.get<CostSummary>(`/summary/${activePlanId}`);
         setData(summary);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    fetchSummary();
+  }, [activePlanId]);
 
   const recordPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,15 +115,19 @@ export default function Costs() {
       });
       setIsPurchaseOpen(false);
       setFormData({ supplier_name: "", quantity: "", total_price: "", notes: "" });
-      fetchData(); // Refresh to get the new actual costs
+      
+      // Refresh to get the new actual costs
+      setLoading(true);
+      const summary = await api.get<CostSummary>(`/summary/${activePlanId}`);
+      setData(summary);
+      setLoading(false);
     } catch (err: any) {
       alert("Gagal mencatat: " + (err.error || err.message));
-    } finally {
       setIsSaving(false);
     }
   };
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <PageContainer>
         <div className="flex h-[60vh] items-center justify-center">
@@ -110,34 +137,60 @@ export default function Costs() {
     );
   }
 
-  if (!data) {
-    return (
-      <PageContainer>
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
-          <Receipt className="h-16 w-16 text-muted-foreground/20" />
-          <div>
-            <h2 className="text-xl font-bold">Belum ada perhitungan cost</h2>
-            <p className="text-muted-foreground">Admin belum membuat jadwal makan.</p>
-          </div>
-        </div>
-      </PageContainer>
-    );
-  }
-
   return (
     <PageContainer>
       <div className="space-y-8 pb-12">
-        {/* Hero Section / Summary Box */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 bg-primary/5 p-8 rounded-3xl border border-primary/10 flex flex-col justify-center">
-            <div className="flex justify-between items-start mb-3">
-               <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs">
-                 <TrendingUp className="h-4 w-4" /> BIAYA BELANJA PEKAN INI
-               </div>
-               <Badge variant="outline" className="bg-white text-stone-500 border-stone-200">
-                 Konsumsi Kotor: {formatRupiah(data.week_total)}
-               </Badge>
+        {/* Week Selector */}
+        {plans.length > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h1 className="text-3xl font-black tracking-tight text-stone-900">Perhitungan Cost</h1>
+            <Select 
+              value={activePlanId?.toString()} 
+              onValueChange={(val) => setActivePlanId(parseInt(val))}
+            >
+              <SelectTrigger className="w-full sm:w-[280px] h-11 bg-white border-stone-200 rounded-xl font-bold shadow-sm">
+                <CalendarDays className="h-4 w-4 mr-2 text-primary" />
+                <SelectValue placeholder="Pilih Pekan" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-stone-200 shadow-xl">
+                {plans.map((p) => (
+                  <SelectItem key={p.id} value={p.id.toString()} className="font-medium rounded-lg">
+                    Pekan: {format(new Date(p.week_start), "d MMM", { locale: id })} -{" "}
+                    {format(new Date(p.week_end), "d MMM yyyy", { locale: id })}
+                    {p.status === 'active' && <span className="ml-2 text-[10px] text-emerald-600 font-black uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-full">Aktif</span>}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {!data ? (
+          <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-4 bg-stone-50 rounded-3xl border border-dashed border-stone-200">
+            <Receipt className="h-16 w-16 text-stone-300" />
+            <div>
+              <h2 className="text-xl font-bold text-stone-700">Belum ada perhitungan cost</h2>
+              <p className="text-stone-500">Pilih pekan lain atau hubungi admin untuk membuat jadwal baru.</p>
             </div>
+          </div>
+        ) : (
+          <>
+            {/* Hero Section / Summary Box */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+              {loading && (
+                <div className="absolute inset-0 z-10 bg-white/50 backdrop-blur-[2px] rounded-3xl flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              )}
+              <div className="md:col-span-2 bg-primary/5 p-8 rounded-3xl border border-primary/10 flex flex-col justify-center">
+                <div className="flex justify-between items-start mb-3">
+                   <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs">
+                     <TrendingUp className="h-4 w-4" /> BIAYA BELANJA PEKAN INI
+                   </div>
+                   <Badge variant="outline" className="bg-white text-stone-500 border-stone-200">
+                     Konsumsi Kotor: {formatRupiah(data.week_total)}
+                   </Badge>
+                </div>
             
             {data.total_actual_cost > 0 ? (
               <div>
@@ -350,14 +403,10 @@ export default function Costs() {
                 </div>
               ))}
             </div>
-            <div className="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-start gap-4">
-              <div className="text-blue-500 text-xl font-black mt-1">i</div>
-              <p className="text-xs text-blue-800 font-medium leading-relaxed">
-                Biaya di atas dihitung dengan mempertimbangkan jumlah stok saat ini. Kebutuhan yang sudah terpenuhi oleh stok gudang disorot warna <span className="text-emerald-600 font-bold uppercase tracking-wider text-[10px]">HIJAU</span> dan tidak ikut dihitung ke beban biaya belanja.
-              </p>
-            </div>
           </TabsContent>
         </Tabs>
+        </>
+      )}
       </div>
 
       <Dialog open={isPurchaseOpen} onOpenChange={setIsPurchaseOpen}>
