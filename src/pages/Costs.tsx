@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Receipt, TrendingUp, Users, ShoppingCart, Check, Plus } from "lucide-react";
@@ -273,68 +272,84 @@ export default function Costs() {
           </TabsContent>
 
           <TabsContent value="shopping" className="mt-0">
-            <Card className="border-stone-200 shadow-xl shadow-stone-200/50 overflow-hidden rounded-2xl w-full">
-              <div className="overflow-x-auto w-full">
-                <Table className="min-w-[600px]">
-                  <TableHeader className="bg-stone-50 border-b border-stone-100">
-                    <TableRow>
-                      <TableHead className="font-black uppercase text-[10px] tracking-widest h-14">Bahan Makanan</TableHead>
-                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest h-14">Dibutuhkan</TableHead>
-                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest h-14">Beli Kekurangan</TableHead>
-                      <TableHead className="text-right font-black uppercase text-[10px] tracking-widest h-14">Estimasi Biaya</TableHead>
-                      <TableHead className="w-[80px] text-center"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.shopping_list.map((ing, idx) => (
-                      <TableRow key={idx} className={`transition-colors border-stone-100 ${ing.has_enough_stock ? 'opacity-50 bg-stone-50/50 hover:bg-stone-50' : 'hover:bg-primary/[0.02]'}`}>
-                        <TableCell className="font-bold text-stone-700 py-4 flex flex-col gap-1">
-                          <span className={ing.has_enough_stock ? 'line-through decoration-stone-300' : ''}>{ing.name}</span>
-                          {ing.has_enough_stock ? (
-                            <span className="text-[9px] font-black tracking-widest uppercase text-emerald-600">Terpenuhi dari Stok</span>
-                          ) : ing.cheapest_supplier ? (
-                            <span className="text-[9px] font-bold tracking-widest uppercase text-blue-500">📍 Termurah di {ing.cheapest_supplier}</span>
-                          ) : null}
-                        </TableCell>
-                        <TableCell className="text-right font-bold text-stone-500 py-4">
-                          <span className="mr-1">
-                            {ing.total_quantity % 1 === 0 ? ing.total_quantity : ing.total_quantity.toFixed(2)}
-                          </span>
-                          <span className="text-[10px] uppercase">{ing.unit}</span>
-                        </TableCell>
-                        <TableCell className="text-right font-black text-stone-900 py-4">
-                           {!ing.has_enough_stock ? (
-                             <>
-                                <span className="text-rose-600 mr-1">
-                                  {ing.shortage_quantity % 1 === 0 ? ing.shortage_quantity : ing.shortage_quantity.toFixed(2)}
-                                </span>
-                                <span className="text-[10px] uppercase text-stone-400">{ing.unit}</span>
-                             </>
-                           ) : '-'}
-                        </TableCell>
-                        <TableCell className={`text-right font-black text-lg py-4 ${ing.has_enough_stock ? 'text-stone-300' : 'text-emerald-600'}`}>
-                          {formatRupiah(ing.cost_to_buy)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {!ing.has_enough_stock && ing.ingredient_id && (
-                            <Button 
-                              variant="default" size="sm" className="h-8 rounded-lg shadow-sm font-bold text-[10px] uppercase tracking-wider"
-                              onClick={() => {
-                                setSelectedIngredient({ id: ing.ingredient_id, name: ing.name, qty: ing.shortage_quantity, unit: ing.unit });
-                                setFormData({ ...formData, quantity: ing.shortage_quantity.toString(), total_price: ing.cost_to_buy.toString() });
-                                setIsPurchaseOpen(true);
-                              }}
-                            >
-                              <Plus className="h-3 w-3 mr-1" /> Catat
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
+            <div className="space-y-3">
+              {data.shopping_list.map((ing, idx) => (
+                <div 
+                  key={idx} 
+                  className={`rounded-2xl border p-4 transition-all ${
+                    ing.has_enough_stock 
+                      ? 'bg-stone-50/50 border-stone-100 opacity-60' 
+                      : 'bg-white border-stone-100 shadow-sm hover:shadow-md'
+                  }`}
+                >
+                  {/* Row 1: Name + Status Badge */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className={`font-black text-base text-stone-900 leading-tight ${ing.has_enough_stock ? 'line-through decoration-stone-300' : ''}`}>
+                        {ing.name}
+                      </h4>
+                      {ing.has_enough_stock ? (
+                        <span className="text-[9px] font-black tracking-widest uppercase text-emerald-600 mt-0.5 inline-block">
+                          ✓ Terpenuhi dari Stok
+                        </span>
+                      ) : ing.cheapest_supplier ? (
+                        <span className="text-[9px] font-bold tracking-widest uppercase text-blue-500 mt-0.5 inline-block">
+                          📍 Termurah di {ing.cheapest_supplier}
+                        </span>
+                      ) : null}
+                    </div>
+                    {ing.has_enough_stock && (
+                      <Badge variant="secondary" className="bg-emerald-50 text-emerald-600 font-black text-[9px] uppercase tracking-widest shadow-none hover:bg-emerald-50 shrink-0 rounded-full px-2.5">
+                        Stok OK
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Row 2: Quantity Details */}
+                  <div className="flex items-center gap-4 text-sm mb-3">
+                    <div className="flex-1">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 block mb-0.5">Dibutuhkan</span>
+                      <span className="font-bold text-stone-600">
+                        {ing.total_quantity % 1 === 0 ? ing.total_quantity : Number(ing.total_quantity).toFixed(2)}
+                        <span className="text-[10px] uppercase text-stone-400 ml-1">{ing.unit}</span>
+                      </span>
+                    </div>
+                    {!ing.has_enough_stock && (
+                      <div className="flex-1">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 block mb-0.5">Beli Kekurangan</span>
+                        <span className="font-black text-rose-600">
+                          {ing.shortage_quantity % 1 === 0 ? ing.shortage_quantity : Number(ing.shortage_quantity).toFixed(2)}
+                          <span className="text-[10px] uppercase text-stone-400 ml-1">{ing.unit}</span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Row 3: Cost + Action Button */}
+                  <div className="flex items-center justify-between pt-3 border-t border-stone-100">
+                    <div>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 block mb-0.5">Estimasi Biaya</span>
+                      <span className={`text-xl font-black tracking-tight ${ing.has_enough_stock ? 'text-stone-300' : 'text-emerald-600'}`}>
+                        {formatRupiah(ing.cost_to_buy)}
+                      </span>
+                    </div>
+                    {!ing.has_enough_stock && ing.ingredient_id && (
+                      <Button 
+                        variant="default" size="sm" 
+                        className="h-9 px-4 rounded-full shadow-sm font-black text-[10px] uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700"
+                        onClick={() => {
+                          setSelectedIngredient({ id: ing.ingredient_id, name: ing.name, qty: ing.shortage_quantity, unit: ing.unit });
+                          setFormData({ ...formData, quantity: ing.shortage_quantity.toString(), total_price: ing.cost_to_buy.toString() });
+                          setIsPurchaseOpen(true);
+                        }}
+                      >
+                        <Plus className="h-3 w-3 mr-1" /> Catat
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
             <div className="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-start gap-4">
               <div className="text-blue-500 text-xl font-black mt-1">i</div>
               <p className="text-xs text-blue-800 font-medium leading-relaxed">
