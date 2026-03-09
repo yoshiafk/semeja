@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ModuleCard } from "@/components/ui/module-card";
@@ -127,12 +128,12 @@ function QuickLink({
   label: string;
 }) {
   return (
-    <a
-      href={href}
+    <Link
+      to={href}
       className="flex flex-col items-center gap-2 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors touch-active"
     >
       <Icon className="w-5 h-5 text-muted-foreground" />
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
-    </a>
+    </Link>
   );
 }
