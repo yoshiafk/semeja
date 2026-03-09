@@ -27,16 +27,16 @@ export default function ActivityDetail() {
     }
   }, [id]);
 
-  const loadActivity = async () => {
+  const loadActivity = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await fetchActivity(Number(id));
       setActivity(data);
     } catch (error) {
       toast.error("Gagal memuat detail aktifitas");
       navigate("/activities");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -65,7 +65,7 @@ export default function ActivityDetail() {
       setActionLoading(true);
       await joinActivity(activity.id, member.id, guestsCount);
       toast.success("Berhasil bergabung!");
-      await loadActivity();
+      await loadActivity(true);
     } catch (error: any) {
       toast.error(error.message || "Gagal bergabung");
     } finally {
@@ -79,7 +79,7 @@ export default function ActivityDetail() {
       setActionLoading(true);
       await leaveActivity(activity.id, member.id);
       toast.success("Berhasil batal bergabung");
-      await loadActivity();
+      await loadActivity(true);
     } catch (error: any) {
       toast.error(error.message || "Gagal batal bergabung");
     } finally {

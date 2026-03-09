@@ -32,8 +32,12 @@ app.use(express.json());
 
 // Vercel edge cache: short TTL for GET, no-store for mutations
 app.use('/api', (req, res, next) => {
-  if (req.method === 'GET') {
+  if (req.method === 'GET' && !req.path.startsWith('/activities')) {
     res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=30');
+  } else if (req.path.startsWith('/activities') || req.method !== 'GET') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
   }
   next();
 });
