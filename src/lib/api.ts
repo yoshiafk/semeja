@@ -97,7 +97,7 @@ export const getTodayParticipation = async (): Promise<{ count: number; mealId: 
     if (!plans || plans.length === 0) return { count: 0, mealId: null };
     
     const today = new Date().toISOString().split('T')[0];
-    const meals = await api.get<any[]>(`/meals/plan/${plans[0].id}`);
+    const meals = await api.get<any[]>(`/meals/${plans[0].id}`);
     const todayMeal = meals?.find(m => m.date === today);
     
     if (!todayMeal) return { count: 0, mealId: null };
