@@ -5,11 +5,11 @@ import { useState } from "react";
 import { Loader2, Sparkles, LogIn } from "lucide-react";
 
 export function NameEntry() {
-  const { loadMember, loading } = useMember();
-  const [name, setName] = useState("");
+  const { loadMember, loading, pendingPasswordName } = useMember();
+  const [name, setName] = useState(pendingPasswordName || "");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(!!pendingPasswordName);
+  const [error, setError] = useState(pendingPasswordName ? "Akun ini butuh password nih." : "");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

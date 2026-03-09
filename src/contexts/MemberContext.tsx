@@ -13,6 +13,7 @@ interface MemberContextType {
   loading: boolean;
   hasHouseKey: boolean;
   needsPasswordSetup: boolean;
+  pendingPasswordName: string | null;
   loadMember: (name: string, password?: string) => Promise<void>;
   confirmHouseKey: (key: string) => void;
   logout: () => void;
@@ -27,6 +28,7 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [loading, setLoading] = useState(true);
   const [hasHouseKey, setHasHouseKey] = useState(false);
   const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
+  const [pendingPasswordName, setPendingPasswordName] = useState<string | null>(null);
 
   const STORAGE_KEY = 'meal_plan_user_name';
   const HOUSE_KEY_STORAGE = 'semeja_house_key';
@@ -77,7 +79,11 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setHasHouseKey(true);
       const savedName = localStorage.getItem(STORAGE_KEY);
       if (savedName) {
-        loadMember(savedName);
+        loadMember(savedName).catch((err) => {
+          if (err.message === 'PASSWORD_REQUIRED') {
+            setPendingPasswordName(savedName);
+          }
+        });
       } else {
         setLoading(false);
       }
@@ -94,12 +100,13 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     loading,
     hasHouseKey,
     needsPasswordSetup,
+    pendingPasswordName,
     loadMember,
     confirmHouseKey,
     logout,
     isAdmin,
     isSuperadmin
-  }), [member, loading, hasHouseKey, needsPasswordSetup, loadMember, confirmHouseKey, logout, isAdmin, isSuperadmin]);
+  }), [member, loading, hasHouseKey, needsPasswordSetup, pendingPasswordName, loadMember, confirmHouseKey, logout, isAdmin, isSuperadmin]);
 
   return (
     <MemberContext.Provider value={value}>
