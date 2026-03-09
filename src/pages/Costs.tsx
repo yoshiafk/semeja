@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Receipt, TrendingUp, Users, ShoppingCart, Check, Plus, CalendarDays } from "lucide-react";
+import { Loader2, Receipt, TrendingUp, Users, ShoppingCart, Check, Plus, CalendarDays, Download } from "lucide-react";
 import { formatRupiah } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
+import { exportShoppingListPDF } from "@/lib/pdf-export";
 
 interface CostSummary {
   week_total: number;
@@ -312,6 +313,31 @@ export default function Costs() {
               </TabsContent>
 
               <TabsContent value="shopping" className="mt-0">
+                {/* Export Button Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs text-muted-foreground">
+                    {data.shopping_list.filter(i => !i.has_enough_stock).length} bahan perlu dibeli
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 gap-1.5 text-xs font-medium rounded-lg border-primary/30 text-primary hover:bg-primary/5"
+                    onClick={() => {
+                      const activePlan = plans.find(p => p.id === activePlanId);
+                      if (!activePlan) return;
+                      const weekRange = `${format(new Date(activePlan.week_start), "d MMM", { locale: id })} - ${format(new Date(activePlan.week_end), "d MMM yyyy", { locale: id })}`;
+                      exportShoppingListPDF({
+                        weekRange,
+                        dailyBreakdown: data.daily_breakdown,
+                        shoppingList: data.shopping_list
+                      });
+                      toast.success("PDF berhasil diunduh!");
+                    }}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Export PDF
+                  </Button>
+                </div>
                 <div className="space-y-2">
                   {data.shopping_list.map((ing, idx) => (
                     <div 
