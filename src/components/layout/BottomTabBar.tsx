@@ -5,10 +5,10 @@ import { Home, UtensilsCrossed, Activity, User } from "lucide-react";
 export function BottomTabBar() {
   const location = useLocation();
 
-  const tabs = [
+  const tabs: Array<{ to: string; icon: any; label: string; badge?: string }> = [
     { to: "/", icon: Home, label: "Beranda" },
     { to: "/meals", icon: UtensilsCrossed, label: "Makan" },
-    { to: "/activities", icon: Activity, label: "Aktivitas", badge: "Segera" },
+    { to: "/activities", icon: Activity, label: "Aktivitas" },
     { to: "/profile", icon: User, label: "Profil" },
   ];
 

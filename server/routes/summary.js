@@ -150,12 +150,37 @@ router.get('/member/:memberId', async (req, res) => {
         actualCost = Math.round((totalActualCost / totalSystemPortions) * participations.length);
       }
       
+      // 5.5 Calculate Activity Costs for this member within the current week timeframe
+      let activityCost = 0;
+      const { rows: activityParticipations } = await pool.query(
+        `SELECT ap.guests_count, a.cost_amount, a.cost_type,
+           (SELECT SUM(1 + ap2.guests_count) FROM activity_participations ap2 WHERE ap2.activity_id = a.id) as total_people
+         FROM activity_participations ap
+         JOIN activities a ON ap.activity_id = a.id
+         WHERE ap.member_id = $1 
+         AND a.date >= $2 AND a.date <= $3`,
+        [memberId, plan.week_start, plan.week_end]
+      );
+
+      for (const act of activityParticipations) {
+        const myHeadcount = 1 + (act.guests_count || 0);
+        const actCost = parseFloat(act.cost_amount) || 0;
+        
+        if (act.cost_type === 'fixed') {
+          activityCost += actCost * myHeadcount;
+        } else if (act.cost_type === 'split') {
+          const totalPeople = parseInt(act.total_people) || 1; // avoid division by zero
+          activityCost += Math.round((actCost / totalPeople) * myHeadcount);
+        }
+      }
+      
       currentWeek = {
         mealPlanId: plan.id,
         weekLabel,
         daysJoined: participations.length,
         estimatedCost,
         actualCost,
+        activityCost,
         dailyBreakdown
       };
     }
@@ -216,11 +241,16 @@ router.get('/:mealPlanId', async (req, res) => {
 
     // 1. Get all meals with participant counts
     const { rows: meals } = await pool.query(
-      `SELECT m.*,
+      `SELECT m.*, mp.week_start, mp.week_end,
         (SELECT COUNT(*) FROM participations p WHERE p.meal_id = m.id) as participant_count
-       FROM meals m WHERE m.meal_plan_id = $1 ORDER BY m.date`,
+       FROM meals m 
+       JOIN meal_plans mp ON m.meal_plan_id = mp.id
+       WHERE m.meal_plan_id = $1 ORDER BY m.date`,
       [planId]
     );
+
+    const weekStart = meals.length > 0 ? meals[0].week_start : null;
+    const weekEnd = meals.length > 0 ? meals[0].week_end : null;
 
     // 1.5 Get Beras ingredient for auto-rice calculation
     const { rows: riceRows } = await pool.query(
@@ -430,7 +460,54 @@ router.get('/:mealPlanId', async (req, res) => {
     
     Object.keys(memberTotals).forEach(member_id => {
       memberTotals[member_id].actual_total = Math.round(memberTotals[member_id].days_joined * actualCostPerPortion);
+      memberTotals[member_id].activity_total = 0; // Initialize activity total
     });
+
+    // 7.5 Add Activity Costs for the week
+    let totalActivityCost = 0;
+    if (weekStart && weekEnd) {
+      const { rows: activities } = await pool.query(
+        `SELECT a.id, a.cost_type, a.cost_amount, ap.member_id, ap.guests_count,
+           (SELECT SUM(1 + ap2.guests_count) FROM activity_participations ap2 WHERE ap2.activity_id = a.id) as total_people
+         FROM activities a
+         JOIN activity_participations ap ON a.id = ap.activity_id
+         WHERE a.date >= $1 AND a.date <= $2`,
+        [weekStart, weekEnd]
+      );
+
+      for (const act of activities) {
+        const myHeadcount = 1 + (act.guests_count || 0);
+        const actCost = parseFloat(act.cost_amount) || 0;
+        let myShare = 0;
+
+        if (act.cost_type === 'fixed') {
+          myShare = actCost * myHeadcount;
+        } else if (act.cost_type === 'split') {
+          const totalPeople = parseInt(act.total_people) || 1;
+          myShare = Math.round((actCost / totalPeople) * myHeadcount);
+        }
+
+        if (!memberTotals[act.member_id]) {
+          // It's possible a member joined an activity but no meals
+          const { rows: memberInfo } = await pool.query('SELECT name FROM members WHERE id = $1', [act.member_id]);
+          if (memberInfo.length > 0) {
+            memberTotals[act.member_id] = { 
+              member_id: act.member_id, 
+              name: memberInfo[0].name, 
+              days_joined: 0, 
+              total: 0, 
+              actual_total: 0,
+              activity_total: 0 
+            };
+          }
+        }
+        
+        if (memberTotals[act.member_id]) {
+          memberTotals[act.member_id].activity_total += myShare;
+          totalActivityCost += myShare;
+        }
+      }
+    }
 
     // Convert shopping list object to array and calculate exact shortage (to buy)
     const formattedShoppingList = Object.values(shoppingList).map(item => {
@@ -495,6 +572,7 @@ router.get('/:mealPlanId', async (req, res) => {
       week_total: Math.round(weekTotal),
       total_actual_cost: totalActualCost,
       total_shopping_cost: Math.round(totalShoppingCost),
+      total_activity_cost: totalActivityCost,
       daily_breakdown: dailyBreakdown,
       member_totals: Object.values(memberTotals),
       shopping_list: finalShoppingList,

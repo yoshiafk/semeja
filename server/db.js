@@ -147,7 +147,35 @@ async function initDB() {
 
       ALTER TABLE purchases ADD COLUMN IF NOT EXISTS meal_plan_id INTEGER REFERENCES meal_plans(id) ON DELETE SET NULL;
 
+      CREATE TABLE IF NOT EXISTS activities (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(200) NOT NULL,
+        description TEXT DEFAULT '',
+        date DATE NOT NULL,
+        time TIME NOT NULL,
+        location VARCHAR(300) DEFAULT '',
+        cost_type VARCHAR(20) DEFAULT 'free',
+        cost_amount INTEGER DEFAULT 0,
+        max_participants INTEGER,
+        created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+        status VARCHAR(20) DEFAULT 'upcoming',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS activity_participations (
+        id SERIAL PRIMARY KEY,
+        activity_id INTEGER REFERENCES activities(id) ON DELETE CASCADE,
+        member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+        guests_count INTEGER DEFAULT 0,
+        payment_status VARCHAR(20) DEFAULT 'unpaid',
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(activity_id, member_id)
+      );
+
       -- Performance indexes on foreign keys used in JOINs and WHERE clauses
+      CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
+      CREATE INDEX IF NOT EXISTS idx_activity_participations_activity_id ON activity_participations(activity_id);
+      CREATE INDEX IF NOT EXISTS idx_activity_participations_member_id ON activity_participations(member_id);
       CREATE INDEX IF NOT EXISTS idx_meals_meal_plan_id ON meals(meal_plan_id);
       CREATE INDEX IF NOT EXISTS idx_meals_date ON meals(date);
       CREATE INDEX IF NOT EXISTS idx_participations_meal_id ON participations(meal_id);

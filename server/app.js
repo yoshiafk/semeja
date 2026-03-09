@@ -16,6 +16,7 @@ const authRouter = require('./routes/auth');
 const purchasesRouter = require('./routes/purchases');
 const suppliersRouter = require('./routes/suppliers');
 const scraperRouter = require('./routes/scraper');
+const activitiesRouter = require('./routes/activities');
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/purchases', purchasesRouter);
 app.use('/api/suppliers', suppliersRouter);
 app.use('/api/scraper', scraperRouter);
+app.use('/api/activities', activitiesRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

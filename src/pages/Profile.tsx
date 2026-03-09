@@ -113,8 +113,8 @@ export default function Profile() {
               <div className="grid grid-cols-3 gap-3">
                 <StatCard
                   label="Total Tagihan"
-                  value={formatCurrency(summary.currentWeek.actualCost || summary.currentWeek.estimatedCost)}
-                  subValue={summary.currentWeek.actualCost ? "Aktual" : "Estimasi"}
+                  value={formatCurrency((summary.currentWeek.actualCost || summary.currentWeek.estimatedCost) + (summary.currentWeek.activityCost || 0))}
+                  subValue={summary.currentWeek.activityCost ? "Dapur + Aktifitas" : (summary.currentWeek.actualCost ? "Aktual" : "Estimasi")}
                   icon={Wallet}
                 />
                 <StatCard

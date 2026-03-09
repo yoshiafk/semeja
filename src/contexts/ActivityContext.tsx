@@ -1,40 +1,109 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import type { ReactNode } from "react";
+import { api } from "../lib/api";
 
-// TODO: Activity types and interfaces will be defined here
-// when the Activities feature is implemented
+export type CostType = "free" | "fixed" | "split";
 
-interface Activity {
+export interface ActivityParticipation {
+  id: number;
+  activity_id: number;
+  member_id: number;
+  guests_count: number;
+  payment_status: "unpaid" | "paid";
+  created_at: string;
+  member_name?: string;
+}
+
+export interface Activity {
   id: number;
   title: string;
-  type: "running" | "badminton" | "gym" | "other";
+  description: string;
   date: string;
   time: string;
   location: string;
-  maxParticipants: number;
-  participants: number[];
-  createdBy: number;
+  cost_type: CostType;
+  cost_amount: number;
+  max_participants: number | null;
+  created_by: number;
   status: "upcoming" | "ongoing" | "completed" | "cancelled";
+  created_at: string;
+  
+  // Aggregate fields from API
+  participant_count?: number;
+  guests_count_total?: number;
+  
+  // Detail fields
+  participants?: ActivityParticipation[];
 }
 
 interface ActivityContextType {
   activities: Activity[];
   loading: boolean;
-  // TODO: Add methods for CRUD operations
-  // createActivity: (activity: Omit<Activity, 'id'>) => Promise<Activity>;
-  // joinActivity: (activityId: number) => Promise<void>;
-  // leaveActivity: (activityId: number) => Promise<void>;
+  fetchActivities: () => Promise<void>;
+  fetchActivity: (id: number) => Promise<Activity>;
+  createActivity: (activity: Partial<Activity>) => Promise<Activity>;
+  updateActivity: (id: number, activity: Partial<Activity>) => Promise<Activity>;
+  joinActivity: (id: number, memberId: number, guestsCount?: number) => Promise<void>;
+  leaveActivity: (id: number, memberId: number) => Promise<void>;
 }
 
 const ActivityContext = createContext<ActivityContextType | undefined>(undefined);
 
 export function ActivityProvider({ children }: { children: ReactNode }) {
-  // TODO: Implement activity state management
-  // This is a placeholder for the upcoming Activities feature
-  
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchActivities = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await api.get<Activity[]>("/activities");
+      setActivities(data);
+    } catch (err) {
+      console.error("Failed to fetch activities", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActivities();
+  }, [fetchActivities]);
+
+  const fetchActivity = async (id: number) => {
+    return await api.get<Activity>(`/activities/${id}`);
+  };
+
+  const createActivity = async (activity: Partial<Activity>) => {
+    const newActivity = await api.post<Activity>("/activities", activity);
+    await fetchActivities();
+    return newActivity;
+  };
+
+  const updateActivity = async (id: number, activity: Partial<Activity>) => {
+    const updated = await api.put<Activity>(`/activities/${id}`, activity);
+    await fetchActivities();
+    return updated;
+  };
+
+  const joinActivity = async (id: number, memberId: number, guestsCount: number = 0) => {
+    await api.post(`/activities/${id}/join`, { member_id: memberId, guests_count: guestsCount });
+    await fetchActivities();
+  };
+
+  const leaveActivity = async (id: number, memberId: number) => {
+    await api.post(`/activities/${id}/leave`, { member_id: memberId });
+    await fetchActivities();
+  };
+
   const value: ActivityContextType = {
-    activities: [],
-    loading: false,
+    activities,
+    loading,
+    fetchActivities,
+    fetchActivity,
+    createActivity,
+    updateActivity,
+    joinActivity,
+    leaveActivity
   };
 
   return (

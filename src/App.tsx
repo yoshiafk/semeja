@@ -20,7 +20,9 @@ const MealPlan = lazy(() => import("@/pages/MealPlan"));
 const Menus = lazy(() => import("@/pages/Menus"));
 
 // Activities Module
-const ActivitiesComingSoon = lazy(() => import("@/pages/activities/ComingSoon"));
+const ActivitiesList = lazy(() => import("@/pages/activities"));
+const NewActivity = lazy(() => import("@/pages/activities/new"));
+const ActivityDetail = lazy(() => import("@/pages/activities/detail"));
 
 // Community Module
 const Members = lazy(() => import("@/pages/Members"));
@@ -93,7 +95,9 @@ function App() {
             />
             
             {/* Activities Module */}
-            <Route path="/activities" element={<ActivitiesComingSoon />} />
+            <Route path="/activities" element={<ActivitiesList />} />
+            <Route path="/activities/new" element={isAdmin ? <NewActivity /> : <Navigate to="/activities" />} />
+            <Route path="/activities/:id" element={<ActivityDetail />} />
             
             {/* Community Module */}
             <Route path="/community/members" element={<Members />} />

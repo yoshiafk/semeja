@@ -78,6 +78,7 @@ export interface MemberSummary {
     daysJoined: number;
     estimatedCost: number;
     actualCost: number;
+    activityCost?: number;
     dailyBreakdown: Array<{
       date: string;
       dayName: string;

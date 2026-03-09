@@ -32,9 +32,11 @@ interface CostSummary {
     days_joined: number;
     total: number;
     actual_total?: number;
+    activity_total?: number;
   }>;
   total_shopping_cost: number;
   total_actual_cost: number;
+  total_activity_cost?: number;
   shopping_list: Array<{
     ingredient_id?: number;
     name: string;
@@ -223,6 +225,15 @@ export default function Costs() {
                 <p className="text-xs text-muted-foreground mt-3 leading-relaxed max-w-lg">
                   Estimasi <b>sudah dikurangi stok dapur</b>. Menghitung {data.daily_breakdown.length} hari untuk {data.member_totals.length} warga.
                 </p>
+                
+                {data.total_activity_cost !== undefined && data.total_activity_cost > 0 && (
+                  <div className="mt-4 pt-3 border-t border-primary/10">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground font-medium">Biaya Aktifitas (Total)</span>
+                      <span className="font-bold text-primary">{formatRupiah(data.total_activity_cost)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
           
               <div className="grid grid-cols-2 md:grid-cols-1 gap-3">
@@ -263,7 +274,7 @@ export default function Costs() {
                         data.member_totals
                           .sort((a,b) => b.total - a.total)
                           .map(member => (
-                            <div key={member.member_id} className="rounded-xl border border-border/50 bg-white p-4 flex items-center justify-between">
+                            <div key={member.member_id} className="rounded-xl border border-border/50 bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                               <div className="flex items-center gap-3">
                                 <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-bold text-sm">
                                   {member.days_joined}
@@ -273,15 +284,32 @@ export default function Costs() {
                                   <p className="text-[11px] text-muted-foreground/70">{member.days_joined} hari bergabung</p>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                {member.actual_total && member.actual_total > 0 ? (
-                                  <>
-                                    <div className="text-base font-bold text-rose-600">{formatRupiah(member.actual_total)}</div>
-                                    <div className="text-[11px] text-muted-foreground/70 line-through">Est: {formatRupiah(member.total)}</div>
-                                  </>
-                                ) : (
-                                  <div className="text-base font-bold text-rose-600">{formatRupiah(member.total)}</div>
+                              <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+                                <div className="text-left md:text-right">
+                                  <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Belanja</div>
+                                  {member.actual_total && member.actual_total > 0 ? (
+                                    <>
+                                      <div className="text-sm font-bold text-rose-600">{formatRupiah(member.actual_total)}</div>
+                                      <div className="text-[10px] text-muted-foreground/70 line-through">Est: {formatRupiah(member.total)}</div>
+                                    </>
+                                  ) : (
+                                    <div className="text-sm font-bold text-rose-600">{formatRupiah(member.total)}</div>
+                                  )}
+                                </div>
+
+                                {(member.activity_total || 0) > 0 && (
+                                  <div className="text-left md:text-right">
+                                    <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Aktifitas</div>
+                                    <div className="text-sm font-bold text-blue-600">+{formatRupiah(member.activity_total || 0)}</div>
+                                  </div>
                                 )}
+
+                                <div className="text-left md:text-right pt-2 border-t border-border/50 md:border-0 md:pt-0">
+                                  <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Grand Total</div>
+                                  <div className="text-base font-black text-primary">
+                                    {formatRupiah((member.actual_total && member.actual_total > 0 ? member.actual_total : member.total) + (member.activity_total || 0))}
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           ))
