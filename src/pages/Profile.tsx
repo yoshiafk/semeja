@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +20,12 @@ import {
   Receipt,
   CalendarDays,
   KeyRound,
-  AlertTriangle
+  AlertTriangle,
+  ClipboardList,
+  Utensils,
+  Carrot,
+  Store,
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -224,6 +230,44 @@ export default function Profile() {
           </Card>
         )}
 
+        {/* Admin Management Section */}
+        {isAdmin && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Manajemen Semeja
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-3">
+              <AdminLink
+                href="/meals/plan"
+                icon={ClipboardList}
+                label="Atur Jadwal"
+                description="Kelola jadwal makan mingguan"
+              />
+              <AdminLink
+                href="/meals/menus"
+                icon={Utensils}
+                label="Daftar Resep"
+                description="Kelola database resep & menu"
+              />
+              <AdminLink
+                href="/finance/ingredients"
+                icon={Carrot}
+                label="Stok Bahan"
+                description="Pantau ketersediaan bahan"
+              />
+              <AdminLink
+                href="/finance/suppliers"
+                icon={Store}
+                label="Supplier"
+                description="Kelola daftar pemasok bahan"
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Account Actions */}
         <Card>
           <CardHeader className="pb-2">
@@ -357,5 +401,37 @@ function StatCard({
       <p className="text-base font-bold text-foreground truncate">{value}</p>
       <p className="text-[10px] text-muted-foreground truncate">{subValue}</p>
     </div>
+  );
+}
+
+StatCard.displayName = "StatCard";
+
+function AdminLink({
+  href,
+  icon: Icon,
+  label,
+  description,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  description: string;
+}) {
+  return (
+    <Link
+      to={href}
+      className="flex flex-col gap-2 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors touch-active border border-transparent hover:border-primary/20"
+    >
+      <div className="flex items-center justify-between">
+        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Icon className="w-4 h-4 text-primary" />
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-foreground">{label}</p>
+        <p className="text-[10px] text-muted-foreground line-clamp-1">{description}</p>
+      </div>
+    </Link>
   );
 }

@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ModuleCard } from "@/components/ui/module-card";
-import { UtensilsCrossed, Activity, Users, Sparkles } from "lucide-react";
+import { UtensilsCrossed, Activity, Users, Sparkles, ClipboardList, Carrot } from "lucide-react";
 import { getTodayParticipation } from "@/lib/api";
 
 export default function HomeHub() {
-  const { member } = useMember();
+  const { member, isAdmin } = useMember();
   const [todayCount, setTodayCount] = useState(0);
 
   useEffect(() => {
@@ -92,6 +92,20 @@ export default function HomeHub() {
               icon={Users}
               label="Warga"
             />
+            {isAdmin && (
+              <>
+                <QuickLink
+                  href="/meals/plan"
+                  icon={ClipboardList}
+                  label="Jadwal"
+                />
+                <QuickLink
+                  href="/finance/ingredients"
+                  icon={Carrot}
+                  label="Stok"
+                />
+              </>
+            )}
             <QuickLink
               href="/finance/costs"
               icon={({ className }: { className?: string }) => (
