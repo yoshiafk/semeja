@@ -69,14 +69,12 @@ export default function HomeHub() {
             badgeVariant="count"
           />
 
-          {/* Activities Module - Coming Soon */}
+          {/* Activities Module */}
           <ModuleCard
             icon={Activity}
             title="Aktivitas Seru"
             description="Olahraga dan kegiatan bareng"
             href="/activities"
-            badge="Segera Hadir"
-            badgeVariant="coming-soon"
           />
         </div>
 

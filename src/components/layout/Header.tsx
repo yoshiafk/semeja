@@ -42,7 +42,7 @@ export function Header() {
         { to: "/finance/suppliers", icon: Store, label: "Supplier" },
       ]
     },
-    { to: "/activities", icon: Activity, label: "Aktivitas", badge: "Segera" },
+    { to: "/activities", icon: Activity, label: "Aktivitas" },
   ];
 
   return (
@@ -81,11 +81,6 @@ export function Header() {
               >
                 <item.icon className="h-3.5 w-3.5" />
                 <span>{item.label}</span>
-                {item.badge && (
-                  <span className="ml-1 px-1.5 py-0.5 text-[9px] font-bold bg-accent text-accent-foreground rounded-full">
-                    {item.badge}
-                  </span>
-                )}
               </NavLink>
             )
           ))}
