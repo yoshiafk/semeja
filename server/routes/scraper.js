@@ -272,7 +272,10 @@ router.post('/cookpad', async (req, res) => {
       const normalizedQty = ing.qty > 0 ? (ing.qty / scraped.servings) : 0;
 
       await client.query(
-        'INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity_per_person, custom_unit, name) VALUES ($1, $2, $3, $4, $5)',
+        `INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity_per_person, custom_unit, name)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (recipe_id, ingredient_id)
+         DO UPDATE SET quantity_per_person = recipe_ingredients.quantity_per_person + EXCLUDED.quantity_per_person`,
         [recipe.id, ingredient_id, normalizedQty, ing.unit, ing.name]
       );
       
@@ -352,7 +355,10 @@ router.put('/rescrape/:recipeId', async (req, res) => {
       const normalizedQty = ing.qty > 0 ? (ing.qty / scraped.servings) : 0;
 
       await client.query(
-        'INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity_per_person, custom_unit, name) VALUES ($1, $2, $3, $4, $5)',
+        `INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity_per_person, custom_unit, name)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (recipe_id, ingredient_id)
+         DO UPDATE SET quantity_per_person = recipe_ingredients.quantity_per_person + EXCLUDED.quantity_per_person`,
         [recipeId, ingredient_id, normalizedQty, ing.unit, ing.name]
       );
       
