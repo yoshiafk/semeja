@@ -68,8 +68,8 @@ export default function MealPlanPage() {
       setPlans(plansData);
       setRecipes(recipesData);
       
-      const active = plansData.find(p => p.status === 'active') || plansData[0];
-      if (active) setActivePlan(active);
+      const active = plansData.find(p => p.status === 'active') || plansData[0] || null;
+      setActivePlan(active);
     } catch (err) {
       console.error(err);
     } finally {

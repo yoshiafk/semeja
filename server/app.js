@@ -30,11 +30,14 @@ app.use(cors({
 app.use(compression());
 app.use(express.json());
 
-// Vercel edge cache: short TTL for GET, no-store for mutations
+// Vercel edge cache: short TTL for GET, no-store for mutations & sensitive routes
 app.use('/api', (req, res, next) => {
-  if (req.method === 'GET' && !req.path.startsWith('/activities')) {
+  const volatileRoutes = ['/activities', '/meal-plans', '/meals', '/participations', '/summary', '/purchases'];
+  const isVolatile = volatileRoutes.some(route => req.path.startsWith(route));
+
+  if (req.method === 'GET' && !isVolatile) {
     res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=30');
-  } else if (req.path.startsWith('/activities') || req.method !== 'GET') {
+  } else {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
