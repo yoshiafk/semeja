@@ -140,7 +140,7 @@ export default function Costs() {
         {/* Header + Week Selector */}
         {plans.length > 0 && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Perhitungan Cost</h1>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Perhitungan Biaya</h1>
             <Select 
               value={activePlanId?.toString()} 
               onValueChange={(val) => setActivePlanId(parseInt(val))}
@@ -177,7 +177,7 @@ export default function Costs() {
           <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-3 bg-secondary rounded-2xl border border-dashed border-border">
             <Receipt className="h-12 w-12 text-muted-foreground/50" />
             <div>
-              <h2 className="text-base font-semibold text-foreground/90">Belum ada perhitungan cost</h2>
+              <h2 className="text-base font-semibold text-foreground/90">Belum ada perhitungan biaya</h2>
               <p className="text-sm text-muted-foreground mt-1">Pilih pekan lain atau hubungi admin untuk membuat jadwal baru.</p>
             </div>
           </div>
@@ -325,13 +325,42 @@ export default function Costs() {
                     onClick={() => {
                       const activePlan = plans.find(p => p.id === activePlanId);
                       if (!activePlan) return;
-                      const weekRange = `${format(new Date(activePlan.week_start), "d MMM", { locale: id })} - ${format(new Date(activePlan.week_end), "d MMM yyyy", { locale: id })}`;
-                      exportShoppingListPDF({
-                        weekRange,
-                        dailyBreakdown: data.daily_breakdown,
-                        shoppingList: data.shopping_list
+                      
+                      const toastId = toast.loading('Memulai export PDF...', {
+                        description: 'Mohon tunggu sebentar'
                       });
-                      toast.success("PDF berhasil diunduh!");
+                      
+                      // Use setTimeout to allow UI to update before heavy PDF generation
+                      setTimeout(() => {
+                        try {
+                          const weekRange = `${format(new Date(activePlan.week_start), "d MMM", { locale: id })} - ${format(new Date(activePlan.week_end), "d MMM yyyy", { locale: id })}`;
+                          
+                          exportShoppingListPDF(
+                            {
+                              weekRange,
+                              dailyBreakdown: data.daily_breakdown,
+                              shoppingList: data.shopping_list
+                            },
+                            (progress, message) => {
+                              toast.loading(message, {
+                                id: toastId,
+                                description: `${progress}% selesai`
+                              });
+                            }
+                          );
+                          
+                          toast.success('PDF berhasil diunduh!', {
+                            id: toastId,
+                            description: 'Silakan cek folder Downloads Anda'
+                          });
+                        } catch (error) {
+                          console.error('PDF export error:', error);
+                          toast.error('Gagal membuat PDF', {
+                            id: toastId,
+                            description: 'Terjadi kesalahan saat membuat dokumen'
+                          });
+                        }
+                      }, 100);
                     }}
                   >
                     <Download className="h-3.5 w-3.5" />

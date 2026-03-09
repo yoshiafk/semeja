@@ -1,10 +1,10 @@
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Extend jsPDF type for autotable
 declare module 'jspdf' {
   interface jsPDF {
-    autoTable: (options: any) => jsPDF;
+    autoTable: typeof autoTable;
     lastAutoTable: { finalY: number };
   }
 }
@@ -39,7 +39,12 @@ interface ExportData {
   shoppingList: ShoppingItem[];
 }
 
-export function exportShoppingListPDF(data: ExportData) {
+export function exportShoppingListPDF(
+  data: ExportData,
+  onProgress?: (progress: number, message: string) => void
+) {
+  onProgress?.(10, 'Mempersiapkan dokumen...');
+  
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -55,6 +60,8 @@ export function exportShoppingListPDF(data: ExportData) {
   const textColor: [number, number, number] = [30, 30, 30];
   const mutedColor: [number, number, number] = [120, 120, 120];
 
+  onProgress?.(20, 'Membuat header...');
+  
   // Title
   doc.setFontSize(20);
   doc.setTextColor(...primaryColor);
@@ -70,8 +77,13 @@ export function exportShoppingListPDF(data: ExportData) {
 
   let currentY = 45;
 
+  onProgress?.(30, 'Menyusun daftar per hari...');
+  
   // Loop through each day
-  data.dailyBreakdown.forEach((day) => {
+  const totalDays = data.dailyBreakdown.length;
+  data.dailyBreakdown.forEach((day, dayIdx) => {
+    const dayProgress = 30 + ((dayIdx / totalDays) * 40);
+    onProgress?.(dayProgress, `Memproses ${day.day_name}...`);
     // Check if we need a new page
     if (currentY > pageHeight - 60) {
       doc.addPage();
@@ -138,7 +150,7 @@ export function exportShoppingListPDF(data: ExportData) {
       tableBody.push(['☐', '', '', '', '']);
     }
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: currentY,
       head: [['✓', 'Bahan', 'Jumlah', 'Harga', 'Toko']],
       body: tableBody,
@@ -167,9 +179,11 @@ export function exportShoppingListPDF(data: ExportData) {
       tableLineWidth: 0.1,
     });
 
-    currentY = doc.lastAutoTable.finalY + 10;
+    currentY = (doc as any).lastAutoTable.finalY + 10;
   });
 
+  onProgress?.(70, 'Membuat ringkasan belanja...');
+  
   // Summary section at the end
   if (currentY > pageHeight - 50) {
     doc.addPage();
@@ -188,6 +202,8 @@ export function exportShoppingListPDF(data: ExportData) {
   doc.text('Ringkasan Total Belanja', margin, currentY);
   currentY += 8;
 
+  onProgress?.(80, 'Menambahkan detail harga...');
+
   const summaryBody = data.shoppingList
     .filter(item => !item.has_enough_stock)
     .map(item => [
@@ -203,7 +219,7 @@ export function exportShoppingListPDF(data: ExportData) {
     summaryBody.push(['☐', '', '', '', '']);
   }
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: currentY,
     head: [['✓', 'Bahan', 'Jumlah', 'Est. Harga', 'Toko Rekomendasi']],
     body: summaryBody,
@@ -230,6 +246,8 @@ export function exportShoppingListPDF(data: ExportData) {
     },
   });
 
+  onProgress?.(90, 'Menambahkan footer...');
+  
   // Footer
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
@@ -244,7 +262,11 @@ export function exportShoppingListPDF(data: ExportData) {
     );
   }
 
+  onProgress?.(95, 'Menyimpan PDF...');
+  
   // Save the PDF
   const filename = `Daftar-Belanja-Semeja-${data.weekRange.replace(/\s/g, '-')}.pdf`;
   doc.save(filename);
+  
+  onProgress?.(100, 'PDF berhasil diunduh!');
 }
