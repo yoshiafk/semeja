@@ -53,7 +53,7 @@ export function exportShoppingListPDF(
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 15;
+  const margin = 10;
 
   // Colors as tuples
   const primaryColor: [number, number, number] = [13, 148, 136]; // Teal
@@ -63,19 +63,18 @@ export function exportShoppingListPDF(
   onProgress?.(20, 'Membuat header...');
   
   // Title
-  doc.setFontSize(20);
+  doc.setFontSize(14);
   doc.setTextColor(...primaryColor);
   doc.setFont('helvetica', 'bold');
-  doc.text('Daftar Belanja Semeja', margin, 20);
+  doc.text('Daftar Belanja Semeja', margin, 15);
 
   // Week info
-  doc.setFontSize(11);
+  doc.setFontSize(8);
   doc.setTextColor(...mutedColor);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Periode: ${data.weekRange}`, margin, 28);
-  doc.text(`Dicetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, margin, 34);
+  doc.text(`${data.weekRange} • Dicetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`, margin, 20);
 
-  let currentY = 45;
+  let currentY = 28;
 
   onProgress?.(30, 'Menyusun daftar per hari...');
   
@@ -86,58 +85,42 @@ export function exportShoppingListPDF(
     const dayProgress = 30 + ((dayIdx / totalDays) * 40);
     onProgress?.(dayProgress, `Memproses ${day.day_name}...`);
     // Check if we need a new page
-    if (currentY > pageHeight - 60) {
+    if (currentY > pageHeight - 40) {
       doc.addPage();
-      currentY = 20;
+      currentY = 12;
     }
 
     // Day Header with background
     doc.setFillColor(240, 253, 250); // Light teal bg
-    doc.rect(margin, currentY - 5, pageWidth - margin * 2, 12, 'F');
+    doc.rect(margin, currentY - 3, pageWidth - margin * 2, 8, 'F');
     
-    doc.setFontSize(12);
+    doc.setFontSize(9);
     doc.setTextColor(...primaryColor);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${day.day_name}`, margin + 3, currentY + 2);
-    
-    doc.setFontSize(9);
-    doc.setTextColor(...mutedColor);
-    doc.setFont('helvetica', 'normal');
     const dateStr = new Date(day.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-    doc.text(dateStr, pageWidth - margin - 15, currentY + 2);
+    doc.text(`${day.day_name} (${dateStr})`, margin + 2, currentY + 2);
     
-    currentY += 12;
+    currentY += 8;
 
-    // Menu items
-    const menus = [
-      { label: 'Lauk', value: day.main_course_menu || '-' },
-      { label: 'Sayur', value: day.second_course_menu || '-' },
-      { label: 'Dessert', value: day.dessert_menu || '-' }
-    ];
-
-    doc.setFontSize(9);
-    menus.forEach(menu => {
-      doc.setTextColor(...mutedColor);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${menu.label}:`, margin + 3, currentY);
-      doc.setTextColor(...textColor);
-      doc.setFont('helvetica', 'bold');
-      doc.text(menu.value, margin + 20, currentY);
-      currentY += 5;
-    });
-
-    currentY += 3;
+    // Menu items inline
+    const menuText = `${day.main_course_menu || '-'} • ${day.second_course_menu || '-'}${day.dessert_menu ? ` • ${day.dessert_menu}` : ''}`;
+    
+    doc.setFontSize(7);
+    doc.setTextColor(...textColor);
+    doc.setFont('helvetica', 'normal');
+    doc.text(menuText, margin + 2, currentY + 3);
+    currentY += 6;
 
     // Ingredients table for this day
     // Only show ingredients if this day has any menu assigned
     const hasMenu = day.main_course_menu || day.second_course_menu || day.dessert_menu;
     if (!hasMenu) {
-      currentY += 5;
-      doc.setFontSize(9);
+      currentY += 3;
+      doc.setFontSize(7);
       doc.setTextColor(...mutedColor);
       doc.setFont('helvetica', 'italic');
-      doc.text('(Belum ada menu untuk hari ini)', margin + 3, currentY);
-      currentY += 10;
+      doc.text('(Belum ada menu untuk hari ini)', margin + 2, currentY);
+      currentY += 6;
       continue;
     }
     
@@ -158,10 +141,8 @@ export function exportShoppingListPDF(
       ]);
     });
 
-    // Add 3 empty rows for manual additions
-    for (let i = 0; i < 3; i++) {
-      tableBody.push(['☐', '', '', '', '']);
-    }
+    // Add 1 empty row for manual additions
+    tableBody.push(['☐', '', '', '', '']);
 
     autoTable(doc, {
       startY: currentY,
@@ -169,8 +150,8 @@ export function exportShoppingListPDF(
       body: tableBody,
       theme: 'plain',
       styles: {
-        fontSize: 8,
-        cellPadding: 2,
+        fontSize: 7,
+        cellPadding: 1,
         lineColor: [220, 220, 220],
         lineWidth: 0.1,
       },
@@ -178,42 +159,42 @@ export function exportShoppingListPDF(
         fillColor: [245, 245, 245],
         textColor: [80, 80, 80],
         fontStyle: 'bold',
-        fontSize: 8,
+        fontSize: 7,
       },
       columnStyles: {
-        0: { cellWidth: 8, halign: 'center' },
-        1: { cellWidth: 55 },
-        2: { cellWidth: 30 },
-        3: { cellWidth: 35 },
-        4: { cellWidth: 40 },
+        0: { cellWidth: 6, halign: 'center' },
+        1: { cellWidth: 60 },
+        2: { cellWidth: 28 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 42 },
       },
       margin: { left: margin, right: margin },
       tableLineColor: [200, 200, 200],
       tableLineWidth: 0.1,
     });
 
-    currentY = (doc as any).lastAutoTable.finalY + 10;
+    currentY = (doc as any).lastAutoTable.finalY + 6;
   }
 
   onProgress?.(70, 'Membuat ringkasan belanja...');
   
   // Summary section at the end
-  if (currentY > pageHeight - 50) {
+  if (currentY > pageHeight - 40) {
     doc.addPage();
-    currentY = 20;
+    currentY = 12;
   }
 
   // Divider
   doc.setDrawColor(200, 200, 200);
   doc.line(margin, currentY, pageWidth - margin, currentY);
-  currentY += 8;
+  currentY += 6;
 
   // Full Shopping List Summary
-  doc.setFontSize(12);
+  doc.setFontSize(10);
   doc.setTextColor(...primaryColor);
   doc.setFont('helvetica', 'bold');
   doc.text('Ringkasan Total Belanja', margin, currentY);
-  currentY += 8;
+  currentY += 6;
 
   onProgress?.(80, 'Menambahkan detail harga...');
 
@@ -228,7 +209,7 @@ export function exportShoppingListPDF(
     ]);
 
   // Add empty rows
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 2; i++) {
     summaryBody.push(['☐', '', '', '', '']);
   }
 
@@ -238,19 +219,20 @@ export function exportShoppingListPDF(
     body: summaryBody,
     theme: 'striped',
     styles: {
-      fontSize: 9,
-      cellPadding: 3,
+      fontSize: 7,
+      cellPadding: 1.5,
     },
     headStyles: {
       fillColor: [...primaryColor],
       textColor: [255, 255, 255],
       fontStyle: 'bold',
+      fontSize: 7,
     },
     columnStyles: {
-      0: { cellWidth: 10, halign: 'center' },
-      1: { cellWidth: 50 },
-      2: { cellWidth: 30 },
-      3: { cellWidth: 35 },
+      0: { cellWidth: 6, halign: 'center' },
+      1: { cellWidth: 55 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 32 },
       4: { cellWidth: 45 },
     },
     margin: { left: margin, right: margin },
@@ -265,12 +247,12 @@ export function exportShoppingListPDF(
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setTextColor(...mutedColor);
     doc.text(
-      `Semeja - Daftar Belanja | Halaman ${i} dari ${totalPages}`,
+      `Semeja | Hal. ${i}/${totalPages}`,
       pageWidth / 2,
-      pageHeight - 10,
+      pageHeight - 6,
       { align: 'center' }
     );
   }
