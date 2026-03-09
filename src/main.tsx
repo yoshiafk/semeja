@@ -3,11 +3,14 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { MemberProvider } from './contexts/MemberContext.tsx'
+import { ActivityProvider } from './contexts/ActivityContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <MemberProvider>
-      <App />
+      <ActivityProvider>
+        <App />
+      </ActivityProvider>
     </MemberProvider>
   </StrictMode>,
 )
