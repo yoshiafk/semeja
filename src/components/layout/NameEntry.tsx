@@ -108,7 +108,7 @@ export function NameEntry() {
         </form>
 
         <p className="text-[11px] text-muted-foreground/60">
-          Nama kamu akan diingat di perangkat ini 📱
+          Nama kamu akan diingat di perangkat ini
         </p>
       </div>
     </div>

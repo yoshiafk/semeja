@@ -127,13 +127,13 @@ export function exportShoppingListPDF(
     // Filter shopping items (show all items that need to be bought)
     const dayIngredients = data.shoppingList.filter(item => !item.has_enough_stock);
     
-    // Table with checkboxes and empty rows for manual additions
+    // Table with row numbers and empty rows for manual additions
     const tableBody: any[] = [];
     
     // Add existing ingredients
-    dayIngredients.forEach((item) => {
+    dayIngredients.forEach((item, index) => {
       tableBody.push([
-        '☐', // Checkbox
+        String(index + 1),
         item.name,
         `${item.shortage_quantity.toFixed(2)} ${item.unit}`,
         '', // Empty for manual price
@@ -141,14 +141,17 @@ export function exportShoppingListPDF(
       ]);
     });
 
-    // Add 1 empty row for manual additions
-    tableBody.push(['☐', '', '', '', '']);
+    // Add 4 empty rows for manual additions
+    for (let i = 0; i < 4; i++) {
+      tableBody.push(['', '', '', '', '']);
+    }
 
     autoTable(doc, {
       startY: currentY,
-      head: [['', 'Bahan', 'Jumlah', 'Harga', 'Toko']],
+      head: [['No', 'Bahan', 'Jumlah', 'Harga', 'Toko']],
       body: tableBody,
       theme: 'plain',
+      tableWidth: 'wrap',
       styles: {
         fontSize: 7,
         cellPadding: 1,
@@ -200,8 +203,8 @@ export function exportShoppingListPDF(
 
   const summaryBody = data.shoppingList
     .filter(item => !item.has_enough_stock)
-    .map(item => [
-      '☐',
+    .map((item, index) => [
+      String(index + 1),
       item.name,
       `${item.shortage_quantity.toFixed(2)} ${item.unit}`,
       `Rp ${item.cost_to_buy.toLocaleString('id-ID')}`,
@@ -210,14 +213,15 @@ export function exportShoppingListPDF(
 
   // Add empty rows
   for (let i = 0; i < 2; i++) {
-    summaryBody.push(['☐', '', '', '', '']);
+    summaryBody.push(['', '', '', '', '']);
   }
 
   autoTable(doc, {
     startY: currentY,
-    head: [['', 'Bahan', 'Jumlah', 'Est. Harga', 'Toko Rekomendasi']],
+    head: [['No', 'Bahan', 'Jumlah', 'Est. Harga', 'Toko Rekomendasi']],
     body: summaryBody,
     theme: 'striped',
+    tableWidth: 'wrap',
     styles: {
       fontSize: 7,
       cellPadding: 1.5,
