@@ -7,12 +7,18 @@ const cache = new Map<string, { data: any; ts: number }>();
 const CACHE_TTL = 5_000; // 5 seconds
 
 async function fetchJSON<T>(path: string, options: RequestInit): Promise<T> {
+  const token = localStorage.getItem('semeja_auth_token');
+  
+  const headers = new Headers(options.headers);
+  headers.set('Content-Type', 'application/json');
+
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
   const response = await fetch(`${BASE_URL}${path}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {

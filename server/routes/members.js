@@ -2,6 +2,14 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { pool } = require('../db');
+const { generateToken, requireAuth } = require('../middleware/auth');
+const rateLimit = require('express-rate-limit');
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Terlalu banyak percobaan login. Coba lagi nanti.' }
+});
 
 // GET all members
 router.get('/', async (req, res) => {
@@ -14,7 +22,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST - register/login by name (upsert logic)
-router.post('/', async (req, res) => {
+router.post('/', loginLimiter, async (req, res) => {
   const { name, password } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Nama diperlukan' });
@@ -39,12 +47,13 @@ router.post('/', async (req, res) => {
           if (!isMatch) {
             return res.status(401).json({ error: 'Password salah' });
           }
+          return res.json({ ...user, token: generateToken(user) });
         } else {
           // No password set yet — let them in but flag it
-          return res.json({ ...user, needsPasswordSetup: true });
+          return res.json({ ...user, needsPasswordSetup: true, token: generateToken(user) });
         }
       }
-      return res.json(user);
+      return res.json({ ...user, token: generateToken(user) });
     }
 
     // New Member Registration
@@ -52,25 +61,25 @@ router.post('/', async (req, res) => {
       `INSERT INTO members (name) VALUES ($1) RETURNING *`,
       [name.trim()]
     );
-    res.json(newRows[0]);
+    const newUser = newRows[0];
+    res.json({ ...newUser, token: generateToken(newUser) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // PUT - update member role (superadmin only)
-router.put('/:id/role', async (req, res) => {
+router.put('/:id/role', requireAuth, async (req, res) => {
   const { id } = req.params;
-  const { role, requestedBy } = req.body;
+  const { role } = req.body;
   
   if (!['member', 'admin'].includes(role)) {
     return res.status(400).json({ error: 'Invalid role' });
   }
 
   try {
-    // Verify requester is superadmin
-    const requester = await pool.query('SELECT role FROM members WHERE name = $1', [requestedBy]);
-    if (!requester.rows.length || requester.rows[0].role !== 'superadmin') {
+    // Verify requester is superadmin using JWT token
+    if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Only superadmin can change roles' });
     }
 
@@ -86,9 +95,14 @@ router.put('/:id/role', async (req, res) => {
 });
 
 // PUT - set or change password (for admin/superadmin)
-router.put('/:id/password', async (req, res) => {
+router.put('/:id/password', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { currentPassword, newPassword } = req.body;
+
+  // Verify the JWT matches the user ID being updated, or is superadmin
+  if (req.user.id !== parseInt(id) && req.user.role !== 'superadmin') {
+    return res.status(403).json({ error: 'Tidak memiliki akses untuk mengubah password user ini' });
+  }
 
   if (!newPassword || newPassword.length < 4) {
     return res.status(400).json({ error: 'Password minimal 4 karakter' });
@@ -120,8 +134,13 @@ router.put('/:id/password', async (req, res) => {
 });
 
 // DELETE member
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
+    // Only superadmin can delete members
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Hanya superadmin yang dapat menghapus member' });
+    }
+
     const { rows } = await pool.query(
       'DELETE FROM members WHERE id = $1 AND role != $2 RETURNING *',
       [req.params.id, 'superadmin']

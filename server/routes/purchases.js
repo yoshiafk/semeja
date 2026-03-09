@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 // GET purchases (optionally filtered by ingredient_id)
 router.get('/', async (req, res) => {
@@ -85,7 +86,7 @@ router.get('/ingredient/:id', async (req, res) => {
 });
 
 // POST new purchase
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, requireAdmin, async (req, res) => {
   const { ingredient_id, supplier_name, quantity, total_price, purchased_at, notes, update_stock, meal_plan_id } = req.body;
 
   if (!ingredient_id || !supplier_name || !quantity || !total_price) {
@@ -154,7 +155,7 @@ router.post('/', async (req, res) => {
 });
 
 // DELETE purchase
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM purchases WHERE id = $1', [req.params.id]);
     res.json({ deleted: true });

@@ -33,6 +33,23 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const STORAGE_KEY = 'meal_plan_user_name';
   const HOUSE_KEY_STORAGE = 'semeja_house_key';
+  const TOKEN_STORAGE_KEY = 'semeja_auth_token';
+
+  const encodeData = (data: string) => {
+    try {
+      return btoa(encodeURIComponent(data));
+    } catch {
+      return data;
+    }
+  };
+
+  const decodeData = (data: string) => {
+    try {
+      return decodeURIComponent(atob(data));
+    } catch {
+      return data;
+    }
+  };
 
   const loadMember = useCallback(async (name: string, password?: string) => {
     try {
@@ -50,7 +67,10 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
 
       setMember({ id: data.id, name: data.name, role: data.role } as Member);
-      localStorage.setItem(STORAGE_KEY, name);
+      localStorage.setItem(STORAGE_KEY, encodeData(name));
+      if (data.token) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
+      }
     } catch (err: any) {
       console.error('Failed to load member:', err);
       // Fallback for old 401 style or other errors
@@ -64,12 +84,13 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, []);
 
   const confirmHouseKey = useCallback((key: string) => {
-    localStorage.setItem(HOUSE_KEY_STORAGE, key);
+    localStorage.setItem(HOUSE_KEY_STORAGE, encodeData(key));
     setHasHouseKey(true);
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
     setMember(null);
   }, []);
 
@@ -78,11 +99,12 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, []);
 
   useEffect(() => {
-    const savedKey = localStorage.getItem(HOUSE_KEY_STORAGE);
-    if (savedKey) {
+    const rawSavedKey = localStorage.getItem(HOUSE_KEY_STORAGE);
+    if (rawSavedKey) {
       setHasHouseKey(true);
-      const savedName = localStorage.getItem(STORAGE_KEY);
-      if (savedName) {
+      const rawSavedName = localStorage.getItem(STORAGE_KEY);
+      if (rawSavedName) {
+        const savedName = decodeData(rawSavedName);
         loadMember(savedName).catch((err) => {
           if (err.message === 'PASSWORD_REQUIRED') {
             setPendingPasswordName(savedName);

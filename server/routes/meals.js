@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 // GET meals for a meal plan
 router.get('/:mealPlanId', async (req, res) => {
@@ -18,7 +19,7 @@ router.get('/:mealPlanId', async (req, res) => {
 });
 
 // PUT update a meal's menu and/or recipe
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
   const { 
     main_course_menu, 
     second_course_menu, 

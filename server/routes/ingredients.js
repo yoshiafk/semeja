@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 // GET all ingredients (optional category filter)
 router.get('/', async (req, res) => {
@@ -20,7 +21,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST new ingredient
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, requireAdmin, async (req, res) => {
   const { name, unit, price_per_unit, category, stock_quantity, min_stock_threshold } = req.body;
   if (!name || !unit || !price_per_unit) {
     return res.status(400).json({ error: 'name, unit, and price_per_unit are required' });
@@ -37,7 +38,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update ingredient
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
   const { name, unit, price_per_unit, category, stock_quantity, min_stock_threshold } = req.body;
   try {
     const { rows } = await pool.query(
@@ -59,7 +60,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE ingredient
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM ingredients WHERE id = $1', [req.params.id]);
     res.json({ deleted: true });
@@ -69,7 +70,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // PUT adjust stock
-router.put('/:id/stock', async (req, res) => {
+router.put('/:id/stock', requireAuth, requireAdmin, async (req, res) => {
   const { adjustment, type } = req.body; // type: 'restock' | 'consume'
   
   if (typeof adjustment !== 'number' || !['restock', 'consume'].includes(type)) {

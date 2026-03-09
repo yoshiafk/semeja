@@ -3,6 +3,7 @@ const router = express.Router();
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { pool } = require('../db');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 // ============================================
 // HELPER FUNCTIONS
@@ -245,7 +246,7 @@ async function propagateToMeals(client, recipeId) {
  * POST /scraper/cookpad - Import new recipe from Cookpad
  * Body: { url: string, category: 'Lauk' | 'Sayur' | 'Dessert' }
  */
-router.post('/cookpad', async (req, res) => {
+router.post('/cookpad', requireAuth, requireAdmin, async (req, res) => {
   const { url, category } = req.body;
   if (!url || !url.includes('cookpad.com')) {
     return res.status(400).json({ error: 'Valid Cookpad URL is required' });
@@ -314,7 +315,7 @@ router.post('/cookpad', async (req, res) => {
  * PUT /scraper/rescrape/:recipeId - Re-scrape existing recipe and normalize
  * Updates recipe_ingredients and propagates to linked meals
  */
-router.put('/rescrape/:recipeId', async (req, res) => {
+router.put('/rescrape/:recipeId', requireAuth, requireAdmin, async (req, res) => {
   const { recipeId } = req.params;
   
   const client = await pool.connect();
@@ -402,7 +403,7 @@ router.put('/rescrape/:recipeId', async (req, res) => {
  * POST /scraper/rescrape-all - Re-scrape all un-normalized recipes with source URLs
  * Returns progress for each recipe
  */
-router.post('/rescrape-all', async (req, res) => {
+router.post('/rescrape-all', requireAuth, requireAdmin, async (req, res) => {
   const client = await pool.connect();
   
   try {
@@ -498,7 +499,7 @@ router.post('/rescrape-all', async (req, res) => {
  * PUT /scraper/normalize/:recipeId - Manually normalize existing recipe
  * Body: { servings: number } - Divides all quantities by this number
  */
-router.put('/normalize/:recipeId', async (req, res) => {
+router.put('/normalize/:recipeId', requireAuth, requireAdmin, async (req, res) => {
   const { recipeId } = req.params;
   const { servings } = req.body;
   

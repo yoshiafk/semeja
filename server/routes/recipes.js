@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 // GET all recipes with ingredients (batch query instead of N+1)
 router.get('/', async (req, res) => {
@@ -56,7 +57,7 @@ router.get('/:id', async (req, res) => {
 
 // POST new recipe with ingredients
 // When creating manually, ingredients should already be per-serving (for 1 person)
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, requireAdmin, async (req, res) => {
   const { name, description, ingredients, category, source_url, servings } = req.body;
   if (!name) return res.status(400).json({ error: 'name is required' });
   const client = await pool.connect();
@@ -87,7 +88,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update recipe
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
   const { name, description, ingredients, category, source_url, servings } = req.body;
   const client = await pool.connect();
   try {
@@ -124,7 +125,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE recipe
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM recipes WHERE id = $1', [req.params.id]);
     res.json({ deleted: true });

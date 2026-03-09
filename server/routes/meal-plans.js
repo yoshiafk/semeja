@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 
 
@@ -55,7 +56,7 @@ router.get('/active', async (req, res) => {
 });
 
 // POST create new meal plan (auto-generates 7 days)
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, requireAdmin, async (req, res) => {
   const { week_start } = req.body;
   if (!week_start) return res.status(400).json({ error: 'week_start is required' });
 
@@ -101,7 +102,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update meal plan status
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
   const { status } = req.body;
   try {
     const { rows } = await pool.query(
@@ -116,7 +117,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE meal plan
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM meal_plans WHERE id = $1', [req.params.id]);
     res.json({ deleted: true });

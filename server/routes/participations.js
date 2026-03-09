@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { requireAuth } = require('../middleware/auth');
 
 // GET all participations for a meal plan
 router.get('/:mealPlanId', async (req, res) => {
@@ -21,7 +22,7 @@ router.get('/:mealPlanId', async (req, res) => {
 });
 
 // POST member joins a day
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   const { meal_id, member_id } = req.body;
   if (!meal_id || !member_id) {
     return res.status(400).json({ error: 'meal_id and member_id required' });
@@ -40,7 +41,7 @@ router.post('/', async (req, res) => {
 });
 
 // DELETE member leaves a day
-router.delete('/:mealId/:memberId', async (req, res) => {
+router.delete('/:mealId/:memberId', requireAuth, async (req, res) => {
   try {
     await pool.query(
       'DELETE FROM participations WHERE meal_id = $1 AND member_id = $2',
