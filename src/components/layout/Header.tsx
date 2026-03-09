@@ -49,7 +49,10 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 h-14 md:h-16 border-b border-border/80 bg-white/70 backdrop-blur-xl backdrop-saturate-150 px-4 md:px-6 lg:px-8 flex items-center justify-between">
       <div className="flex items-center gap-6 lg:gap-8">
         <NavLink to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-          <img src="/logo.png" alt="Semeja" className="h-8 w-8 md:h-9 md:w-9 object-contain" />
+          <picture>
+            <source srcSet="/logo.webp" type="image/webp" />
+            <img src="/logo.png" alt="Semeja" className="h-8 w-8 md:h-9 md:w-9 object-contain" />
+          </picture>
           <span className="text-lg md:text-xl font-extrabold text-foreground tracking-tight">Semeja</span>
         </NavLink>
 

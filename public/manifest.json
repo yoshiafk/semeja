@@ -1,0 +1,31 @@
+{
+  "name": "Semeja",
+  "short_name": "Semeja",
+  "description": "Super App untuk Coliving - Makan bareng dan aktivitas seru",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#14a38b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo-192.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo-512.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "640x640",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["lifestyle", "food", "social"]
+}
