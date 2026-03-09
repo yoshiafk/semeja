@@ -42,16 +42,14 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm text-center space-y-8 animate-page-in">
-        {/* Logo & Icon */}
-        <div className="space-y-4">
-          <div className="mx-auto w-20 h-20">
-            <picture>
-              <source srcSet="/logo.webp" type="image/webp" />
-              <img src="/logo.png" alt="Semeja" className="w-full h-full object-contain" />
-            </picture>
-          </div>
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-            <KeyRound className="h-6 w-6 text-primary" />
+        {/* Logo with Key Badge */}
+        <div className="relative mx-auto w-24 h-24">
+          <picture>
+            <source srcSet="/logo.webp" type="image/webp" />
+            <img src="/logo.png" alt="Semeja" className="w-full h-full object-contain" />
+          </picture>
+          <div className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-lg">
+            <KeyRound className="h-4 w-4 text-primary-foreground" />
           </div>
         </div>
 
