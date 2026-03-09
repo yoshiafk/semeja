@@ -42,19 +42,19 @@ export function PasswordSetup({ onComplete }: PasswordSetupProps) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background px-6">
-      <div className="w-full max-w-sm text-center space-y-8 animate-page-in">
+      <div className="w-full max-w-sm text-center space-y-8">
         {/* Icon */}
-        <div className="relative mx-auto w-20 h-20">
+        <div className="relative mx-auto w-20 h-20 animate-page-in animate-float">
           <div className="w-full h-full rounded-2xl bg-primary/10 flex items-center justify-center">
             <ShieldCheck className="w-10 h-10 text-primary" />
           </div>
-          <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500 shadow-lg">
+          <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500 shadow-lg animate-page-in stagger-2">
             <KeyRound className="h-4 w-4 text-white" />
           </div>
         </div>
 
         {/* Title */}
-        <div className="space-y-2">
+        <div className="space-y-2 animate-page-in stagger-1">
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Atur Password</h1>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Halo <span className="font-semibold text-foreground">{member?.name}</span>! 
@@ -64,7 +64,7 @@ export function PasswordSetup({ onComplete }: PasswordSetupProps) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3 animate-page-in stagger-2">
           <Input
             type="password"
             placeholder="Password baru (min. 4 karakter)"
@@ -106,7 +106,7 @@ export function PasswordSetup({ onComplete }: PasswordSetupProps) {
           </Button>
         </form>
 
-        <p className="text-[11px] text-muted-foreground/60">
+        <p className="text-[11px] text-muted-foreground/60 animate-page-in stagger-3">
           Password ini akan diminta setiap kali kamu login
         </p>
       </div>

@@ -35,16 +35,16 @@ export function NameEntry() {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm text-center space-y-8">
         {/* Logo & Branding */}
-        <div className="space-y-4 animate-page-in">
-          <div className="mx-auto w-20 h-20">
+        <div className="space-y-4">
+          <div className="mx-auto w-20 h-20 animate-page-in animate-float">
             <picture>
               <source srcSet="/logo.webp" type="image/webp" />
-              <img src="/logo.png" alt="Semeja" className="w-full h-full object-contain" />
+              <img src="/logo.png" alt="Semeja" className="w-full h-full object-contain drop-shadow-xl" />
             </picture>
           </div>
-          <div>
+          <div className="animate-page-in stagger-1">
             <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center justify-center gap-2">
-              Halo! <Sparkles className="h-5 w-5 text-accent" />
+              Halo! <Sparkles className="h-5 w-5 text-accent animate-gentle-pulse" />
             </h1>
             <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
               Siapa nih yang mau gabung aktivitas bareng?
@@ -53,7 +53,7 @@ export function NameEntry() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3 animate-page-in stagger-2">
           <Input
             placeholder="Ketik nama kamu..."
             value={name}
@@ -111,7 +111,7 @@ export function NameEntry() {
           </Button>
         </form>
 
-        <p className="text-[11px] text-muted-foreground/60">
+        <p className="text-[11px] text-muted-foreground/60 animate-page-in stagger-3">
           Nama kamu akan diingat di perangkat ini
         </p>
       </div>
