@@ -81,7 +81,8 @@ export function exportShoppingListPDF(
   
   // Loop through each day
   const totalDays = data.dailyBreakdown.length;
-  data.dailyBreakdown.forEach((day, dayIdx) => {
+  for (let dayIdx = 0; dayIdx < data.dailyBreakdown.length; dayIdx++) {
+    const day = data.dailyBreakdown[dayIdx];
     const dayProgress = 30 + ((dayIdx / totalDays) * 40);
     onProgress?.(dayProgress, `Memproses ${day.day_name}...`);
     // Check if we need a new page
@@ -128,6 +129,18 @@ export function exportShoppingListPDF(
     currentY += 3;
 
     // Ingredients table for this day
+    // Only show ingredients if this day has any menu assigned
+    const hasMenu = day.main_course_menu || day.second_course_menu || day.dessert_menu;
+    if (!hasMenu) {
+      currentY += 5;
+      doc.setFontSize(9);
+      doc.setTextColor(...mutedColor);
+      doc.setFont('helvetica', 'italic');
+      doc.text('(Belum ada menu untuk hari ini)', margin + 3, currentY);
+      currentY += 10;
+      continue;
+    }
+    
     // Filter shopping items (show all items that need to be bought)
     const dayIngredients = data.shoppingList.filter(item => !item.has_enough_stock);
     
@@ -152,7 +165,7 @@ export function exportShoppingListPDF(
 
     autoTable(doc, {
       startY: currentY,
-      head: [['✓', 'Bahan', 'Jumlah', 'Harga', 'Toko']],
+      head: [['', 'Bahan', 'Jumlah', 'Harga', 'Toko']],
       body: tableBody,
       theme: 'plain',
       styles: {
@@ -180,7 +193,7 @@ export function exportShoppingListPDF(
     });
 
     currentY = (doc as any).lastAutoTable.finalY + 10;
-  });
+  }
 
   onProgress?.(70, 'Membuat ringkasan belanja...');
   
@@ -221,7 +234,7 @@ export function exportShoppingListPDF(
 
   autoTable(doc, {
     startY: currentY,
-    head: [['✓', 'Bahan', 'Jumlah', 'Est. Harga', 'Toko Rekomendasi']],
+    head: [['', 'Bahan', 'Jumlah', 'Est. Harga', 'Toko Rekomendasi']],
     body: summaryBody,
     theme: 'striped',
     styles: {

@@ -281,6 +281,27 @@ router.get('/:mealPlanId', async (req, res) => {
       let dayCost = 0;
       const dayIngredients = [];
 
+      // Skip aggregating ingredients if this day has no menus at all
+      const hasAnyMenu = meal.main_course_recipe_id || meal.second_course_recipe_id || meal.dessert_recipe_id || 
+                          manualIngredientRows.some(ing => ing.meal_id === meal.id);
+      
+      if (!hasAnyMenu) {
+        // Still add to daily breakdown but with zero costs
+        dailyBreakdown.push({
+          meal_id: meal.id,
+          date: meal.date,
+          day_name: meal.day_name,
+          main_course_menu: meal.main_course_menu,
+          second_course_menu: meal.second_course_menu,
+          dessert_menu: meal.dessert_menu,
+          participant_count: pCount,
+          total_cost: 0,
+          cost_per_person: 0,
+          ingredients: [],
+        });
+        continue; // Skip ingredient processing for this day
+      }
+
       // Helper function to process an ingredient payload
       const processIngredient = (ingData, mealType) => {
         const qtyPerPerson = parseFloat(ingData.quantity_per_person) || parseFloat(ingData.amount_per_person) || 0;
