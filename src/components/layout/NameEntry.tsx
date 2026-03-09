@@ -5,17 +5,19 @@ import { useState } from "react";
 import { Loader2, Sparkles, LogIn } from "lucide-react";
 
 export function NameEntry() {
-  const { loadMember, loading, pendingPasswordName } = useMember();
+  const { loadMember, pendingPasswordName } = useMember();
   const [name, setName] = useState(pendingPasswordName || "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(!!pendingPasswordName);
   const [error, setError] = useState(pendingPasswordName ? "Akun ini butuh password nih." : "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
     try {
+      setIsSubmitting(true);
       await loadMember(name.trim(), password.trim() || undefined);
     } catch (err: any) {
       if (err.message === 'PASSWORD_REQUIRED') {
@@ -24,6 +26,8 @@ export function NameEntry() {
       } else {
         setError(err.message || "Gagal masuk, coba lagi ya");
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -56,7 +60,7 @@ export function NameEntry() {
             onChange={(e) => setName(e.target.value)}
             className="h-12 text-center text-base bg-card border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary/20"
             autoFocus={!showPassword}
-            disabled={loading || showPassword}
+            disabled={isSubmitting || showPassword}
             required
           />
 
@@ -69,7 +73,7 @@ export function NameEntry() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="h-12 text-center text-base bg-card border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary/20"
                 autoFocus
-                disabled={loading}
+                disabled={isSubmitting}
                 required
               />
               <button
@@ -91,9 +95,9 @@ export function NameEntry() {
           <Button
             type="submit"
             className="w-full h-12 text-[15px] font-semibold rounded-xl shadow-sm"
-            disabled={loading}
+            disabled={isSubmitting}
           >
-            {loading ? (
+            {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Tunggu sebentar...

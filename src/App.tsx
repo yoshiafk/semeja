@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { BottomTabBar} from "@/components/layout/BottomTabBar";
 import { NameEntry } from "@/components/layout/NameEntry";
 import { Gatekeeper } from "@/components/layout/Gatekeeper";
+import { PasswordSetup } from "@/components/layout/PasswordSetup";
 import { Loader2 } from "lucide-react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
@@ -39,7 +40,7 @@ const PageLoader = () => (
 );
 
 function App() {
-  const { member, loading, isAdmin, hasHouseKey, confirmHouseKey } = useMember();
+  const { member, loading, isAdmin, hasHouseKey, needsPasswordSetup, confirmHouseKey, clearPasswordSetup } = useMember();
 
   if (loading) {
     return (
@@ -55,6 +56,10 @@ function App() {
 
   if (!member) {
     return <NameEntry />;
+  }
+
+  if (needsPasswordSetup) {
+    return <PasswordSetup onComplete={clearPasswordSetup} />;
   }
 
   return (

@@ -16,6 +16,7 @@ interface MemberContextType {
   pendingPasswordName: string | null;
   loadMember: (name: string, password?: string) => Promise<void>;
   confirmHouseKey: (key: string) => void;
+  clearPasswordSetup: () => void;
   logout: () => void;
   isAdmin: boolean;
   isSuperadmin: boolean;
@@ -35,7 +36,6 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const loadMember = useCallback(async (name: string, password?: string) => {
     try {
-      setLoading(true);
       const data = await api.post<any>('/members', { name, password });
       
       // Handle the robust 200-level signal
@@ -73,6 +73,10 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setMember(null);
   }, []);
 
+  const clearPasswordSetup = useCallback(() => {
+    setNeedsPasswordSetup(false);
+  }, []);
+
   useEffect(() => {
     const savedKey = localStorage.getItem(HOUSE_KEY_STORAGE);
     if (savedKey) {
@@ -103,10 +107,11 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     pendingPasswordName,
     loadMember,
     confirmHouseKey,
+    clearPasswordSetup,
     logout,
     isAdmin,
     isSuperadmin
-  }), [member, loading, hasHouseKey, needsPasswordSetup, pendingPasswordName, loadMember, confirmHouseKey, logout, isAdmin, isSuperadmin]);
+  }), [member, loading, hasHouseKey, needsPasswordSetup, pendingPasswordName, loadMember, confirmHouseKey, clearPasswordSetup, logout, isAdmin, isSuperadmin]);
 
   return (
     <MemberContext.Provider value={value}>
