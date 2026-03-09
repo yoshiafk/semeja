@@ -3,7 +3,6 @@ import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { useMember } from "@/hooks/useMember";
 import { cn } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

@@ -4,7 +4,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { useMember } from "@/hooks/useMember";
 import { cn, formatDate, formatDayName, formatShortDate } from "@/lib/utils";
-import { Loader2, Plus, Check, CalendarDays, Utensils, ChevronDown } from "lucide-react";
+import { Loader2, Plus, Check, CalendarDays } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Meal {

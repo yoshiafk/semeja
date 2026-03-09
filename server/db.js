@@ -1,10 +1,15 @@
 const { Pool } = require('pg');
 
+const isServerless = !!process.env.VERCEL;
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgres://mealplan:mealplan123@localhost:5432/mealplan',
+  // Serverless: fewer connections + aggressive cleanup
+  max: isServerless ? 3 : 10,
+  idleTimeoutMillis: isServerless ? 10_000 : 30_000,
+  connectionTimeoutMillis: 5_000,
 });
 
-// Prevent background pool errors from crashing the process
 pool.on('error', (err) => {
   console.error('Unexpected pool error:', err);
 });
@@ -139,6 +144,17 @@ async function initDB() {
       );
 
       ALTER TABLE purchases ADD COLUMN IF NOT EXISTS meal_plan_id INTEGER REFERENCES meal_plans(id) ON DELETE SET NULL;
+
+      -- Performance indexes on foreign keys used in JOINs and WHERE clauses
+      CREATE INDEX IF NOT EXISTS idx_meals_meal_plan_id ON meals(meal_plan_id);
+      CREATE INDEX IF NOT EXISTS idx_meals_date ON meals(date);
+      CREATE INDEX IF NOT EXISTS idx_participations_meal_id ON participations(meal_id);
+      CREATE INDEX IF NOT EXISTS idx_participations_member_id ON participations(member_id);
+      CREATE INDEX IF NOT EXISTS idx_meal_ingredients_meal_id ON meal_ingredients(meal_id);
+      CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_recipe_id ON recipe_ingredients(recipe_id);
+      CREATE INDEX IF NOT EXISTS idx_purchases_ingredient_id ON purchases(ingredient_id);
+      CREATE INDEX IF NOT EXISTS idx_purchases_supplier_id ON purchases(supplier_id);
+      CREATE INDEX IF NOT EXISTS idx_purchases_meal_plan_id ON purchases(meal_plan_id);
     `);
     console.log('Database schema initialized');
   } finally {

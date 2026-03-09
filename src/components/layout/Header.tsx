@@ -1,8 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, Home, ClipboardList, Users, Carrot, ReceiptText, Store, Utensils } from "lucide-react";
+import { LogOut, Home, ClipboardList, Users, Carrot, ReceiptText, Store, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Header() {

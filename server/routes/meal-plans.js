@@ -4,18 +4,23 @@ const { pool } = require('../db');
 
 
 
-// GET all meal plans
+// GET all meal plans (batch query instead of N+1)
 router.get('/', async (req, res) => {
   try {
     const { rows: plans } = await pool.query('SELECT * FROM meal_plans ORDER BY week_start DESC');
-    for (const plan of plans) {
-      const { rows: meals } = await pool.query(
-        `SELECT m.*, 
+    const planIds = plans.map(p => p.id);
+    let allMeals = [];
+    if (planIds.length > 0) {
+      const { rows } = await pool.query(
+        `SELECT m.*,
           (SELECT COUNT(*) FROM participations p WHERE p.meal_id = m.id) as participant_count
-         FROM meals m WHERE m.meal_plan_id = $1 ORDER BY m.date`,
-        [plan.id]
+         FROM meals m WHERE m.meal_plan_id = ANY($1::int[]) ORDER BY m.date`,
+        [planIds]
       );
-      plan.meals = meals;
+      allMeals = rows;
+    }
+    for (const plan of plans) {
+      plan.meals = allMeals.filter(m => m.meal_plan_id === plan.id);
     }
     res.json(plans);
   } catch (err) {
@@ -23,21 +28,25 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET active meal plans
+// GET active meal plans (batch query instead of N+1)
 router.get('/active', async (req, res) => {
   try {
     const { rows: plans } = await pool.query(
       "SELECT * FROM meal_plans WHERE status = 'active' ORDER BY week_start ASC"
     );
-    
-    for (const plan of plans) {
-      const { rows: meals } = await pool.query(
+    const planIds = plans.map(p => p.id);
+    let allMeals = [];
+    if (planIds.length > 0) {
+      const { rows } = await pool.query(
         `SELECT m.*,
           (SELECT COUNT(*) FROM participations p WHERE p.meal_id = m.id) as participant_count
-         FROM meals m WHERE m.meal_plan_id = $1 ORDER BY m.date`,
-        [plan.id]
+         FROM meals m WHERE m.meal_plan_id = ANY($1::int[]) ORDER BY m.date`,
+        [planIds]
       );
-      plan.meals = meals;
+      allMeals = rows;
+    }
+    for (const plan of plans) {
+      plan.meals = allMeals.filter(m => m.meal_plan_id === plan.id);
     }
     res.json(plans);
   } catch (err) {

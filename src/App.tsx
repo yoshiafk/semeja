@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
 import { Header } from "@/components/layout/Header";
@@ -8,13 +9,20 @@ import { Loader2 } from "lucide-react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Toaster } from "sonner";
-import Dashboard from "@/pages/Dashboard";
-import Members from "@/pages/Members";
-import Ingredients from "@/pages/Ingredients";
-import MealPlan from "@/pages/MealPlan";
-import Costs from "@/pages/Costs";
-import Suppliers from "@/pages/Suppliers";
-import Menus from '@/pages/Menus';
+
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Members = lazy(() => import("@/pages/Members"));
+const Ingredients = lazy(() => import("@/pages/Ingredients"));
+const MealPlan = lazy(() => import("@/pages/MealPlan"));
+const Costs = lazy(() => import("@/pages/Costs"));
+const Suppliers = lazy(() => import("@/pages/Suppliers"));
+const Menus = lazy(() => import("@/pages/Menus"));
+
+const PageLoader = () => (
+  <div className="flex h-[60vh] items-center justify-center">
+    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+  </div>
+);
 
 function App() {
   const { member, loading, isAdmin, hasHouseKey, confirmHouseKey } = useMember();
@@ -48,26 +56,28 @@ function App() {
         />
         <Header />
         
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/members" element={<Members />} />
-          <Route path="/costs" element={<Costs />} />
-          <Route path="/suppliers" element={<Suppliers />} />
-          <Route path="/menus" element={<Menus />} />
-          
-          {/* Admin Protected Routes */}
-          <Route 
-            path="/meal-plan" 
-            element={isAdmin ? <MealPlan /> : <Navigate to="/" />} 
-          />
-          <Route 
-            path="/ingredients" 
-            element={isAdmin ? <Ingredients /> : <Navigate to="/" />} 
-          />
-          
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/members" element={<Members />} />
+            <Route path="/costs" element={<Costs />} />
+            <Route path="/suppliers" element={<Suppliers />} />
+            <Route path="/menus" element={<Menus />} />
+            
+            {/* Admin Protected Routes */}
+            <Route 
+              path="/meal-plan" 
+              element={isAdmin ? <MealPlan /> : <Navigate to="/" />} 
+            />
+            <Route 
+              path="/ingredients" 
+              element={isAdmin ? <Ingredients /> : <Navigate to="/" />} 
+            />
+            
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </Suspense>
 
         <BottomTabBar />
         <Analytics />

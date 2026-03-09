@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const { initDB } = require('./db');
 const { seed } = require('./seed');
 
@@ -25,7 +26,16 @@ app.use(cors({
   allowedHeaders: ['Content-Type']
 }));
 
+app.use(compression());
 app.use(express.json());
+
+// Vercel edge cache: short TTL for GET, no-store for mutations
+app.use('/api', (req, res, next) => {
+  if (req.method === 'GET') {
+    res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=30');
+  }
+  next();
+});
 
 // Routes
 app.use('/api/members', membersRouter);

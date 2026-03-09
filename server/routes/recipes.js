@@ -2,20 +2,30 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 
-// GET all recipes with ingredients
+// GET all recipes with ingredients (batch query instead of N+1)
 router.get('/', async (req, res) => {
   try {
     const { rows: recipes } = await pool.query('SELECT * FROM recipes ORDER BY name');
-    for (const recipe of recipes) {
-      const { rows: ingredients } = await pool.query(
+
+    const recipeIds = recipes.map(r => r.id);
+    const ingredientsByRecipe = {};
+    if (recipeIds.length > 0) {
+      const { rows: allIngs } = await pool.query(
         `SELECT ri.*, i.name, i.unit, i.price_per_unit, i.category
          FROM recipe_ingredients ri
          JOIN ingredients i ON ri.ingredient_id = i.id
-         WHERE ri.recipe_id = $1
+         WHERE ri.recipe_id = ANY($1::int[])
          ORDER BY i.name`,
-        [recipe.id]
+        [recipeIds]
       );
-      recipe.ingredients = ingredients;
+      for (const ing of allIngs) {
+        if (!ingredientsByRecipe[ing.recipe_id]) ingredientsByRecipe[ing.recipe_id] = [];
+        ingredientsByRecipe[ing.recipe_id].push(ing);
+      }
+    }
+
+    for (const recipe of recipes) {
+      recipe.ingredients = ingredientsByRecipe[recipe.id] || [];
     }
     res.json(recipes);
   } catch (err) {
