@@ -145,7 +145,7 @@ export default function Dashboard() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">Menu Pekanan</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">Menu Mingguan</h1>
               <p className="text-sm text-muted-foreground/70 mt-0.5">
                 {formatDate(plan.week_start)} — {formatDate(plan.week_end)}
               </p>
@@ -233,15 +233,15 @@ export default function Dashboard() {
                   </div>
 
                   {/* Dessert */}
-                  {meal.dessert_menu && (
-                    <div className="flex items-start gap-2.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-violet-400 mt-1.5 shrink-0" />
-                      <div className="min-w-0">
-                        <span className="text-[10px] text-muted-foreground/70 font-medium uppercase tracking-wide">Dessert</span>
-                        <p className="text-sm font-medium text-foreground leading-snug">{meal.dessert_menu}</p>
-                      </div>
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-violet-400 mt-1.5 shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[10px] text-muted-foreground/70 font-medium uppercase tracking-wide">Dessert</span>
+                      <p className="text-sm font-medium text-foreground leading-snug">
+                        {meal.dessert_menu || <span className="text-muted-foreground/50 italic">Belum ditentukan</span>}
+                      </p>
                     </div>
-                  )}
+                  </div>
 
                   {Boolean(meal.requires_rice) && (
                     <span className="inline-block text-[10px] font-medium text-muted-foreground/70 bg-secondary px-2 py-0.5 rounded-md">+ Nasi Putih</span>
