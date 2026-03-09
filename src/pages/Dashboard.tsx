@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMember } from "@/hooks/useMember";
 import { cn, formatDate, formatDayName, formatShortDate } from "@/lib/utils";
-import { Loader2, Plus, Check, CalendarDays, Utensils } from "lucide-react";
+import { Loader2, Plus, Check, CalendarDays, Utensils, ChevronDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Meal {
@@ -93,7 +91,6 @@ export default function Dashboard() {
         await api.post("/participations", { meal_id: mealId, member_id: member.id });
         setParticipations([...participations, mealId]);
       }
-      // Update count locally for immediate feedback
       if (plan) {
         setPlan({
           ...plan,
@@ -115,7 +112,7 @@ export default function Dashboard() {
     return (
       <PageContainer>
         <div className="flex h-[60vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       </PageContainer>
     );
@@ -124,133 +121,168 @@ export default function Dashboard() {
   if (!plan) {
     return (
       <PageContainer>
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
-          <CalendarDays className="h-16 w-16 text-muted-foreground/20" />
+        <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-3 px-8">
+          <div className="h-14 w-14 rounded-2xl bg-stone-100 flex items-center justify-center">
+            <CalendarDays className="h-6 w-6 text-stone-400" />
+          </div>
           <div>
-            <h2 className="text-xl font-bold">Belum ada menu pekan ini</h2>
-            <p className="text-muted-foreground">Tunggu admin buat jadwalnya ya!</p>
+            <h2 className="text-lg font-semibold text-stone-800">Belum ada menu pekan ini</h2>
+            <p className="text-sm text-stone-400 mt-1">Tunggu admin buat jadwalnya ya!</p>
           </div>
         </div>
       </PageContainer>
     );
   }
 
+  const today = new Date().toISOString().split('T')[0];
+  const joinedCount = participations.length;
+  const totalMeals = plan.meals.length;
+
   return (
     <PageContainer>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 gap-6 border-b border-stone-100">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight text-stone-900 leading-none mb-2">Menu Pekanan</h1>
-            <p className="text-stone-500 font-medium">
-              {formatDate(plan.week_start)} — {formatDate(plan.week_end)}
-            </p>
+      <div className="space-y-5">
+        {/* Page Header — compact on mobile, expanded on desktop */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-stone-900 tracking-tight">Menu Pekanan</h1>
+              <p className="text-sm text-stone-400 mt-0.5">
+                {formatDate(plan.week_start)} — {formatDate(plan.week_end)}
+              </p>
+            </div>
+            {plans.length > 1 && (
+              <Select value={selectedPlanId || ""} onValueChange={setSelectedPlanId}>
+                <SelectTrigger className="h-9 w-auto gap-1.5 bg-stone-50 border-stone-100 rounded-lg font-medium text-xs text-stone-600 shadow-none px-3">
+                  <SelectValue placeholder="Pekan" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-stone-100">
+                  {plans.map(p => (
+                    <SelectItem key={p.id} value={p.id.toString()} className="text-sm">
+                      {formatDate(p.week_start)} {p.id === plans[0].id ? '(Ini)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-             {plans.length > 1 && (
-               <Select value={selectedPlanId || ""} onValueChange={setSelectedPlanId}>
-                  <SelectTrigger className="h-11 w-[220px] bg-stone-50 border-stone-100 rounded-full font-bold shadow-none text-xs">
-                    <SelectValue placeholder="Pilih Pekan" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-stone-200">
-                    {plans.map(p => (
-                      <SelectItem key={p.id} value={p.id.toString()} className="font-medium">
-                        {formatDate(p.week_start)} {p.id === plans[0].id ? '(Pekan Ini)' : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-               </Select>
-             )}
-             <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-6 py-2 uppercase font-black text-[10px] tracking-widest rounded-full">
-               {plan.status.toUpperCase()}
-             </Badge>
+
+          {/* Quick Stats Bar */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+            <div className="flex-shrink-0 flex items-center gap-1.5 bg-primary/8 text-primary px-3 py-1.5 rounded-lg">
+              <Check className="h-3.5 w-3.5 stroke-[2.5px]" />
+              <span className="text-xs font-semibold">{joinedCount}/{totalMeals} hari ikut</span>
+            </div>
+            <div className="flex-shrink-0 flex items-center gap-1.5 bg-stone-100 text-stone-500 px-3 py-1.5 rounded-lg">
+              <span className="text-[10px] uppercase font-semibold tracking-wide">{plan.status}</span>
+            </div>
           </div>
         </div>
 
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {plan.meals.map((meal) => (
-            <Card key={meal.id} className="overflow-hidden border-stone-200 hover:border-primary/30 transition-all hover:shadow-lg hover:shadow-primary/5 group">
-              <CardHeader className="bg-stone-50/50 pb-3 group-hover:bg-primary/5 transition-colors">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-bold text-stone-900">{formatDayName(meal.date)}</CardTitle>
-                  <CardDescription className="font-bold text-primary/60">
-                    {formatShortDate(meal.date)}
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-6">
-                  <div className="space-y-4">
-                    {/* Main Course */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-400 tracking-widest">
-                        <Utensils className="h-3 w-3" /> Menu Utama (Lauk)
-                      </div>
-                      <p className="font-bold text-stone-800 leading-tight">
-                        {meal.main_course_menu || <span className="text-stone-300 italic font-normal">Tidak ada menu</span>}
-                      </p>
-                    </div>
-
-                    {/* Second Course */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-500 tracking-widest">
-                        <Utensils className="h-3 w-3" /> Sayuran
-                      </div>
-                      <p className="font-bold text-stone-800 leading-tight">
-                        {meal.second_course_menu || <span className="text-stone-300 italic font-normal">Tidak ada menu</span>}
-                      </p>
-                    </div>
-
-                    {/* Dessert */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-[10px] font-black uppercase text-indigo-400 tracking-widest">
-                        <Utensils className="h-3 w-3" /> Pencuci Mulut
-                      </div>
-                      <p className="font-bold text-stone-800 leading-tight">
-                        {meal.dessert_menu || <span className="text-stone-300 italic font-normal">Tidak ada menu</span>}
-                      </p>
-                    </div>
-
-                    {/* Rice Indicator */}
-                    {Boolean(meal.requires_rice) === true && (
-                      <div className="pt-3 border-t border-stone-100/50">
-                        <Badge variant="outline" className="bg-stone-50 text-stone-500 border-stone-200 font-bold text-[10px] py-1 px-3 rounded-lg">
-                          + Nasi Putih
-                        </Badge>
-                      </div>
+        {/* Meal Cards — single column on mobile for native feel, grid on desktop */}
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
+          {plan.meals.map((meal) => {
+            const isJoined = participations.includes(meal.id);
+            const isToggling = togglingMeals.includes(meal.id);
+            const isToday = meal.date === today;
+            
+            return (
+              <div
+                key={meal.id}
+                className={cn(
+                  "bg-white rounded-2xl border transition-all duration-200 overflow-hidden touch-active",
+                  isToday ? "border-primary/20 shadow-sm shadow-primary/5" : "border-stone-100",
+                  isJoined && "ring-1 ring-primary/10"
+                )}
+              >
+                {/* Day Header */}
+                <div className={cn(
+                  "flex items-center justify-between px-4 py-3",
+                  isToday ? "bg-primary/4" : "bg-stone-50/60"
+                )}>
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[15px] font-semibold text-stone-900">{formatDayName(meal.date)}</span>
+                    {isToday && (
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md uppercase tracking-wider">Hari Ini</span>
                     )}
                   </div>
+                  <span className="text-xs text-stone-400 font-medium">{formatShortDate(meal.date)}</span>
+                </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-stone-100">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none mb-1">Partisipasi</span>
-                    <span className="text-sm font-bold text-stone-900">
-                      <span className="text-primary">{meal.participant_count}</span> orang
-                    </span>
+                {/* Menu Content */}
+                <div className="px-4 py-3 space-y-2.5">
+                  {/* Main Course */}
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[10px] text-stone-400 font-medium uppercase tracking-wide">Lauk</span>
+                      <p className="text-sm font-medium text-stone-800 leading-snug">
+                        {meal.main_course_menu || <span className="text-stone-300 italic">Belum ditentukan</span>}
+                      </p>
+                    </div>
                   </div>
+
+                  {/* Sayur */}
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[10px] text-stone-400 font-medium uppercase tracking-wide">Sayur</span>
+                      <p className="text-sm font-medium text-stone-800 leading-snug">
+                        {meal.second_course_menu || <span className="text-stone-300 italic">Belum ditentukan</span>}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Dessert */}
+                  {meal.dessert_menu && (
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-violet-400 mt-1.5 shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-[10px] text-stone-400 font-medium uppercase tracking-wide">Dessert</span>
+                        <p className="text-sm font-medium text-stone-800 leading-snug">{meal.dessert_menu}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {Boolean(meal.requires_rice) && (
+                    <span className="inline-block text-[10px] font-medium text-stone-400 bg-stone-50 px-2 py-0.5 rounded-md">+ Nasi Putih</span>
+                  )}
+                </div>
+
+                {/* Action Footer */}
+                <div className="flex items-center justify-between px-4 py-2.5 border-t border-stone-50">
+                  <span className="text-xs text-stone-400">
+                    <span className="font-semibold text-stone-600">{meal.participant_count}</span> orang ikut
+                  </span>
                   <Button
                     size="sm"
-                    variant={participations.includes(meal.id) ? "default" : "outline"}
+                    variant={isJoined ? "default" : "outline"}
                     className={cn(
-                      "h-10 px-6 rounded-xl font-bold transition-all",
-                      participations.includes(meal.id) 
-                        ? "bg-primary hover:bg-primary/90 shadow-md shadow-primary/20" 
-                        : "hover:bg-primary/5 hover:text-primary border-stone-200"
+                      "h-9 px-4 rounded-xl text-xs font-semibold transition-all",
+                      isJoined
+                        ? "bg-primary hover:bg-primary/90 shadow-none"
+                        : "border-stone-200 text-stone-600 hover:bg-primary/5 hover:text-primary hover:border-primary/20"
                     )}
-                    disabled={togglingMeals.includes(meal.id)}
+                    disabled={isToggling}
                     onClick={() => toggleJoin(meal.id)}
                   >
-                    {togglingMeals.includes(meal.id) ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : participations.includes(meal.id) ? (
-                      <Check className="mr-2 h-4 w-4 stroke-[3px]" />
+                    {isToggling ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : isJoined ? (
+                      <>
+                        <Check className="mr-1.5 h-3.5 w-3.5 stroke-[2.5px]" />
+                        Ikut!
+                      </>
                     ) : (
-                      <Plus className="mr-2 h-4 w-4 stroke-[3px]" />
+                      <>
+                        <Plus className="mr-1.5 h-3.5 w-3.5 stroke-[2px]" />
+                        Gabung
+                      </>
                     )}
-                    {participations.includes(meal.id) ? "Ikut!" : "Gabung"}
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            );
+          })}
         </div>
       </div>
     </PageContainer>

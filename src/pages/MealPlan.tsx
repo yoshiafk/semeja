@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,7 +47,6 @@ export default function MealPlanPage() {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // State for creating a new plan
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newPlanStartDate, setNewPlanStartDate] = useState(() => {
     const today = new Date();
@@ -162,7 +160,7 @@ export default function MealPlanPage() {
     return (
       <PageContainer>
         <div className="flex h-[60vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       </PageContainer>
     );
@@ -170,292 +168,268 @@ export default function MealPlanPage() {
 
   return (
     <PageContainer>
-      <div className="space-y-8 pb-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-stone-100 pb-8">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-black tracking-tight text-stone-900">Atur Jadwal Makan</h1>
-            <p className="text-stone-500 font-medium">Klik menu untuk memperbarui atau pilih resep untuk kalkulasi otomatis.</p>
+      <div className="space-y-6 pb-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-stone-100">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-stone-900 tracking-tight">Atur Jadwal Makan</h1>
+            <p className="text-sm text-stone-400 mt-0.5">Pilih resep untuk kalkulasi otomatis bahan & biaya.</p>
           </div>
-           <div className="flex flex-wrap items-center gap-3">
-             <Select value={activePlan?.id.toString()} onValueChange={(v) => setActivePlan(plans.find(p => p.id.toString() === v) || null)}>
-                <SelectTrigger className="h-10 w-[200px] bg-stone-50 border-stone-100 rounded-full font-bold shadow-none text-xs">
-                  <SelectValue placeholder="Pilih Pekan" />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-stone-200">
-                  {plans.map(p => (
-                    <SelectItem key={p.id} value={p.id.toString()} className="font-medium">
-                      {formatDate(p.week_start)} {p.status === 'archived' ? '(Arsip)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-             </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={activePlan?.id.toString()} onValueChange={(v) => setActivePlan(plans.find(p => p.id.toString() === v) || null)}>
+              <SelectTrigger className="h-9 w-[180px] bg-stone-50 border-stone-100 rounded-lg font-medium text-xs shadow-none">
+                <SelectValue placeholder="Pilih Pekan" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-stone-100">
+                {plans.map(p => (
+                  <SelectItem key={p.id} value={p.id.toString()} className="text-sm">
+                    {formatDate(p.week_start)} {p.status === 'archived' ? '(Arsip)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
              
-             {activePlan && activePlan.status === 'active' && (
-               <Button 
+            {activePlan && activePlan.status === 'active' && (
+              <Button 
                 variant="outline" 
                 size="sm"
                 onClick={archivePlan}
                 disabled={isUpdatingStatus}
-                className="h-10 px-6 rounded-full font-black uppercase text-[10px] tracking-widest border-stone-100 text-stone-400 hover:text-amber-600 hover:bg-amber-50 gap-2"
-               >
-                 {isUpdatingStatus ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Archive className="h-3.5 w-3.5" />}
-                 Arsipkan
-               </Button>
-             )}
+                className="h-9 px-3 rounded-lg text-xs font-medium border-stone-100 text-stone-400 hover:text-amber-600 hover:bg-amber-50 gap-1.5"
+              >
+                {isUpdatingStatus ? <Loader2 className="h-3 w-3 animate-spin" /> : <Archive className="h-3 w-3" />}
+                Arsipkan
+              </Button>
+            )}
 
-             {activePlan && (
-               <>
-                 <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => setIsDeleteDialogOpen(true)}
-                    className="h-10 w-10 rounded-full text-stone-300 hover:text-rose-600 hover:bg-rose-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+            {activePlan && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                className="h-9 w-9 rounded-lg text-stone-300 hover:text-rose-500 hover:bg-rose-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
 
-                  <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                    <DialogContent className="w-[95vw] max-w-md rounded-3xl p-6 sm:p-8 border-none overflow-hidden">
-                      <div className="absolute top-0 left-0 w-full h-1.5 bg-rose-500" />
-                      <DialogHeader className="mb-6">
-                        <DialogTitle className="text-2xl font-black text-stone-900">Hapus Jadwal Pekan?</DialogTitle>
-                        <DialogDescription className="font-bold text-stone-400 uppercase text-[10px] tracking-widest">
-                          Tindakan ini tidak dapat dibatalkan
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="py-4 text-stone-600 font-medium">
-                        Seluruh data menu dan partisipasi pada pekan ini akan dihapus secara permanen.
-                      </div>
-                      <DialogFooter className="mt-8 flex gap-3">
-                        <Button variant="ghost" className="flex-1 h-12 rounded-2xl font-bold text-stone-400 hover:bg-stone-50" onClick={() => setIsDeleteDialogOpen(false)}>
-                          Batal
-                        </Button>
-                        <Button 
-                          disabled={isUpdatingStatus} 
-                          className="flex-1 h-12 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-rose-200 bg-rose-600 hover:bg-rose-700" 
-                          onClick={deletePlan}
-                        >
-                          {isUpdatingStatus ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Ya, Hapus Permanen"}
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-               </>
-             )}
-
-             <Button onClick={() => setIsCreateDialogOpen(true)} className="h-10 px-6 rounded-full font-black uppercase text-[10px] tracking-widest shadow-none bg-emerald-600 hover:bg-emerald-700 ml-auto">
-                <Plus className="mr-2 h-3.5 w-3.5 stroke-[3px]" /> Buat Pekan Baru
-             </Button>
+            <Button onClick={() => setIsCreateDialogOpen(true)} className="h-9 px-4 rounded-lg text-xs font-semibold shadow-none bg-primary hover:bg-primary/90 gap-1.5 ml-auto">
+              <Plus className="h-3.5 w-3.5 stroke-[2.5px]" /> Pekan Baru
+            </Button>
           </div>
         </div>
 
         {activePlan ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {activePlan.meals.map((meal) => {
-               const dayName = formatDayName(meal.date);
-               const formattedDateStr = formatShortDate(meal.date);
+              const dayName = formatDayName(meal.date);
+              const formattedDateStr = formatShortDate(meal.date);
 
-               return (
-                <Card key={meal.id} className="border-stone-100 shadow-sm hover:shadow-md transition-shadow rounded-3xl overflow-hidden group bg-white">
-                  <CardHeader className="pb-2 pt-6 px-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex flex-col gap-0.5">
-                         <CardTitle className="text-[22px] font-black tracking-tight text-stone-900">{dayName}</CardTitle>
-                         <CardDescription className="text-sm font-bold text-emerald-500">{formattedDateStr}</CardDescription>
-                      </div>
-                      <Calendar className="h-5 w-5 text-stone-200" />
+              return (
+                <div key={meal.id} className="bg-white border border-stone-100 rounded-2xl overflow-hidden hover:shadow-md hover:shadow-stone-100/50 transition-shadow">
+                  {/* Card Header */}
+                  <div className="flex items-center justify-between px-5 py-3.5 border-b border-stone-50">
+                    <div>
+                      <h3 className="text-base font-semibold text-stone-900">{dayName}</h3>
+                      <span className="text-xs text-primary/70 font-medium">{formattedDateStr}</span>
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-8">
-                    {/* Main Course Section (Lauk) */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest leading-none">
-                        <Badge variant="secondary" className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 font-black uppercase tracking-widest shadow-none hover:bg-orange-50 cursor-default">
-                           Lauk
-                        </Badge>
-                        <span className="font-black text-stone-400">Menu Utama</span>
+                    <Calendar className="h-4 w-4 text-stone-200" />
+                  </div>
+
+                  {/* Card Body */}
+                  <div className="p-5 space-y-5">
+                    {/* Main Course (Lauk) */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                        <span className="text-[11px] font-medium text-stone-400 uppercase tracking-wide">Lauk</span>
                       </div>
-                      <div>
-                        <Select 
-                          disabled={isSaving[`${meal.id}-main_course_recipe_id`]}
-                          value={meal.main_course_recipe_id?.toString() || "placeholder"} 
-                          onValueChange={(v) => {
-                            const rid = v === "placeholder" ? null : parseInt(v);
-                            if (rid) {
-                              const r = recipes.find(rec => rec.id === rid);
-                              updateMeal(meal.id, { 
-                                  main_course_recipe_id: rid, 
-                                  ...(r ? { main_course_menu: r.name } : {}) 
-                              });
-                            } else {
-                              updateMeal(meal.id, { main_course_recipe_id: null, main_course_menu: "" });
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="h-11 w-full sm:w-[85%] bg-white border-stone-200 rounded-full font-bold text-sm shadow-sm hover:bg-stone-50 transition-colors">
-                            <div className="flex items-center truncate">
-                               {isSaving[`${meal.id}-main_course_recipe_id`] ? <Loader2 className="mr-2.5 h-4 w-4 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="mr-2.5 h-4 w-4 text-stone-400 shrink-0" />}
-                               <SelectValue placeholder="Pilih Menu..." />
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-stone-100 p-1">
-                            <SelectItem value="placeholder" className="font-medium italic text-stone-400">Pilih Menu...</SelectItem>
-                            {recipes.filter(r => r.category === 'Lauk' || !r.category).map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-black text-stone-700 py-2.5">{r.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-  
-                    {/* Second Course Section (Sayur) */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest leading-none">
-                        <Badge variant="secondary" className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-black uppercase tracking-widest shadow-none hover:bg-emerald-50 cursor-default">
-                           Sayur
-                        </Badge>
-                        <span className="font-black text-stone-400">Menu Sayuran</span>
-                      </div>
-                      <div>
-                        <Select 
-                          disabled={isSaving[`${meal.id}-second_course_recipe_id`]}
-                          value={meal.second_course_recipe_id?.toString() || "placeholder"} 
-                          onValueChange={(v) => {
-                            const rid = v === "placeholder" ? null : parseInt(v);
-                            if (rid) {
-                              const r = recipes.find(rec => rec.id === rid);
-                              updateMeal(meal.id, { 
-                                  second_course_recipe_id: rid, 
-                                  ...(r ? { second_course_menu: r.name } : {}) 
-                              });
-                            } else {
-                              updateMeal(meal.id, { second_course_recipe_id: null, second_course_menu: "" });
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="h-11 w-full sm:w-[85%] bg-white border-stone-200 rounded-full font-bold text-sm shadow-sm hover:bg-stone-50 transition-colors">
-                            <div className="flex items-center truncate">
-                               {isSaving[`${meal.id}-second_course_recipe_id`] ? <Loader2 className="mr-2.5 h-4 w-4 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="mr-2.5 h-4 w-4 text-stone-400 shrink-0" />}
-                               <SelectValue placeholder="Pilih Menu..." />
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-stone-100 p-1 font-medium">
-                            <SelectItem value="placeholder" className="font-medium italic text-stone-400">Pilih Menu...</SelectItem>
-                            {recipes.filter(r => r.category === 'Sayur').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-black text-stone-700 py-2.5">{r.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-  
-                    {/* Dessert Section (Pencuci Mulut) */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest leading-none">
-                        <Badge variant="secondary" className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-500 font-black uppercase tracking-widest shadow-none hover:bg-indigo-50 cursor-default">
-                           Pencuci Mulut
-                        </Badge>
-                        <span className="font-black text-stone-400">Menu Penutup / Snack</span>
-                      </div>
-                      <div>
-                        <Select 
-                          disabled={isSaving[`${meal.id}-dessert_recipe_id`]}
-                          value={meal.dessert_recipe_id?.toString() || "placeholder"} 
-                          onValueChange={(v) => {
-                            const rid = v === "placeholder" ? null : parseInt(v);
-                            if (rid) {
-                              const r = recipes.find(rec => rec.id === rid);
-                              updateMeal(meal.id, { 
-                                  dessert_recipe_id: rid, 
-                                  ...(r ? { dessert_menu: r.name } : {}) 
-                              });
-                            } else {
-                              updateMeal(meal.id, { dessert_recipe_id: null, dessert_menu: "" });
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="h-11 w-full sm:w-[85%] bg-white border-stone-200 rounded-full font-bold text-sm shadow-sm hover:bg-stone-50 transition-colors">
-                            <div className="flex items-center truncate">
-                               {isSaving[`${meal.id}-dessert_recipe_id`] ? <Loader2 className="mr-2.5 h-4 w-4 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="mr-2.5 h-4 w-4 text-stone-400 shrink-0" />}
-                               <SelectValue placeholder="Pilih Menu..." />
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-stone-100 p-1 font-medium">
-                            <SelectItem value="placeholder" className="font-medium italic text-stone-400">Pilih Menu...</SelectItem>
-                            {recipes.filter(r => r.category === 'Dessert').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-black text-stone-700 py-2.5">{r.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <Select 
+                        disabled={isSaving[`${meal.id}-main_course_recipe_id`]}
+                        value={meal.main_course_recipe_id?.toString() || "placeholder"} 
+                        onValueChange={(v) => {
+                          const rid = v === "placeholder" ? null : parseInt(v);
+                          if (rid) {
+                            const r = recipes.find(rec => rec.id === rid);
+                            updateMeal(meal.id, { main_course_recipe_id: rid, ...(r ? { main_course_menu: r.name } : {}) });
+                          } else {
+                            updateMeal(meal.id, { main_course_recipe_id: null, main_course_menu: "" });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-10 w-full bg-stone-50/80 border-stone-100 rounded-xl text-sm font-medium hover:bg-stone-50 transition-colors">
+                          <div className="flex items-center gap-2 truncate">
+                            {isSaving[`${meal.id}-main_course_recipe_id`] ? <Loader2 className="h-3.5 w-3.5 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="h-3.5 w-3.5 text-stone-400 shrink-0" />}
+                            <SelectValue placeholder="Pilih Menu..." />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-stone-100">
+                          <SelectItem value="placeholder" className="text-stone-400 italic">Pilih Menu...</SelectItem>
+                          {recipes.filter(r => r.category === 'Lauk' || !r.category).map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
 
-                    {/* Rice Toggle Section */}
-                    <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
-                       <div className="flex flex-col">
-                          <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none mb-1">Kebutuhan Pokok</span>
-                          <span className="text-sm font-bold text-stone-900">Sajikan Nasi Putih?</span>
-                       </div>
-                        <Button
-                         size="sm"
-                         variant={meal.requires_rice ? "default" : "outline"}
-                         className={cn(
-                           "h-9 px-4 rounded-xl font-bold transition-all",
-                           meal.requires_rice 
-                             ? "bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200 text-white" 
-                             : "hover:bg-primary/5 hover:text-primary border-stone-200 text-stone-500"
-                         )}
-                         disabled={isSaving[`${meal.id}-requires_rice`]}
-                         onClick={() => updateMeal(meal.id, { requires_rice: !meal.requires_rice })}
-                       >
-                         {isSaving[`${meal.id}-requires_rice`] ? (
-                           <Loader2 className="h-4 w-4 animate-spin text-stone-400 shrink-0" />
-                         ) : (
-                           <span className="flex items-center gap-1.5">
-                             {meal.requires_rice ? "Ya, Sajikan" : "Tidak"}
-                           </span>
-                         )}
-                       </Button>
+                    {/* Second Course (Sayur) */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span className="text-[11px] font-medium text-stone-400 uppercase tracking-wide">Sayur</span>
+                      </div>
+                      <Select 
+                        disabled={isSaving[`${meal.id}-second_course_recipe_id`]}
+                        value={meal.second_course_recipe_id?.toString() || "placeholder"} 
+                        onValueChange={(v) => {
+                          const rid = v === "placeholder" ? null : parseInt(v);
+                          if (rid) {
+                            const r = recipes.find(rec => rec.id === rid);
+                            updateMeal(meal.id, { second_course_recipe_id: rid, ...(r ? { second_course_menu: r.name } : {}) });
+                          } else {
+                            updateMeal(meal.id, { second_course_recipe_id: null, second_course_menu: "" });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-10 w-full bg-stone-50/80 border-stone-100 rounded-xl text-sm font-medium hover:bg-stone-50 transition-colors">
+                          <div className="flex items-center gap-2 truncate">
+                            {isSaving[`${meal.id}-second_course_recipe_id`] ? <Loader2 className="h-3.5 w-3.5 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="h-3.5 w-3.5 text-stone-400 shrink-0" />}
+                            <SelectValue placeholder="Pilih Menu..." />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-stone-100">
+                          <SelectItem value="placeholder" className="text-stone-400 italic">Pilih Menu...</SelectItem>
+                          {recipes.filter(r => r.category === 'Sayur').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </CardContent>
-                </Card>
+
+                    {/* Dessert */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+                        <span className="text-[11px] font-medium text-stone-400 uppercase tracking-wide">Dessert</span>
+                      </div>
+                      <Select 
+                        disabled={isSaving[`${meal.id}-dessert_recipe_id`]}
+                        value={meal.dessert_recipe_id?.toString() || "placeholder"} 
+                        onValueChange={(v) => {
+                          const rid = v === "placeholder" ? null : parseInt(v);
+                          if (rid) {
+                            const r = recipes.find(rec => rec.id === rid);
+                            updateMeal(meal.id, { dessert_recipe_id: rid, ...(r ? { dessert_menu: r.name } : {}) });
+                          } else {
+                            updateMeal(meal.id, { dessert_recipe_id: null, dessert_menu: "" });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-10 w-full bg-stone-50/80 border-stone-100 rounded-xl text-sm font-medium hover:bg-stone-50 transition-colors">
+                          <div className="flex items-center gap-2 truncate">
+                            {isSaving[`${meal.id}-dessert_recipe_id`] ? <Loader2 className="h-3.5 w-3.5 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="h-3.5 w-3.5 text-stone-400 shrink-0" />}
+                            <SelectValue placeholder="Pilih Menu..." />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-stone-100">
+                          <SelectItem value="placeholder" className="text-stone-400 italic">Pilih Menu...</SelectItem>
+                          {recipes.filter(r => r.category === 'Dessert').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Rice Toggle */}
+                    <div className="pt-4 border-t border-stone-50 flex items-center justify-between">
+                      <div>
+                        <span className="text-[11px] text-stone-400 font-medium block">Nasi Putih</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={meal.requires_rice ? "default" : "outline"}
+                        className={cn(
+                          "h-8 px-3 rounded-lg text-xs font-medium transition-all",
+                          meal.requires_rice 
+                            ? "bg-primary hover:bg-primary/90 shadow-none text-white" 
+                            : "border-stone-200 text-stone-500 hover:bg-primary/5 hover:text-primary"
+                        )}
+                        disabled={isSaving[`${meal.id}-requires_rice`]}
+                        onClick={() => updateMeal(meal.id, { requires_rice: !meal.requires_rice })}
+                      >
+                        {isSaving[`${meal.id}-requires_rice`] ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          meal.requires_rice ? "Ya" : "Tidak"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
-            <LayoutGrid className="h-16 w-16 text-stone-200" />
-            <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Belum ada perencanaan pekan ini</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
+            <div className="h-14 w-14 rounded-2xl bg-stone-100 flex items-center justify-center">
+              <LayoutGrid className="h-6 w-6 text-stone-400" />
+            </div>
+            <p className="text-sm text-stone-400 font-medium">Belum ada perencanaan pekan ini</p>
           </div>
         )}
       </div>
       
       {/* Create Plan Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="w-[95vw] max-w-md rounded-3xl p-6 sm:p-8 border-none overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-primary" />
-          <DialogHeader className="mb-6">
-            <DialogTitle className="text-2xl font-black text-stone-900">Buat Pekan Baru</DialogTitle>
-            <DialogDescription className="font-bold text-stone-400 uppercase text-[10px] tracking-widest">
+        <DialogContent className="w-[95vw] max-w-md rounded-2xl p-6 border-stone-100">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-stone-900">Buat Pekan Baru</DialogTitle>
+            <DialogDescription className="text-sm text-stone-400">
               Pilih tanggal mulai untuk jadwal 7 hari ke depan
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Tanggal Mulai</label>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-stone-500">Tanggal Mulai</label>
               <Input
                 type="date"
                 value={newPlanStartDate}
                 onChange={e => setNewPlanStartDate(e.target.value)}
-                className="h-12 bg-stone-50 border-stone-200 rounded-2xl font-bold"
+                className="h-11 bg-stone-50 border-stone-200 rounded-xl"
               />
             </div>
           </div>
-          <DialogFooter className="mt-8 flex gap-3">
-            <Button variant="ghost" className="flex-1 h-12 rounded-2xl font-bold text-stone-400 hover:bg-stone-50" onClick={() => setIsCreateDialogOpen(false)}>
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button variant="ghost" className="flex-1 h-11 rounded-xl text-stone-400" onClick={() => setIsCreateDialogOpen(false)}>
               Batal
             </Button>
-            <Button disabled={isCreatingPlan} className="flex-1 h-12 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20" onClick={createNewPlan}>
-              {isCreatingPlan ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Merekap...</> : "Buat Jadwal"}
+            <Button disabled={isCreatingPlan} className="flex-1 h-11 rounded-xl font-semibold shadow-none" onClick={createNewPlan}>
+              {isCreatingPlan ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Membuat...</> : "Buat Jadwal"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Delete Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="w-[95vw] max-w-md rounded-2xl p-6 border-stone-100">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-stone-900">Hapus Jadwal Pekan?</DialogTitle>
+            <DialogDescription className="text-sm text-stone-400">
+              Tindakan ini tidak dapat dibatalkan
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-stone-500 py-2">
+            Seluruh data menu dan partisipasi pada pekan ini akan dihapus secara permanen.
+          </p>
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button variant="ghost" className="flex-1 h-11 rounded-xl text-stone-400" onClick={() => setIsDeleteDialogOpen(false)}>
+              Batal
+            </Button>
+            <Button 
+              disabled={isUpdatingStatus} 
+              className="flex-1 h-11 rounded-xl font-semibold bg-rose-600 hover:bg-rose-700 shadow-none" 
+              onClick={deletePlan}
+            >
+              {isUpdatingStatus ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Ya, Hapus"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

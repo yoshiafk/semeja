@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,7 +21,7 @@ interface Recipe {
     name: string;
     quantity_per_person: number;
     unit: string;
-    ingredient_id?: number; // Added to map back to ingredients table
+    ingredient_id?: number;
   }>;
 }
 
@@ -44,7 +43,6 @@ export default function Menus() {
   const [isImporting, setIsImporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
 
-  // Edit State
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
@@ -147,166 +145,165 @@ export default function Menus() {
   const dessertRecipes = filteredRecipes.filter(r => r.category === 'Dessert');
 
   const RecipeCard = ({ recipe }: { recipe: Recipe }) => (
-    <Card className="hover:shadow-md transition-shadow border-stone-200">
-      <CardContent className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h3 className="font-black text-lg text-stone-900 leading-tight mb-1">{recipe.name}</h3>
-            {recipe.source_url && (
-              <a href={recipe.source_url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-blue-500 hover:text-blue-700 flex items-center gap-1 uppercase tracking-wider">
-                <Link2 className="h-3 w-3" /> Cookpad Source
-              </a>
-            )}
-            {!recipe.source_url && <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Manual Entry</p>}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-                variant="outline" 
-                size="icon" 
-                className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50 border-amber-200" 
-                onClick={() => setEditingRecipe(recipe)}
-            >
-              <Edit2 className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              disabled={isDeleting === recipe.id}
-              className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200" 
-              onClick={() => handleDelete(recipe.id)}
-            >
-              {isDeleting === recipe.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            </Button>
-          </div>
+    <div className="rounded-2xl border border-stone-100 bg-white hover:border-stone-200 transition-all p-4 group">
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-sm text-stone-900 leading-tight mb-1 line-clamp-2">{recipe.name}</h3>
+          {recipe.source_url ? (
+            <a href={recipe.source_url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-500 hover:text-blue-700 flex items-center gap-1">
+              <Link2 className="h-3 w-3" /> Cookpad
+            </a>
+          ) : (
+            <p className="text-[11px] text-stone-400">Manual Entry</p>
+          )}
         </div>
-        
-        <div className="mt-4 pt-4 border-t border-stone-100">
-          <p className="text-[10px] uppercase font-black tracking-widest text-stone-400 mb-2">
-            {recipe.ingredients?.length || 0} Ingredients
-          </p>
-          <div className="flex flex-wrap gap-1">
-            {recipe.ingredients?.slice(0, 5).map(ing => (
-              <span key={ing.id} className="text-[10px] bg-stone-100/80 px-2 py-1 rounded-sm text-stone-600 font-medium">
-                {ing.name} ({ing.quantity_per_person} {ing.unit})
-              </span>
-            ))}
-            {(recipe.ingredients?.length || 0) > 5 && (
-              <span className="text-[10px] bg-stone-100/80 px-2 py-1 rounded-sm text-stone-400 font-bold">
-                +{recipe.ingredients.length - 5} more
-              </span>
-            )}
-          </div>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button 
+            variant="ghost" size="icon" 
+            className="h-7 w-7 rounded-lg text-stone-400 hover:text-amber-600 hover:bg-amber-50" 
+            onClick={() => setEditingRecipe(recipe)}
+          >
+            <Edit2 className="h-3 w-3" />
+          </Button>
+          <Button 
+            variant="ghost" size="icon" 
+            disabled={isDeleting === recipe.id}
+            className="h-7 w-7 rounded-lg text-stone-400 hover:text-red-500 hover:bg-red-50" 
+            onClick={() => handleDelete(recipe.id)}
+          >
+            {isDeleting === recipe.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+          </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      
+      <div className="pt-3 border-t border-stone-50">
+        <p className="text-[11px] text-stone-400 mb-1.5">{recipe.ingredients?.length || 0} bahan</p>
+        <div className="flex flex-wrap gap-1">
+          {recipe.ingredients?.slice(0, 5).map(ing => (
+            <span key={ing.id} className="text-[10px] bg-stone-50 px-1.5 py-0.5 rounded-md text-stone-500">
+              {ing.name} ({ing.quantity_per_person} {ing.unit})
+            </span>
+          ))}
+          {(recipe.ingredients?.length || 0) > 5 && (
+            <span className="text-[10px] bg-stone-50 px-1.5 py-0.5 rounded-md text-stone-400">
+              +{recipe.ingredients.length - 5} lagi
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
   );
 
   return (
     <PageContainer>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-stone-900 tracking-tight">Menu Makanan</h1>
-          <p className="text-sm text-stone-500 font-medium mt-1">Kelola daftar menu dan resep, atau import langsung dari Cookpad.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
-            <Input 
-              placeholder="Cari menu..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 w-full md:w-[250px] shadow-sm"
-            />
+      <div className="space-y-5 md:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-stone-900 tracking-tight">Menu Makanan</h1>
+            <p className="text-sm text-stone-500 mt-0.5">Kelola daftar menu dan resep, atau import dari Cookpad.</p>
           </div>
-          <Button onClick={() => setIsCookpadOpen(true)} className="shadow-sm font-bold tracking-wide bg-emerald-600 hover:bg-emerald-700 text-white">
-            <Link2 className="mr-2 h-4 w-4" /> Import Cookpad
-          </Button>
-          <Button 
-            onClick={() => setEditingRecipe({ id: 0, name: "", description: "", category: "Lauk", source_url: "", ingredients: [] })} 
-            variant="default" 
-            className="shadow-sm font-bold tracking-wide bg-orange-500 hover:bg-orange-600 text-white border-none"
-          >
-            <Plus className="mr-2 h-4 w-4" /> Manual
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+              <Input 
+                placeholder="Cari menu..." 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9 w-full md:w-[200px] rounded-xl bg-stone-50/80 border-stone-200 text-sm"
+              />
+            </div>
+            <Button onClick={() => setIsCookpadOpen(true)} className="h-9 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700">
+              <Link2 className="mr-1.5 h-3.5 w-3.5" /> Cookpad
+            </Button>
+            <Button 
+              onClick={() => setEditingRecipe({ id: 0, name: "", description: "", category: "Lauk", source_url: "", ingredients: [] })} 
+              variant="default" 
+              className="h-9 rounded-xl text-xs font-semibold bg-orange-500 hover:bg-orange-600 border-none"
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" /> Manual
+            </Button>
+          </div>
         </div>
+
+        {loading ? (
+          <div className="flex h-[40vh] items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <Tabs defaultValue="lauk" className="w-full">
+            <TabsList className="bg-stone-100 p-1 h-9 rounded-lg mb-5">
+              <TabsTrigger value="lauk" className="rounded-md text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 gap-1.5">
+                <Utensils className="h-3.5 w-3.5" /> Lauk ({laukRecipes.length})
+              </TabsTrigger>
+              <TabsTrigger value="sayur" className="rounded-md text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 gap-1.5">
+                <Carrot className="h-3.5 w-3.5" /> Sayur ({sayurRecipes.length})
+              </TabsTrigger>
+              <TabsTrigger value="dessert" className="rounded-md text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 gap-1.5">
+                <IceCream className="h-3.5 w-3.5" /> Dessert ({dessertRecipes.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="lauk" className="mt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {laukRecipes.map(r => <RecipeCard key={r.id} recipe={r} />)}
+                {laukRecipes.length === 0 && <p className="text-stone-400 text-sm">Belum ada menu lauk.</p>}
+              </div>
+            </TabsContent>
+            <TabsContent value="sayur" className="mt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {sayurRecipes.map(r => <RecipeCard key={r.id} recipe={r} />)}
+                {sayurRecipes.length === 0 && <p className="text-stone-400 text-sm">Belum ada menu sayur.</p>}
+              </div>
+            </TabsContent>
+            <TabsContent value="dessert" className="mt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {dessertRecipes.map(r => <RecipeCard key={r.id} recipe={r} />)}
+                {dessertRecipes.length === 0 && <p className="text-stone-400 text-sm">Belum ada menu dessert.</p>}
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
-
-      {loading ? (
-        <div className="flex h-[40vh] items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : (
-        <Tabs defaultValue="lauk" className="w-full">
-          <TabsList className="bg-stone-100 p-1 h-14 mb-8">
-            <TabsTrigger value="lauk" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm px-6">
-              <Utensils className="h-4 w-4 mr-2" /> Lauk Utama ({laukRecipes.length})
-            </TabsTrigger>
-            <TabsTrigger value="sayur" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm px-6">
-              <Carrot className="h-4 w-4 mr-2" /> Sayuran ({sayurRecipes.length})
-            </TabsTrigger>
-            <TabsTrigger value="dessert" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm px-6">
-              <IceCream className="h-4 w-4 mr-2" /> Pencuci Mulut ({dessertRecipes.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="lauk" className="mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {laukRecipes.map(r => <RecipeCard key={r.id} recipe={r} />)}
-              {laukRecipes.length === 0 && <p className="text-stone-400 italic">Belum ada menu lauk.</p>}
-            </div>
-          </TabsContent>
-          <TabsContent value="sayur" className="mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {sayurRecipes.map(r => <RecipeCard key={r.id} recipe={r} />)}
-              {sayurRecipes.length === 0 && <p className="text-stone-400 italic">Belum ada menu sayur.</p>}
-            </div>
-          </TabsContent>
-          <TabsContent value="dessert" className="mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {dessertRecipes.map(r => <RecipeCard key={r.id} recipe={r} />)}
-              {dessertRecipes.length === 0 && <p className="text-stone-400 italic">Belum ada menu pencuci mulut.</p>}
-            </div>
-          </TabsContent>
-        </Tabs>
-      )}
 
       {/* Cookpad Import Dialog */}
       <Dialog open={isCookpadOpen} onOpenChange={setIsCookpadOpen}>
-        <DialogContent className="w-[95vw] max-w-lg rounded-3xl p-6 sm:p-8">
+        <DialogContent className="w-[95vw] max-w-lg rounded-2xl p-6 border-stone-200">
           <DialogHeader>
-            <DialogTitle>Import dari Cookpad</DialogTitle>
-            <DialogDescription>
-              Copy link resep dari Cookpad (contoh: https://cookpad.com/id/resep/...) lalu tentukan jenis hidangannya.
+            <DialogTitle className="text-lg font-bold">Import dari Cookpad</DialogTitle>
+            <DialogDescription className="text-sm text-stone-500">
+              Copy link resep dari Cookpad lalu tentukan jenis hidangannya.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCookpadImport} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label>URL Resep Cookpad</Label>
+          <form onSubmit={handleCookpadImport} className="space-y-4 pt-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-stone-600">URL Resep</Label>
               <Input 
                 required 
                 type="url" 
                 placeholder="https://cookpad.com/id/resep/..." 
                 value={cookpadUrl} 
                 onChange={e => setCookpadUrl(e.target.value)} 
+                className="h-10 rounded-xl bg-stone-50/80 border-stone-200 text-sm"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Kategori Hidangan</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-stone-600">Kategori</Label>
               <Select value={cookpadCategory} onValueChange={setCookpadCategory}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10 rounded-xl bg-stone-50/80 border-stone-200 text-sm">
                   <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Lauk">Lauk Utama</SelectItem>
-                  <SelectItem value="Sayur">Sayuran</SelectItem>
-                  <SelectItem value="Dessert">Pencuci Mulut / Dessert</SelectItem>
+                <SelectContent className="rounded-xl border-stone-200">
+                  <SelectItem value="Lauk" className="text-sm">Lauk Utama</SelectItem>
+                  <SelectItem value="Sayur" className="text-sm">Sayuran</SelectItem>
+                  <SelectItem value="Dessert" className="text-sm">Pencuci Mulut / Dessert</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isImporting} className="w-full">
+            <DialogFooter className="pt-2">
+              <Button type="submit" disabled={isImporting} className="w-full h-10 rounded-xl text-sm font-semibold">
                 {isImporting ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sedang Mengimport...</>
+                  <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Mengimport...</>
                 ) : (
                   "Import Resep"
                 )}
@@ -318,143 +315,138 @@ export default function Menus() {
 
       {/* Edit Recipe Dialog */}
       <Dialog open={!!editingRecipe} onOpenChange={(open) => !open && setEditingRecipe(null)}>
-        <DialogContent className="w-[95vw] max-w-2xl rounded-3xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-2xl rounded-2xl p-6 border-stone-200 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingRecipe?.id === 0 ? "Tambah Menu Baru" : "Edit Menu"}</DialogTitle>
-            <DialogDescription>
-              {editingRecipe?.id === 0 ? "Masukkan detail menu dan bahan-bahan yang dibutuhkan." : "Perbarui informasi menu atau daftar bahan."}
+            <DialogTitle className="text-lg font-bold">{editingRecipe?.id === 0 ? "Tambah Menu Baru" : "Edit Menu"}</DialogTitle>
+            <DialogDescription className="text-sm text-stone-500">
+              {editingRecipe?.id === 0 ? "Masukkan detail menu dan bahan-bahan." : "Perbarui informasi menu atau daftar bahan."}
             </DialogDescription>
           </DialogHeader>
           {editingRecipe && (
-            <form onSubmit={handleSaveRecipe} className="space-y-6 pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nama Menu</Label>
+            <form onSubmit={handleSaveRecipe} className="space-y-5 pt-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-stone-600">Nama Menu</Label>
                   <Input 
                     required 
                     value={editingRecipe.name} 
                     onChange={e => setEditingRecipe({ ...editingRecipe, name: e.target.value })} 
+                    className="h-10 rounded-xl bg-stone-50/80 border-stone-200 text-sm"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Kategori</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-stone-600">Kategori</Label>
                   <Select 
                     value={editingRecipe.category} 
                     onValueChange={(val: any) => setEditingRecipe({ ...editingRecipe, category: val })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-10 rounded-xl bg-stone-50/80 border-stone-200 text-sm">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Lauk">Lauk Utama</SelectItem>
-                      <SelectItem value="Sayur">Sayuran</SelectItem>
-                      <SelectItem value="Dessert">Pencuci Mulut / Dessert</SelectItem>
+                    <SelectContent className="rounded-xl border-stone-200">
+                      <SelectItem value="Lauk" className="text-sm">Lauk Utama</SelectItem>
+                      <SelectItem value="Sayur" className="text-sm">Sayuran</SelectItem>
+                      <SelectItem value="Dessert" className="text-sm">Pencuci Mulut / Dessert</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Deskripsi</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-stone-600">Deskripsi</Label>
                 <Input 
                   placeholder="Keterangan singkat..." 
                   value={editingRecipe.description} 
                   onChange={e => setEditingRecipe({ ...editingRecipe, description: e.target.value })} 
+                  className="h-10 rounded-xl bg-stone-50/80 border-stone-200 text-sm"
                 />
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                   <Label className="text-base font-bold">Daftar Bahan Makanan</Label>
-                   <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 font-bold text-blue-600 border-blue-200 hover:bg-blue-50"
-                      onClick={() => setEditingRecipe({
-                          ...editingRecipe, 
-                          ingredients: [...(editingRecipe.ingredients || []), { id: Date.now() * -1, name: '', quantity_per_person: 1, unit: '' }]
-                      })}
-                   >
-                     <Plus className="h-4 w-4 mr-1" /> Tambah Bahan
-                   </Button>
+                  <Label className="text-sm font-semibold">Daftar Bahan Makanan</Label>
+                  <Button 
+                    type="button" variant="outline" size="sm" 
+                    className="h-8 rounded-lg text-xs font-medium text-blue-600 border-blue-200 hover:bg-blue-50"
+                    onClick={() => setEditingRecipe({
+                      ...editingRecipe, 
+                      ingredients: [...(editingRecipe.ingredients || []), { id: Date.now() * -1, name: '', quantity_per_person: 1, unit: '' }]
+                    })}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Tambah Bahan
+                  </Button>
                 </div>
                 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {(editingRecipe.ingredients || []).map((ing, idx) => {
-                    const isNew = ing.id < 0; // Negative ID means it's a new row added by the user in this session
+                    const isNew = ing.id < 0;
                     return (
-                      <div key={idx} className="flex items-center gap-3 p-3 bg-stone-50 rounded-xl border border-stone-100">
+                      <div key={idx} className="flex items-center gap-2 p-3 bg-stone-50/80 rounded-xl border border-stone-100">
                         <div className="flex-1">
                           {isNew ? (
-                             <Select 
-                                value={ing.ingredient_id?.toString() || ""}
-                                onValueChange={(val) => {
-                                   const selected = availableIngredients.find(a => a.id.toString() === val);
-                                   if (selected) {
-                                      const newIngs = [...editingRecipe.ingredients];
-                                      newIngs[idx] = { ...newIngs[idx], ingredient_id: selected.id, name: selected.name, unit: selected.unit };
-                                      setEditingRecipe({ ...editingRecipe, ingredients: newIngs });
-                                   }
-                                }}
-                             >
-                                <SelectTrigger className="h-9 bg-white">
-                                  <SelectValue placeholder="Pilih bahan baku..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                   {availableIngredients.map(a => (
-                                     <SelectItem key={a.id} value={a.id.toString()}>{a.name} ({a.unit})</SelectItem>
-                                   ))}
-                                </SelectContent>
-                             </Select>
+                            <Select 
+                              value={ing.ingredient_id?.toString() || ""}
+                              onValueChange={(val) => {
+                                const selected = availableIngredients.find(a => a.id.toString() === val);
+                                if (selected) {
+                                  const newIngs = [...editingRecipe.ingredients];
+                                  newIngs[idx] = { ...newIngs[idx], ingredient_id: selected.id, name: selected.name, unit: selected.unit };
+                                  setEditingRecipe({ ...editingRecipe, ingredients: newIngs });
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="h-9 bg-white rounded-lg text-sm">
+                                <SelectValue placeholder="Pilih bahan..." />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl border-stone-200">
+                                {availableIngredients.map(a => (
+                                  <SelectItem key={a.id} value={a.id.toString()} className="text-sm">{a.name} ({a.unit})</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           ) : (
-                             <div className="font-bold text-stone-700 text-sm pl-2">{ing.name} <span className="text-stone-400 font-normal ml-1">({ing.unit})</span></div>
+                            <div className="text-sm text-stone-700 pl-2">{ing.name} <span className="text-stone-400 text-xs">({ing.unit})</span></div>
                           )}
                         </div>
-                        <div className="w-[120px]">
-                           <Input 
-                             type="number" 
-                             step="0.01" 
-                             required
-                             min="0"
-                             value={ing.quantity_per_person}
-                             onChange={(e) => {
-                               const newIngs = [...editingRecipe.ingredients];
-                               newIngs[idx].quantity_per_person = parseFloat(e.target.value) || 0;
-                               setEditingRecipe({ ...editingRecipe, ingredients: newIngs });
-                             }}
-                             className="h-9 bg-white"
-                           />
+                        <div className="w-[100px]">
+                          <Input 
+                            type="number" step="0.01" required min="0"
+                            value={ing.quantity_per_person}
+                            onChange={(e) => {
+                              const newIngs = [...editingRecipe.ingredients];
+                              newIngs[idx].quantity_per_person = parseFloat(e.target.value) || 0;
+                              setEditingRecipe({ ...editingRecipe, ingredients: newIngs });
+                            }}
+                            className="h-9 bg-white rounded-lg text-sm"
+                          />
                         </div>
                         <Button 
-                            type="button" 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-stone-400 hover:text-red-500 hover:bg-red-50"
-                            onClick={() => {
-                               const newIngs = [...editingRecipe.ingredients];
-                               newIngs.splice(idx, 1);
-                               setEditingRecipe({ ...editingRecipe, ingredients: newIngs });
-                            }}
+                          type="button" variant="ghost" size="icon" 
+                          className="h-8 w-8 rounded-lg text-stone-400 hover:text-red-500 hover:bg-red-50"
+                          onClick={() => {
+                            const newIngs = [...editingRecipe.ingredients];
+                            newIngs.splice(idx, 1);
+                            setEditingRecipe({ ...editingRecipe, ingredients: newIngs });
+                          }}
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     );
                   })}
                   {(!editingRecipe.ingredients || editingRecipe.ingredients.length === 0) && (
-                     <div className="text-center py-6 text-stone-400 text-sm font-medium italic">
-                        Belum ada bahan makanan yang terdaftar.
-                     </div>
+                    <div className="text-center py-6 text-stone-400 text-sm">
+                      Belum ada bahan yang terdaftar.
+                    </div>
                   )}
                 </div>
               </div>
 
-              <DialogFooter className="pt-6 mt-6 border-t border-stone-100">
-                <Button type="button" variant="ghost" onClick={() => setEditingRecipe(null)}>Batal</Button>
-                <Button type="submit" disabled={isSavingEdit} className="w-full sm:w-auto">
+              <DialogFooter className="pt-4 border-t border-stone-100">
+                <Button type="button" variant="ghost" className="text-sm text-stone-500" onClick={() => setEditingRecipe(null)}>Batal</Button>
+                <Button type="submit" disabled={isSavingEdit} className="h-10 rounded-xl text-sm font-semibold w-full sm:w-auto">
                   {isSavingEdit ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</>
+                    <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Menyimpan...</>
                   ) : editingRecipe.id === 0 ? (
                     "Tambah Menu"
                   ) : (

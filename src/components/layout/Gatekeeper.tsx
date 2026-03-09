@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Lock } from "lucide-react";
 
 interface GatekeeperProps {
@@ -42,48 +41,52 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-stone-50 px-6">
-      <Card className="w-full max-w-sm border-none shadow-2xl text-center p-4">
-        <CardHeader className="space-y-6">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-            <Lock className="h-10 w-10" />
-          </div>
-          <div className="space-y-2">
-            <CardTitle className="text-3xl font-black tracking-tighter text-stone-900">Semeja</CardTitle>
-            <CardDescription className="text-base font-medium text-stone-500">
-              Aplikasi ini privat untuk penghuni coliving. Masukkan kunci rumah untuk masuk.
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Input
-                type="password"
-                placeholder="Kunci Rumah..."
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-                className="h-14 text-xl text-center tracking-widest"
-                autoFocus
-                disabled={loading}
-              />
-              {error && <p className="text-sm font-bold text-rose-500">{error}</p>}
-            </div>
-            <Button type="submit" className="w-full h-14 text-xl font-black bg-stone-900 hover:bg-stone-800" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Mengecek...
-                </>
-              ) : (
-                "Buka Pintu"
-              )}
-            </Button>
-          </form>
-          <p className="mt-8 text-xs text-stone-400 font-medium">
-            *Lupa kunci? Tanya teman atau admin coliving kamu.
+      <div className="w-full max-w-sm text-center space-y-8 animate-page-in">
+        {/* Icon */}
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-stone-100 text-stone-500">
+          <Lock className="h-7 w-7" />
+        </div>
+
+        {/* Title */}
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Semeja</h1>
+          <p className="text-sm text-stone-500 leading-relaxed">
+            Aplikasi ini privat untuk penghuni coliving. Masukkan kunci rumah untuk masuk.
           </p>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <Input
+            type="password"
+            placeholder="Kunci Rumah..."
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            className="h-13 text-lg text-center tracking-[0.2em] bg-white border-stone-200 rounded-xl focus:border-stone-400 focus:ring-1 focus:ring-stone-200"
+            autoFocus
+            disabled={loading}
+          />
+          {error && <p className="text-sm font-medium text-rose-500">{error}</p>}
+          <Button
+            type="submit"
+            className="w-full h-12 text-[15px] font-semibold bg-stone-900 hover:bg-stone-800 rounded-xl"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Mengecek...
+              </>
+            ) : (
+              "Buka Pintu"
+            )}
+          </Button>
+        </form>
+
+        <p className="text-[11px] text-stone-400">
+          Lupa kunci? Tanya teman atau admin coliving kamu.
+        </p>
+      </div>
     </div>
   );
 }

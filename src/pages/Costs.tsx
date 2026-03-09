@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Loader2, Receipt, TrendingUp, Users, ShoppingCart, Check, Plus, CalendarDays } from "lucide-react";
 import { formatRupiah } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -55,13 +53,11 @@ export default function Costs() {
   const [plans, setPlans] = useState<any[]>([]);
   const [activePlanId, setActivePlanId] = useState<number | null>(null);
   
-  // Purchase Modal State
   const [isPurchaseOpen, setIsPurchaseOpen] = useState(false);
   const [selectedIngredient, setSelectedIngredient] = useState<{ id?: number; name: string; qty: number; unit: string } | null>(null);
   const [formData, setFormData] = useState({ supplier_name: "", quantity: "", total_price: "", notes: "" });
   const [isSaving, setIsSaving] = useState(false);
 
-  // 1. Initial Load: Fetch all plans
   useEffect(() => {
     const fetchPlans = async () => {
       try {
@@ -72,7 +68,7 @@ export default function Costs() {
           const active = allPlans.find(p => p.status === 'active') || allPlans[0];
           setActivePlanId(active.id);
         } else {
-          setLoading(false); // No plans exist
+          setLoading(false);
         }
       } catch (err) {
         console.error(err);
@@ -82,7 +78,6 @@ export default function Costs() {
     fetchPlans();
   }, []);
 
-  // 2. Secondary Load: Fetch summary when activePlanId changes
   useEffect(() => {
     if (!activePlanId) return;
     
@@ -118,7 +113,6 @@ export default function Costs() {
       setFormData({ supplier_name: "", quantity: "", total_price: "", notes: "" });
       toast.success("Pembelian berhasil dicatat dan ditagihkan!");
       
-      // Refresh to get the new actual costs
       setLoading(true);
       const summary = await api.get<CostSummary>(`/summary/${activePlanId}`);
       setData(summary);
@@ -133,7 +127,7 @@ export default function Costs() {
     return (
       <PageContainer>
         <div className="flex h-[60vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       </PageContainer>
     );
@@ -141,315 +135,290 @@ export default function Costs() {
 
   return (
     <PageContainer>
-      <div className="space-y-8 pb-12">
-        {/* Week Selector */}
+      <div className="space-y-5 md:space-y-6">
+        {/* Header + Week Selector */}
         {plans.length > 0 && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h1 className="text-3xl font-black tracking-tight text-stone-900">Perhitungan Cost</h1>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-stone-900">Perhitungan Cost</h1>
             <Select 
               value={activePlanId?.toString()} 
               onValueChange={(val) => setActivePlanId(parseInt(val))}
             >
-              <SelectTrigger className="w-full sm:w-[280px] h-11 bg-white border-stone-200 rounded-xl font-bold shadow-sm">
-                <CalendarDays className="h-4 w-4 mr-2 text-primary" />
+              <SelectTrigger className="w-full sm:w-[260px] h-10 bg-stone-50/80 border-stone-200 rounded-xl text-sm font-medium">
+                <CalendarDays className="h-3.5 w-3.5 mr-2 text-primary" />
                 <SelectValue placeholder="Pilih Pekan" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-stone-200 shadow-xl">
-                 <div className="px-2 py-1.5 text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none mb-1">Pekan Aktif</div>
-                 {plans.filter(p => p.status === 'active').map((p) => (
-                    <SelectItem key={p.id} value={p.id.toString()} className="font-medium rounded-lg">
-                      {format(new Date(p.week_start), "d MMM", { locale: id })} -{" "}
-                      {format(new Date(p.week_end), "d MMM yyyy", { locale: id })}
-                      <span className="ml-2 text-[9px] text-emerald-600 font-black uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-full">Aktif</span>
-                    </SelectItem>
-                  ))}
-                  
-                  {plans.some(p => p.status === 'archived') && (
-                    <>
-                      <div className="px-2 py-1.5 mt-2 border-t border-stone-100 text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none mb-1">Riwayat (Arsip)</div>
-                      {plans.filter(p => p.status === 'archived').map((p) => (
-                        <SelectItem key={p.id} value={p.id.toString()} className="font-medium rounded-lg text-stone-500">
-                          {format(new Date(p.week_start), "d MMM", { locale: id })} -{" "}
-                          {format(new Date(p.week_end), "d MMM yyyy", { locale: id })}
-                        </SelectItem>
-                      ))}
-                    </>
-                  )}
+              <SelectContent className="rounded-xl border-stone-200">
+                <div className="px-2 py-1.5 text-[11px] font-semibold text-stone-400 mb-0.5">Pekan Aktif</div>
+                {plans.filter(p => p.status === 'active').map((p) => (
+                  <SelectItem key={p.id} value={p.id.toString()} className="text-sm rounded-lg">
+                    {format(new Date(p.week_start), "d MMM", { locale: id })} – {format(new Date(p.week_end), "d MMM yyyy", { locale: id })}
+                    <span className="ml-2 text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded-md">Aktif</span>
+                  </SelectItem>
+                ))}
+                
+                {plans.some(p => p.status === 'archived') && (
+                  <>
+                    <div className="px-2 py-1.5 mt-1.5 border-t border-stone-100 text-[11px] font-semibold text-stone-400 mb-0.5">Riwayat</div>
+                    {plans.filter(p => p.status === 'archived').map((p) => (
+                      <SelectItem key={p.id} value={p.id.toString()} className="text-sm rounded-lg text-stone-500">
+                        {format(new Date(p.week_start), "d MMM", { locale: id })} – {format(new Date(p.week_end), "d MMM yyyy", { locale: id })}
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>
         )}
 
         {!data ? (
-          <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-4 bg-stone-50 rounded-3xl border border-dashed border-stone-200">
-            <Receipt className="h-16 w-16 text-stone-300" />
+          <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-3 bg-stone-50 rounded-2xl border border-dashed border-stone-200">
+            <Receipt className="h-12 w-12 text-stone-300" />
             <div>
-              <h2 className="text-xl font-bold text-stone-700">Belum ada perhitungan cost</h2>
-              <p className="text-stone-500">Pilih pekan lain atau hubungi admin untuk membuat jadwal baru.</p>
+              <h2 className="text-base font-semibold text-stone-700">Belum ada perhitungan cost</h2>
+              <p className="text-sm text-stone-500 mt-1">Pilih pekan lain atau hubungi admin untuk membuat jadwal baru.</p>
             </div>
           </div>
         ) : (
           <>
-            {/* Hero Section / Summary Box */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+            {/* Summary Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative">
               {loading && (
-                <div className="absolute inset-0 z-10 bg-white/50 backdrop-blur-[2px] rounded-3xl flex items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="absolute inset-0 z-10 bg-white/50 backdrop-blur-[2px] rounded-2xl flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               )}
-              <div className="md:col-span-2 bg-primary/5 p-8 rounded-3xl border border-primary/10 flex flex-col justify-center">
-                <div className="flex justify-between items-start mb-3">
-                   <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs">
-                     <TrendingUp className="h-4 w-4" /> BIAYA BELANJA PEKAN INI
-                   </div>
-                   <Badge variant="outline" className="bg-white text-stone-500 border-stone-200">
-                     Konsumsi Kotor: {formatRupiah(data.week_total)}
-                   </Badge>
-                </div>
-            
-            {data.total_actual_cost > 0 ? (
-              <div>
-                <div className="flex items-end gap-3 mb-1">
-                  <div className="text-5xl font-black text-primary tracking-tight">
-                    {formatRupiah(data.total_actual_cost)}
+              <div className="md:col-span-2 bg-primary/5 p-5 md:p-6 rounded-2xl border border-primary/10 flex flex-col justify-center">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
+                  <div className="flex items-center gap-2 text-primary font-semibold text-xs">
+                    <TrendingUp className="h-3.5 w-3.5" /> Biaya Belanja Pekan Ini
                   </div>
-                  <Badge className="bg-emerald-50 text-emerald-600 hover:bg-emerald-50 border-emerald-200 uppercase font-black tracking-widest text-[9px] mb-2 shadow-sm">
-                    Biaya Aktual
-                  </Badge>
+                  <span className="text-xs text-stone-500 bg-white px-2.5 py-1 rounded-lg border border-stone-100 w-fit">
+                    Konsumsi Kotor: {formatRupiah(data.week_total)}
+                  </span>
                 </div>
-                <div className="text-sm font-bold text-stone-400 line-through">
-                  Estimasi awal: {formatRupiah(data.total_shopping_cost)}
-                </div>
-              </div>
-            ) : (
-              <div className="text-5xl font-black text-primary tracking-tight">
-                {formatRupiah(data.total_shopping_cost)}
-              </div>
-            )}
             
-            <p className="text-sm text-stone-500 mt-4 font-medium max-w-lg leading-relaxed">
-              Estimasi biaya ini <b>sudah dikurangi dengan bahan yang ada di stok dapur</b>.
-              Menghitung {data.daily_breakdown.length} hari ke depan untuk {data.member_totals.length} warga.
-            </p>
-          </div>
+                {data.total_actual_cost > 0 ? (
+                  <div>
+                    <div className="flex items-end gap-2 mb-1">
+                      <div className="text-3xl md:text-4xl font-bold text-primary tracking-tight">
+                        {formatRupiah(data.total_actual_cost)}
+                      </div>
+                      <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md mb-1">
+                        Aktual
+                      </span>
+                    </div>
+                    <div className="text-sm text-stone-400 line-through">
+                      Estimasi: {formatRupiah(data.total_shopping_cost)}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-3xl md:text-4xl font-bold text-primary tracking-tight">
+                    {formatRupiah(data.total_shopping_cost)}
+                  </div>
+                )}
+            
+                <p className="text-xs text-stone-500 mt-3 leading-relaxed max-w-lg">
+                  Estimasi <b>sudah dikurangi stok dapur</b>. Menghitung {data.daily_breakdown.length} hari untuk {data.member_totals.length} warga.
+                </p>
+              </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-1 gap-4">
-            <Card className="border-stone-200 bg-stone-50/50">
-              <CardContent className="p-6 flex flex-col justify-center items-center text-center">
-                <Users className="h-6 w-6 text-primary/40 mb-2" />
-                <div className="text-2xl font-black text-stone-900">{data.member_totals.length}</div>
-                <div className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Warga Ikut</div>
-              </CardContent>
-            </Card>
-            <Card className="border-stone-200 bg-stone-50/50">
-              <CardContent className="p-6 flex flex-col justify-center items-center text-center">
-                <ShoppingCart className="h-6 w-6 text-primary/40 mb-2" />
-                <div className="text-2xl font-black text-stone-900">{data.shopping_list.length}</div>
-                <div className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Jenis Bahan</div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        <Tabs defaultValue="split" className="w-full">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            <h2 className="text-2xl font-black text-stone-900">Rincian Perhitungan</h2>
-            <TabsList className="grid w-full md:w-auto grid-cols-2 bg-stone-100 p-1 h-12">
-              <TabsTrigger value="split" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Tagihan Warga</TabsTrigger>
-              <TabsTrigger value="shopping" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Daftar Belanja</TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="split" className="mt-0 space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Member Totals List */}
-              <div className="space-y-4">
-                <h3 className="font-black text-sm text-stone-400 uppercase tracking-widest flex items-center gap-2">
-                  <Users className="h-4 w-4" /> Distribusi Biaya
-                </h3>
-                <div className="grid gap-3">
-                  {data.member_totals.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground italic">Belum ada warga yang bergabung</div>
-                  ) : (
-                    data.member_totals
-                      .sort((a,b) => b.total - a.total)
-                      .map(member => (
-                        <Card key={member.member_id} className="border-transparent bg-white shadow-sm hover:shadow-md transition-shadow">
-                          <CardContent className="p-5 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary font-black text-lg">
-                                {member.days_joined}
-                              </div>
-                              <div>
-                                <p className="font-black text-stone-900 text-lg">{member.name}</p>
-                                <p className="text-[10px] text-stone-400 uppercase font-bold tracking-widest leading-none">
-                                  {member.days_joined} hari bergabung
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              {member.actual_total && member.actual_total > 0 ? (
-                                <>
-                                  <div className="text-2xl font-black text-rose-600 tracking-tight">
-                                    {formatRupiah(member.actual_total)}
-                                  </div>
-                                  <div className="text-[10px] text-stone-400 font-bold line-through">
-                                    Est: {formatRupiah(member.total)}
-                                  </div>
-                                </>
-                              ) : (
-                                <div className="text-2xl font-black text-rose-600 tracking-tight">
-                                  {formatRupiah(member.total)}
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))
-                  )}
+              <div className="grid grid-cols-2 md:grid-cols-1 gap-3">
+                <div className="rounded-2xl border border-stone-100 bg-white p-4 flex flex-col items-center justify-center text-center">
+                  <Users className="h-5 w-5 text-primary/40 mb-1.5" />
+                  <div className="text-xl font-bold text-stone-900">{data.member_totals.length}</div>
+                  <div className="text-[11px] text-stone-400 font-medium">Warga Ikut</div>
+                </div>
+                <div className="rounded-2xl border border-stone-100 bg-white p-4 flex flex-col items-center justify-center text-center">
+                  <ShoppingCart className="h-5 w-5 text-primary/40 mb-1.5" />
+                  <div className="text-xl font-bold text-stone-900">{data.shopping_list.length}</div>
+                  <div className="text-[11px] text-stone-400 font-medium">Jenis Bahan</div>
                 </div>
               </div>
+            </div>
 
-              {/* Daily Breakdown */}
-              <div className="space-y-4">
-                <h3 className="font-black text-sm text-stone-400 uppercase tracking-widest flex items-center gap-2">
-                  <Receipt className="h-4 w-4" /> Rincian Harian
-                </h3>
-                <Card className="border-stone-200 overflow-hidden shadow-sm">
-                  <div className="p-2">
-                    {data.daily_breakdown.map(day => (
-                      <div key={day.meal_id} className="flex items-center justify-between p-4 rounded-xl hover:bg-stone-50 transition-colors border-b border-stone-100 last:border-0">
-                        <div className="flex flex-col">
-                          <span className="font-black text-stone-900">{day.day_name}</span>
-                          <span className="text-[10px] uppercase font-bold text-stone-400 tracking-widest">
-                            {day.participant_count} orang ikut
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-black text-stone-800 text-lg">{formatRupiah(day.total_cost)}</div>
-                          <div className="text-[10px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full inline-block">
-                            @{formatRupiah(day.cost_per_person)}
+            {/* Detail Tabs */}
+            <Tabs defaultValue="split" className="w-full">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
+                <h2 className="text-lg font-bold text-stone-900">Rincian Perhitungan</h2>
+                <TabsList className="grid w-full md:w-auto grid-cols-2 bg-stone-100 p-1 h-9 rounded-lg">
+                  <TabsTrigger value="split" className="rounded-md text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Tagihan Warga</TabsTrigger>
+                  <TabsTrigger value="shopping" className="rounded-md text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Daftar Belanja</TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="split" className="mt-0 space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Member Totals */}
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-semibold text-stone-400 flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5" /> Distribusi Biaya
+                    </h3>
+                    <div className="space-y-2">
+                      {data.member_totals.length === 0 ? (
+                        <div className="text-center py-10 text-stone-400 text-sm">Belum ada warga yang bergabung</div>
+                      ) : (
+                        data.member_totals
+                          .sort((a,b) => b.total - a.total)
+                          .map(member => (
+                            <div key={member.member_id} className="rounded-xl border border-stone-100 bg-white p-4 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-bold text-sm">
+                                  {member.days_joined}
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-stone-900 text-sm">{member.name}</p>
+                                  <p className="text-[11px] text-stone-400">{member.days_joined} hari bergabung</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                {member.actual_total && member.actual_total > 0 ? (
+                                  <>
+                                    <div className="text-base font-bold text-rose-600">{formatRupiah(member.actual_total)}</div>
+                                    <div className="text-[11px] text-stone-400 line-through">Est: {formatRupiah(member.total)}</div>
+                                  </>
+                                ) : (
+                                  <div className="text-base font-bold text-rose-600">{formatRupiah(member.total)}</div>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Daily Breakdown */}
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-semibold text-stone-400 flex items-center gap-1.5">
+                      <Receipt className="h-3.5 w-3.5" /> Rincian Harian
+                    </h3>
+                    <div className="rounded-xl border border-stone-100 overflow-hidden bg-white">
+                      {data.daily_breakdown.map(day => (
+                        <div key={day.meal_id} className="flex items-center justify-between px-4 py-3 hover:bg-stone-50/50 transition-colors border-b border-stone-50 last:border-0">
+                          <div>
+                            <span className="font-medium text-stone-900 text-sm">{day.day_name}</span>
+                            <span className="block text-[11px] text-stone-400">{day.participant_count} orang</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold text-stone-800 text-sm">{formatRupiah(day.total_cost)}</div>
+                            <span className="text-[11px] text-primary font-medium">@{formatRupiah(day.cost_per_person)}</span>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="shopping" className="mt-0">
-            <div className="space-y-3">
-              {data.shopping_list.map((ing, idx) => (
-                <div 
-                  key={idx} 
-                  className={`rounded-2xl border p-4 transition-all ${
-                    ing.has_enough_stock 
-                      ? 'bg-stone-50/50 border-stone-100 opacity-60' 
-                      : 'bg-white border-stone-100 shadow-sm hover:shadow-md'
-                  }`}
-                >
-                  {/* Row 1: Name + Status Badge */}
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex-1 min-w-0">
-                      <h4 className={`font-black text-base text-stone-900 leading-tight ${ing.has_enough_stock ? 'line-through decoration-stone-300' : ''}`}>
-                        {ing.name}
-                      </h4>
-                      {ing.has_enough_stock ? (
-                        <span className="text-[9px] font-black tracking-widest uppercase text-emerald-600 mt-0.5 inline-block">
-                          ✓ Terpenuhi dari Stok
-                        </span>
-                      ) : ing.cheapest_supplier ? (
-                        <span className="text-[9px] font-bold tracking-widest uppercase text-blue-500 mt-0.5 inline-block">
-                          📍 Termurah di {ing.cheapest_supplier}
-                        </span>
-                      ) : null}
+                      ))}
                     </div>
-                    {ing.has_enough_stock && (
-                      <Badge variant="secondary" className="bg-emerald-50 text-emerald-600 font-black text-[9px] uppercase tracking-widest shadow-none hover:bg-emerald-50 shrink-0 rounded-full px-2.5">
-                        Stok OK
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Row 2: Quantity Details */}
-                  <div className="flex items-center gap-4 text-sm mb-3">
-                    <div className="flex-1">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 block mb-0.5">Dibutuhkan</span>
-                      <span className="font-bold text-stone-600">
-                        {ing.total_quantity % 1 === 0 ? ing.total_quantity : Number(ing.total_quantity).toFixed(2)}
-                        <span className="text-[10px] uppercase text-stone-400 ml-1">{ing.unit}</span>
-                      </span>
-                    </div>
-                    {!ing.has_enough_stock && (
-                      <div className="flex-1">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 block mb-0.5">Beli Kekurangan</span>
-                        <span className="font-black text-rose-600">
-                          {ing.shortage_quantity % 1 === 0 ? ing.shortage_quantity : Number(ing.shortage_quantity).toFixed(2)}
-                          <span className="text-[10px] uppercase text-stone-400 ml-1">{ing.unit}</span>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Row 3: Cost + Action Button */}
-                  <div className="flex items-center justify-between pt-3 border-t border-stone-100">
-                    <div>
-                      <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 block mb-0.5">Estimasi Biaya</span>
-                      <span className={`text-xl font-black tracking-tight ${ing.has_enough_stock ? 'text-stone-300' : 'text-emerald-600'}`}>
-                        {formatRupiah(ing.cost_to_buy)}
-                      </span>
-                    </div>
-                    {!ing.has_enough_stock && ing.ingredient_id && (
-                      <Button 
-                        variant="default" size="sm" 
-                        className="h-9 px-4 rounded-full shadow-sm font-black text-[10px] uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700"
-                        onClick={() => {
-                          setSelectedIngredient({ id: ing.ingredient_id, name: ing.name, qty: ing.shortage_quantity, unit: ing.unit });
-                          setFormData({ ...formData, quantity: ing.shortage_quantity.toString(), total_price: ing.cost_to_buy.toString() });
-                          setIsPurchaseOpen(true);
-                        }}
-                      >
-                        <Plus className="h-3 w-3 mr-1" /> Catat
-                      </Button>
-                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
-        </>
-      )}
+              </TabsContent>
+
+              <TabsContent value="shopping" className="mt-0">
+                <div className="space-y-2">
+                  {data.shopping_list.map((ing, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`rounded-xl border p-4 transition-all ${
+                        ing.has_enough_stock 
+                          ? 'bg-stone-50/50 border-stone-100 opacity-50' 
+                          : 'bg-white border-stone-100 hover:border-stone-200'
+                      }`}
+                    >
+                      {/* Name + Status */}
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className={`font-medium text-sm text-stone-900 leading-tight ${ing.has_enough_stock ? 'line-through decoration-stone-300' : ''}`}>
+                            {ing.name}
+                          </h4>
+                          {ing.has_enough_stock ? (
+                            <span className="text-[11px] text-emerald-600 font-medium mt-0.5 inline-block">✓ Terpenuhi dari stok</span>
+                          ) : ing.cheapest_supplier ? (
+                            <span className="text-[11px] text-blue-500 font-medium mt-0.5 inline-block">📍 Termurah di {ing.cheapest_supplier}</span>
+                          ) : null}
+                        </div>
+                        {ing.has_enough_stock && (
+                          <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md shrink-0">
+                            Stok OK
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Quantities */}
+                      <div className="flex items-center gap-4 text-sm mb-2">
+                        <div className="flex-1">
+                          <span className="text-[11px] text-stone-400 block mb-0.5">Dibutuhkan</span>
+                          <span className="font-medium text-stone-600 text-sm">
+                            {ing.total_quantity % 1 === 0 ? ing.total_quantity : Number(ing.total_quantity).toFixed(2)}
+                            <span className="text-[11px] text-stone-400 ml-1">{ing.unit}</span>
+                          </span>
+                        </div>
+                        {!ing.has_enough_stock && (
+                          <div className="flex-1">
+                            <span className="text-[11px] text-stone-400 block mb-0.5">Beli Kekurangan</span>
+                            <span className="font-semibold text-rose-600 text-sm">
+                              {ing.shortage_quantity % 1 === 0 ? ing.shortage_quantity : Number(ing.shortage_quantity).toFixed(2)}
+                              <span className="text-[11px] text-stone-400 ml-1">{ing.unit}</span>
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Cost + Action */}
+                      <div className="flex items-center justify-between pt-2 border-t border-stone-50">
+                        <div>
+                          <span className="text-[11px] text-stone-400 block mb-0.5">Estimasi Biaya</span>
+                          <span className={`text-base font-bold tracking-tight ${ing.has_enough_stock ? 'text-stone-300' : 'text-emerald-600'}`}>
+                            {formatRupiah(ing.cost_to_buy)}
+                          </span>
+                        </div>
+                        {!ing.has_enough_stock && ing.ingredient_id && (
+                          <Button 
+                            variant="default" size="sm" 
+                            className="h-8 px-3 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700"
+                            onClick={() => {
+                              setSelectedIngredient({ id: ing.ingredient_id, name: ing.name, qty: ing.shortage_quantity, unit: ing.unit });
+                              setFormData({ ...formData, quantity: ing.shortage_quantity.toString(), total_price: ing.cost_to_buy.toString() });
+                              setIsPurchaseOpen(true);
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" /> Catat
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
       </div>
 
+      {/* Purchase Dialog */}
       <Dialog open={isPurchaseOpen} onOpenChange={setIsPurchaseOpen}>
-        <DialogContent className="w-[95vw] max-w-lg rounded-3xl p-6 sm:p-8">
+        <DialogContent className="w-[95vw] max-w-lg rounded-2xl p-6 border-stone-200">
           <DialogHeader>
-            <DialogTitle>Catat Pembelian: {selectedIngredient?.name}</DialogTitle>
+            <DialogTitle className="text-lg font-bold">Catat Pembelian: {selectedIngredient?.name}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={recordPurchase} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Beli di (Nama Toko/Suplier)</label>
-              <Input required value={formData.supplier_name} onChange={e => setFormData({ ...formData, supplier_name: e.target.value })} placeholder="Cth: Pasar Palmerah / Indomaret" />
+          <form onSubmit={recordPurchase} className="space-y-4 pt-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-stone-600">Beli di (Nama Toko/Suplier)</label>
+              <Input required value={formData.supplier_name} onChange={e => setFormData({ ...formData, supplier_name: e.target.value })} placeholder="Cth: Pasar Palmerah / Indomaret" className="h-10 rounded-xl bg-stone-50/80 border-stone-200 text-sm" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-2">
-                 <label className="text-sm font-medium">Kuantitas ({selectedIngredient?.unit})</label>
-                 <Input type="number" step="0.01" required value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })} />
-               </div>
-               <div className="space-y-2">
-                 <label className="text-sm font-medium">Total Harga Akhir (Rp)</label>
-                 <Input type="number" required value={formData.total_price} onChange={e => setFormData({ ...formData, total_price: e.target.value })} />
-               </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-stone-600">Kuantitas ({selectedIngredient?.unit})</label>
+                <Input type="number" step="0.01" required value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })} className="h-10 rounded-xl bg-stone-50/80 border-stone-200 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-stone-600">Total Harga (Rp)</label>
+                <Input type="number" required value={formData.total_price} onChange={e => setFormData({ ...formData, total_price: e.target.value })} className="h-10 rounded-xl bg-stone-50/80 border-stone-200 text-sm" />
+              </div>
             </div>
-            <div className="flex items-center gap-2 p-3 bg-blue-50/50 rounded-lg border border-blue-100 mt-2">
-              <Check className="h-4 w-4 text-blue-500" />
-              <p className="text-xs font-semibold text-blue-800">Biaya ini akan langsung ditagihkan ke warga secara otomatis.</p>
+            <div className="flex items-center gap-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+              <Check className="h-3.5 w-3.5 text-blue-500" />
+              <p className="text-xs text-blue-700">Biaya ini akan langsung ditagihkan ke warga secara otomatis.</p>
             </div>
-            <Button type="submit" disabled={isSaving} className="w-full h-11">
-              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" disabled={isSaving} className="w-full h-10 rounded-xl text-sm font-semibold">
+              {isSaving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Simpan Tagihan Aktual
             </Button>
           </form>

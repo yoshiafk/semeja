@@ -117,7 +117,7 @@ export default function Members() {
     return (
       <PageContainer>
         <div className="flex h-[60vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       </PageContainer>
     );
@@ -125,55 +125,48 @@ export default function Members() {
 
   return (
     <PageContainer>
-      <div className="space-y-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-stone-100 pb-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-black tracking-tight text-stone-900">Warga Coliving</h1>
-            <p className="text-stone-500 font-medium font-medium">Monitoring kehadiran dan manajemen peran warga.</p>
+      <div className="space-y-5">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 pb-4 border-b border-stone-100">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-stone-900 tracking-tight">Warga Coliving</h1>
+            <p className="text-sm text-stone-400 mt-0.5">
+              {members.length} warga terdaftar
+            </p>
           </div>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-             <Select value={selectedPlanId || ""} onValueChange={setSelectedPlanId}>
-                <SelectTrigger className="h-11 w-[200px] bg-stone-50 border-stone-100 rounded-full font-bold shadow-none text-xs">
-                  <SelectValue placeholder="Pilih Pekan" />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-stone-200">
-                  {plans.map(p => (
-                    <SelectItem key={p.id} value={p.id.toString()} className="font-medium">
-                      {formatDate(p.week_start)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-             </Select>
-            <div className="flex items-center gap-4 bg-stone-50 px-4 py-2 rounded-2xl border border-stone-100 h-11">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none mb-0.5">Total Warga</span>
-                <span className="text-sm font-black text-stone-900">{members.length} Orang</span>
-              </div>
-              <div className="w-px h-6 bg-stone-200" />
-              <Users className="h-4 w-4 text-primary/40" />
-            </div>
-          </div>
+          <Select value={selectedPlanId || ""} onValueChange={setSelectedPlanId}>
+            <SelectTrigger className="h-9 w-auto md:w-[180px] bg-stone-50 border-stone-100 rounded-lg font-medium text-xs shadow-none px-3">
+              <SelectValue placeholder="Pilih Pekan" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-stone-100">
+              {plans.map(p => (
+                <SelectItem key={p.id} value={p.id.toString()} className="text-sm">
+                  {formatDate(p.week_start)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <Tabs defaultValue="grid" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:max-w-md bg-stone-100 p-1 h-12 mb-8">
-            <TabsTrigger value="grid" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm gap-2">
-              <LayoutDashboard className="h-4 w-4" /> Partisipasi
+          <TabsList className="grid w-full max-w-xs grid-cols-2 bg-stone-100 p-0.5 h-9 rounded-lg mb-5">
+            <TabsTrigger value="grid" className="rounded-md text-xs font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm gap-1.5">
+              <LayoutDashboard className="h-3.5 w-3.5" /> Partisipasi
             </TabsTrigger>
-            <TabsTrigger value="list" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm gap-2">
-              <Users className="h-4 w-4" /> Daftar Warga
+            <TabsTrigger value="list" className="rounded-md text-xs font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm gap-1.5">
+              <Users className="h-3.5 w-3.5" /> Daftar
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="grid" className="mt-0">
-            <Card className="border-stone-200 shadow-xl shadow-stone-200/50 overflow-hidden rounded-2xl">
+            <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-stone-50/50 border-b border-stone-100">
-                      <TableHead className="w-[200px] font-black uppercase text-[10px] tracking-widest h-14">Nama Warga</TableHead>
+                    <TableRow className="bg-stone-50/80 border-b border-stone-100">
+                      <TableHead className="w-[180px] text-[11px] font-semibold text-stone-400 uppercase tracking-wide h-10">Nama</TableHead>
                       {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map(d => (
-                        <TableHead key={d} className="text-center text-[10px] font-black uppercase tracking-widest px-2 h-14">{d}</TableHead>
+                        <TableHead key={d} className="text-center text-[11px] font-semibold text-stone-400 uppercase tracking-wide px-2 h-10 w-12">{d}</TableHead>
                       ))}
                     </TableRow>
                   </TableHeader>
@@ -181,18 +174,23 @@ export default function Members() {
                     {members.map(m => {
                       const userParts = participations.filter(p => p.member_id === m.id);
                       return (
-                        <TableRow key={m.id} className="hover:bg-primary/[0.02] transition-colors border-stone-100">
-                          <TableCell className="font-bold py-5">
-                            <div className="flex flex-col">
-                              <span className="text-stone-900">{m.name}</span>
-                              {m.role !== 'member' && (
-                                <span className={cn(
-                                  "text-[8px] uppercase font-black tracking-widest mt-0.5",
-                                  m.role === 'superadmin' ? "text-amber-600" : "text-emerald-600"
-                                )}>
-                                  {m.role}
-                                </span>
-                              )}
+                        <TableRow key={m.id} className="hover:bg-stone-50/50 transition-colors border-stone-50">
+                          <TableCell className="py-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="h-7 w-7 rounded-full bg-stone-100 flex items-center justify-center text-[10px] font-semibold text-stone-500 uppercase shrink-0">
+                                {m.name.substring(0, 2)}
+                              </div>
+                              <div className="min-w-0">
+                                <span className="text-sm font-medium text-stone-800 truncate block">{m.name}</span>
+                                {m.role !== 'member' && (
+                                  <span className={cn(
+                                    "text-[10px] font-medium leading-tight",
+                                    m.role === 'superadmin' ? "text-amber-500" : "text-teal-500"
+                                  )}>
+                                    {m.role}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </TableCell>
                           {["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"].map(day => {
@@ -201,11 +199,11 @@ export default function Members() {
                               <TableCell key={day} className="text-center p-0">
                                 <div className="flex justify-center">
                                   {joined ? (
-                                    <div className="h-8 w-8 bg-primary/10 rounded-xl flex items-center justify-center">
-                                      <CheckCircle2 className="h-4 w-4 text-primary stroke-[3px]" />
+                                    <div className="h-7 w-7 bg-primary/8 rounded-lg flex items-center justify-center">
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-primary stroke-[2.5px]" />
                                     </div>
                                   ) : (
-                                    <Circle className="h-5 w-5 text-stone-200" />
+                                    <Circle className="h-4 w-4 text-stone-200" />
                                   )}
                                 </div>
                               </TableCell>
@@ -217,64 +215,62 @@ export default function Members() {
                   </TableBody>
                 </Table>
               </div>
-            </Card>
-            <p className="mt-6 text-[10px] text-stone-400 uppercase font-black tracking-widest text-center italic">
-              * Centang menandakan warga terdaftar di hari tersebut (Siang & Malam)
+            </div>
+            <p className="mt-3 text-[11px] text-stone-400 text-center">
+              Centang = terdaftar makan di hari tersebut
             </p>
           </TabsContent>
 
           <TabsContent value="list" className="mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {members.map(m => (
-                <Card key={m.id} className="border-stone-200 hover:border-primary/30 transition-all hover:shadow-lg hover:shadow-primary/5 group rounded-2xl">
-                  <CardContent className="p-5 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-stone-100 flex items-center justify-center text-stone-500 font-black text-lg uppercase group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                        {m.name.substring(0, 2)}
-                      </div>
-                      <div>
-                        <div className="font-black text-stone-900 flex items-center gap-1.5 leading-none mb-1">
-                          {m.name}
-                          {m.role === 'superadmin' && <ShieldCheck className="h-4 w-4 text-amber-500" />}
-                          {m.role === 'admin' && <UserCheck className="h-4 w-4 text-emerald-500" />}
-                        </div>
-                        <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest">{m.role}</p>
-                      </div>
+                <div key={m.id} className="bg-white border border-stone-100 rounded-xl p-4 flex items-center justify-between group hover:shadow-sm transition-shadow">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-stone-100 flex items-center justify-center text-stone-500 text-sm font-semibold uppercase group-hover:bg-primary/8 group-hover:text-primary transition-colors">
+                      {m.name.substring(0, 2)}
                     </div>
+                    <div>
+                      <div className="font-medium text-stone-800 flex items-center gap-1.5 text-sm">
+                        {m.name}
+                        {m.role === 'superadmin' && <ShieldCheck className="h-3.5 w-3.5 text-amber-500" />}
+                        {m.role === 'admin' && <UserCheck className="h-3.5 w-3.5 text-teal-500" />}
+                      </div>
+                      <p className="text-[11px] text-stone-400">{m.role}</p>
+                    </div>
+                  </div>
 
-                    {isSuperadmin && m.role !== 'superadmin' && (
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {m.role === 'member' ? (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-[10px] font-black uppercase tracking-widest text-emerald-600 h-8 hover:bg-emerald-50"
-                            onClick={() => updateRole(m.id, 'admin')}
-                          >
-                            Set Admin
-                          </Button>
-                        ) : (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-[10px] font-black uppercase tracking-widest text-amber-600 h-8 hover:bg-amber-50"
-                            onClick={() => updateRole(m.id, 'member')}
-                          >
-                            Demote
-                          </Button>
-                        )}
+                  {isSuperadmin && m.role !== 'superadmin' && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {m.role === 'member' ? (
                         <Button 
                           variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
-                          onClick={() => deleteMember(m.id)}
+                          size="sm" 
+                          className="text-[11px] font-medium text-teal-600 h-7 px-2 hover:bg-teal-50 rounded-lg"
+                          onClick={() => updateRole(m.id, 'admin')}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          Set Admin
                         </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                      ) : (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-[11px] font-medium text-amber-600 h-7 px-2 hover:bg-amber-50 rounded-lg"
+                          onClick={() => updateRole(m.id, 'member')}
+                        >
+                          Demote
+                        </Button>
+                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-7 w-7 text-stone-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
+                        onClick={() => deleteMember(m.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </TabsContent>

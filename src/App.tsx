@@ -14,7 +14,7 @@ import Ingredients from "@/pages/Ingredients";
 import MealPlan from "@/pages/MealPlan";
 import Costs from "@/pages/Costs";
 import Suppliers from "@/pages/Suppliers";
-import Menus from '@/pages/Menus'; // Added Menus import
+import Menus from '@/pages/Menus';
 
 function App() {
   const { member, loading, isAdmin, hasHouseKey, confirmHouseKey } = useMember();
@@ -23,7 +23,7 @@ function App() {
     if (loading) {
       return (
         <div className="fixed inset-0 flex items-center justify-center bg-background">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       );
     }
@@ -37,7 +37,15 @@ function App() {
   return (
     <Router>
       <div className="min-h-[100dvh] bg-background relative overflow-x-hidden">
-        <Toaster position="top-center" expand={false} richColors closeButton />
+        <Toaster
+          position="top-center"
+          expand={false}
+          richColors
+          closeButton
+          toastOptions={{
+            className: "!rounded-xl !border-stone-100 !shadow-lg !text-sm !font-medium",
+          }}
+        />
         <Header />
         
         <Routes>
@@ -45,7 +53,7 @@ function App() {
           <Route path="/members" element={<Members />} />
           <Route path="/costs" element={<Costs />} />
           <Route path="/suppliers" element={<Suppliers />} />
-          <Route path="/menus" element={<Menus />} /> {/* Added Menus route */}
+          <Route path="/menus" element={<Menus />} />
           
           {/* Admin Protected Routes */}
           <Route 

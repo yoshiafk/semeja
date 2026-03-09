@@ -16,13 +16,13 @@ export function PageContainer({
   return (
     <main
       className={cn(
-        "min-h-[100dvh] w-full mx-auto px-4 md:px-8 max-w-7xl flex flex-col",
-        withHeader && "pt-24",
-        withTabBar && "pb-safe pb-32 md:pb-12",
+        "min-h-[100dvh] w-full mx-auto px-4 md:px-6 lg:px-8 max-w-6xl flex flex-col",
+        withHeader && "pt-20 md:pt-22",
+        withTabBar && "pb-24 md:pb-8",
         className
       )}
     >
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="animate-page-in">
         {children}
       </div>
     </main>

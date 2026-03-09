@@ -29,8 +29,8 @@ export function BottomTabBar() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] h-16 sm:h-20 lg:hidden px-2 pb-safe bg-white border-t border-stone-100 shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
-        <div className="flex h-full items-center justify-around max-w-md mx-auto">
+      <nav className="fixed bottom-0 left-0 right-0 z-[100] lg:hidden bg-white/80 backdrop-blur-xl backdrop-saturate-150 border-t border-stone-100/60">
+        <div className="flex items-end justify-around max-w-lg mx-auto px-2 pt-1.5 pb-safe" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 8px), 8px)' }}>
           {primaryTabs.map((tab) => (
             <NavLink
               key={tab.to}
@@ -38,22 +38,25 @@ export function BottomTabBar() {
               onClick={() => setIsMoreOpen(false)}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center justify-center gap-1 flex-1 transition-all",
-                  isActive ? "text-emerald-600" : "text-stone-400 hover:text-stone-600"
+                  "flex flex-col items-center justify-center gap-0.5 flex-1 py-1 touch-active",
+                  isActive ? "text-primary" : "text-stone-400"
                 )
               }
             >
               {({ isActive }) => (
                 <>
                   <div className={cn(
-                    "p-1.5 rounded-2xl transition-all duration-300",
-                    isActive ? "bg-emerald-50 scale-110" : "bg-transparent scale-100"
+                    "relative p-1 rounded-xl transition-all duration-200",
+                    isActive && "bg-primary/8"
                   )}>
-                     <tab.icon className={cn("h-5 w-5 sm:h-6 sm:w-6 transition-all duration-300", isActive && "stroke-[2.5px]")} />
+                    <tab.icon className={cn(
+                      "h-[22px] w-[22px] transition-all duration-200",
+                      isActive ? "stroke-[2.5px]" : "stroke-[1.8px]"
+                    )} />
                   </div>
                   <span className={cn(
-                    "text-[10px] sm:text-xs transition-all duration-300", 
-                    isActive ? "font-black" : "font-semibold"
+                    "text-[10px] leading-tight transition-all duration-200",
+                    isActive ? "font-bold" : "font-medium"
                   )}>
                     {tab.label}
                   </span>
@@ -67,19 +70,22 @@ export function BottomTabBar() {
             <button
               onClick={() => setIsMoreOpen(true)}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 transition-all",
-                isMoreActive ? "text-emerald-600" : "text-stone-400 hover:text-stone-600"
+                "flex flex-col items-center justify-center gap-0.5 flex-1 py-1 touch-active",
+                isMoreActive ? "text-primary" : "text-stone-400"
               )}
             >
               <div className={cn(
-                "p-1.5 rounded-2xl transition-all duration-300",
-                isMoreActive ? "bg-emerald-50 scale-110" : "bg-transparent scale-100"
+                "relative p-1 rounded-xl transition-all duration-200",
+                isMoreActive && "bg-primary/8"
               )}>
-                <MoreHorizontal className={cn("h-5 w-5 sm:h-6 sm:w-6 transition-all duration-300", isMoreActive && "stroke-[2.5px]")} />
+                <MoreHorizontal className={cn(
+                  "h-[22px] w-[22px] transition-all duration-200",
+                  isMoreActive ? "stroke-[2.5px]" : "stroke-[1.8px]"
+                )} />
               </div>
               <span className={cn(
-                "text-[10px] sm:text-xs transition-all duration-300",
-                isMoreActive ? "font-black" : "font-semibold"
+                "text-[10px] leading-tight transition-all duration-200",
+                isMoreActive ? "font-bold" : "font-medium"
               )}>
                 More
               </span>
@@ -90,18 +96,17 @@ export function BottomTabBar() {
 
       {/* Bottom Sheet for "More" links */}
       <Sheet open={isMoreOpen} onOpenChange={setIsMoreOpen}>
-        <SheetContent side="bottom" showCloseButton={false} className="rounded-t-3xl px-6 pt-4 pb-24 max-h-[70vh]">
-          {/* Drag handle indicator */}
-          <div className="flex justify-center mb-4">
-            <div className="w-10 h-1 rounded-full bg-stone-200" />
+        <SheetContent side="bottom" showCloseButton={false} className="rounded-t-[20px] px-5 pt-3 pb-20 max-h-[60vh]">
+          <div className="flex justify-center mb-5">
+            <div className="w-9 h-1 rounded-full bg-stone-200" />
           </div>
-          <SheetHeader className="p-0 mb-6">
-            <SheetTitle className="text-xl font-black text-stone-900 tracking-tight">More</SheetTitle>
-            <SheetDescription className="text-[10px] font-black uppercase tracking-widest text-stone-400">
+          <SheetHeader className="p-0 mb-5">
+            <SheetTitle className="text-lg font-bold text-stone-900">More</SheetTitle>
+            <SheetDescription className="text-xs text-stone-400">
               Halaman admin lainnya
             </SheetDescription>
           </SheetHeader>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {moreLinks.map((link) => {
               const isActive = location.pathname.startsWith(link.to);
               return (
@@ -112,31 +117,28 @@ export function BottomTabBar() {
                     navigate(link.to);
                   }}
                   className={cn(
-                    "flex items-center gap-4 w-full p-4 rounded-2xl transition-all text-left",
+                    "flex items-center gap-3.5 w-full p-3.5 rounded-2xl transition-all text-left touch-active",
                     isActive
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "hover:bg-stone-50 text-stone-700"
+                      ? "bg-primary/6 text-primary"
+                      : "hover:bg-stone-50 text-stone-700 active:bg-stone-100"
                   )}
                 >
                   <div className={cn(
-                    "p-2.5 rounded-xl shrink-0",
-                    isActive ? "bg-emerald-100" : "bg-stone-100"
+                    "p-2.5 rounded-xl shrink-0 transition-colors",
+                    isActive ? "bg-primary/10" : "bg-stone-100"
                   )}>
-                    <link.icon className="h-5 w-5" />
+                    <link.icon className="h-[18px] w-[18px]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-black text-sm">{link.label}</p>
+                    <p className="font-semibold text-sm">{link.label}</p>
                     <p className={cn(
-                      "text-xs font-medium truncate",
-                      isActive ? "text-emerald-500" : "text-stone-400"
+                      "text-xs truncate",
+                      isActive ? "text-primary/60" : "text-stone-400"
                     )}>
                       {link.description}
                     </p>
                   </div>
-                  <ChevronRight className={cn(
-                    "h-4 w-4 shrink-0",
-                    isActive ? "text-emerald-400" : "text-stone-300"
-                  )} />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-stone-300" />
                 </button>
               );
             })}
