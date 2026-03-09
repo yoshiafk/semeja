@@ -25,17 +25,23 @@ router.post('/', async (req, res) => {
     
     if (rows.length > 0) {
       const user = rows[0];
-      // If user is admin/superadmin, password is REQUIRED
+      // If user is admin/superadmin, require password (only if one has been set)
       if (user.role === 'admin' || user.role === 'superadmin') {
-        if (!password) {
-          return res.status(200).json({ 
-            needsPassword: true, 
-            message: 'Password diperlukan untuk akun Admin' 
-          });
-        }
-        const isMatch = await bcrypt.compare(password, user.password_hash);
-        if (!isMatch) {
-          return res.status(401).json({ error: 'Password salah' });
+        if (user.password_hash) {
+          // Password exists — must authenticate
+          if (!password) {
+            return res.status(200).json({ 
+              needsPassword: true, 
+              message: 'Password diperlukan untuk akun Admin' 
+            });
+          }
+          const isMatch = await bcrypt.compare(password, user.password_hash);
+          if (!isMatch) {
+            return res.status(401).json({ error: 'Password salah' });
+          }
+        } else {
+          // No password set yet — let them in but flag it
+          return res.json({ ...user, needsPasswordSetup: true });
         }
       }
       return res.json(user);
@@ -74,6 +80,40 @@ router.put('/:id/role', async (req, res) => {
     );
     if (!rows.length) return res.status(404).json({ error: 'Member not found' });
     res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT - set or change password (for admin/superadmin)
+router.put('/:id/password', async (req, res) => {
+  const { id } = req.params;
+  const { currentPassword, newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 4) {
+    return res.status(400).json({ error: 'Password minimal 4 karakter' });
+  }
+
+  try {
+    const { rows } = await pool.query('SELECT * FROM members WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'Member not found' });
+
+    const user = rows[0];
+
+    // If user already has a password, verify the current one
+    if (user.password_hash) {
+      if (!currentPassword) {
+        return res.status(400).json({ error: 'Password lama diperlukan' });
+      }
+      const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+      if (!isMatch) {
+        return res.status(401).json({ error: 'Password lama salah' });
+      }
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE members SET password_hash = $1 WHERE id = $2', [hash, id]);
+    res.json({ success: true, message: 'Password berhasil disimpan' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

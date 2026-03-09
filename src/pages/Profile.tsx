@@ -4,8 +4,9 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { getMemberSummary } from "@/lib/api";
+import { getMemberSummary, api } from "@/lib/api";
 import type { MemberSummary } from "@/lib/api";
 import { 
   User, 
@@ -16,13 +17,20 @@ import {
   ChevronRight,
   Loader2,
   Receipt,
-  CalendarDays
+  CalendarDays,
+  KeyRound,
+  AlertTriangle
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Profile() {
-  const { member, logout, isSuperadmin, isAdmin } = useMember();
+  const { member, logout, isSuperadmin, isAdmin, needsPasswordSetup } = useMember();
   const [summary, setSummary] = useState<MemberSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
     if (member?.id) {
@@ -224,7 +232,80 @@ export default function Profile() {
               Akun
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
+            {/* Password Setup/Change for Admin */}
+            {isAdmin && (
+              <div className="space-y-3">
+                {needsPasswordSetup && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <p className="text-xs text-amber-700">Kamu belum punya password. Atur password untuk keamanan akun admin.</p>
+                  </div>
+                )}
+                <div className="p-4 rounded-xl bg-muted/50 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium">{needsPasswordSetup ? 'Atur Password' : 'Ubah Password'}</span>
+                  </div>
+                  {!needsPasswordSetup && (
+                    <Input
+                      type="password"
+                      placeholder="Password lama"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="h-10 text-sm bg-background rounded-lg"
+                    />
+                  )}
+                  <Input
+                    type="password"
+                    placeholder="Password baru"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="h-10 text-sm bg-background rounded-lg"
+                  />
+                  <Input
+                    type="password"
+                    placeholder="Konfirmasi password baru"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="h-10 text-sm bg-background rounded-lg"
+                  />
+                  <Button
+                    className="w-full h-10 rounded-lg text-sm"
+                    disabled={savingPassword || !newPassword || newPassword !== confirmPassword}
+                    onClick={async () => {
+                      if (newPassword.length < 4) {
+                        toast.error('Password minimal 4 karakter');
+                        return;
+                      }
+                      try {
+                        setSavingPassword(true);
+                        await api.put(`/members/${member?.id}/password`, {
+                          currentPassword: needsPasswordSetup ? undefined : currentPassword,
+                          newPassword
+                        });
+                        toast.success('Password berhasil disimpan!');
+                        setCurrentPassword('');
+                        setNewPassword('');
+                        setConfirmPassword('');
+                      } catch (err: any) {
+                        toast.error(err.message || 'Gagal menyimpan password');
+                      } finally {
+                        setSavingPassword(false);
+                      }
+                    }}
+                  >
+                    {savingPassword ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <KeyRound className="w-4 h-4 mr-2" />
+                    )}
+                    Simpan Password
+                  </Button>
+                </div>
+                <Separator />
+              </div>
+            )}
             <Button
               variant="ghost"
               className="w-full justify-between h-12 px-4 rounded-xl hover:bg-destructive/5 hover:text-destructive"
