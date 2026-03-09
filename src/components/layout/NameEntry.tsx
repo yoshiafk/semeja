@@ -2,7 +2,7 @@ import { useMember } from "@/hooks/useMember";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles, LogIn } from "lucide-react";
 
 export function NameEntry() {
   const { loadMember, loading } = useMember();
@@ -20,9 +20,9 @@ export function NameEntry() {
     } catch (err: any) {
       if (err.message === 'PASSWORD_REQUIRED') {
         setShowPassword(true);
-        setError("Akun ini memerlukan password.");
+        setError("Akun ini butuh password nih.");
       } else {
-        setError(err.message || "Gagal masuk");
+        setError(err.message || "Gagal masuk, coba lagi ya");
       }
     }
   };
@@ -33,12 +33,17 @@ export function NameEntry() {
         {/* Logo & Branding */}
         <div className="space-y-4 animate-page-in">
           <div className="mx-auto w-20 h-20">
-            <img src="/logo.png" alt="Semeja" className="w-full h-full object-contain" />
+            <picture>
+              <source srcSet="/logo.webp" type="image/webp" />
+              <img src="/logo.png" alt="Semeja" className="w-full h-full object-contain" />
+            </picture>
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Semeja</h1>
-            <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">
-              Masuk dengan nama kamu untuk bergabung dengan meja makan coliving.
+            <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center justify-center gap-2">
+              Halo! <Sparkles className="h-5 w-5 text-accent" />
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+              Siapa nih yang mau gabung makan bareng?
             </p>
           </div>
         </div>
@@ -46,10 +51,10 @@ export function NameEntry() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3">
           <Input
-            placeholder="Nama kamu..."
+            placeholder="Ketik nama kamu..."
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="h-12 text-center text-base bg-white border-stone-200 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary/20"
+            className="h-12 text-center text-base bg-card border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary/20"
             autoFocus={!showPassword}
             disabled={loading || showPassword}
             required
@@ -59,48 +64,51 @@ export function NameEntry() {
             <div className="space-y-2 animate-page-in">
               <Input
                 type="password"
-                placeholder="Password..."
+                placeholder="Masukkan password..."
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-12 text-center text-base bg-white border-stone-200 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary/20"
+                className="h-12 text-center text-base bg-card border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary/20"
                 autoFocus
                 disabled={loading}
                 required
               />
               <button
                 type="button"
-                className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => {
                   setShowPassword(false);
                   setPassword("");
                   setError("");
                 }}
               >
-                Bukan akun saya? Ganti nama
+                Bukan kamu? Ganti nama
               </button>
             </div>
           )}
 
-          {error && <p className="text-sm font-medium text-rose-500">{error}</p>}
+          {error && <p className="text-sm font-medium text-destructive">{error}</p>}
 
           <Button
             type="submit"
-            className="w-full h-12 text-[15px] font-semibold rounded-xl bg-primary hover:bg-primary/90 shadow-sm"
+            className="w-full h-12 text-[15px] font-semibold rounded-xl shadow-sm"
             disabled={loading}
           >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sabar ya...
+                Tunggu sebentar...
               </>
             ) : (
-              "Masuk"
+              <>
+                <LogIn className="mr-2 h-4 w-4" />
+                Gabung Sekarang
+              </>
             )}
           </Button>
         </form>
 
-        <p className="text-[11px] text-stone-400">
-          *Nama kamu akan diingat di perangkat ini.
+        <p className="text-[11px] text-muted-foreground/60">
+          Nama kamu akan diingat di perangkat ini 📱
         </p>
       </div>
     </div>

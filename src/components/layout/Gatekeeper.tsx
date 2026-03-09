@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, Home, KeyRound } from "lucide-react";
 
 interface GatekeeperProps {
   onSuccess: (key: string) => void;
@@ -30,28 +30,36 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
         onSuccess(key.trim());
       } else {
         const data = await response.json();
-        setError(data.error || "Kunci salah");
+        setError(data.error || "Kunci salah, coba lagi ya!");
       }
     } catch (err) {
-      setError("Gagal menghubungi server");
+      setError("Waduh, gagal connect ke server");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-stone-50 px-6">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm text-center space-y-8 animate-page-in">
-        {/* Icon */}
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-stone-100 text-stone-500">
-          <Lock className="h-7 w-7" />
+        {/* Logo & Icon */}
+        <div className="space-y-4">
+          <div className="mx-auto w-20 h-20">
+            <picture>
+              <source srcSet="/logo.webp" type="image/webp" />
+              <img src="/logo.png" alt="Semeja" className="w-full h-full object-contain" />
+            </picture>
+          </div>
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+            <KeyRound className="h-6 w-6 text-primary" />
+          </div>
         </div>
 
         {/* Title */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Semeja</h1>
-          <p className="text-sm text-stone-500 leading-relaxed">
-            Aplikasi ini privat untuk penghuni coliving. Masukkan kunci rumah untuk masuk.
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Selamat Datang!</h1>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Semeja khusus untuk penghuni coliving. Masukkan kunci rumah untuk masuk.
           </p>
         </div>
 
@@ -59,17 +67,17 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
         <form onSubmit={handleSubmit} className="space-y-3">
           <Input
             type="password"
-            placeholder="Kunci Rumah..."
+            placeholder="Masukkan kunci rumah..."
             value={key}
             onChange={(e) => setKey(e.target.value)}
-            className="h-13 text-lg text-center tracking-[0.2em] bg-white border-stone-200 rounded-xl focus:border-stone-400 focus:ring-1 focus:ring-stone-200"
+            className="h-13 text-lg text-center tracking-[0.15em] bg-card border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary/20"
             autoFocus
             disabled={loading}
           />
-          {error && <p className="text-sm font-medium text-rose-500">{error}</p>}
+          {error && <p className="text-sm font-medium text-destructive">{error}</p>}
           <Button
             type="submit"
-            className="w-full h-12 text-[15px] font-semibold bg-stone-900 hover:bg-stone-800 rounded-xl"
+            className="w-full h-12 text-[15px] font-semibold rounded-xl"
             disabled={loading}
           >
             {loading ? (
@@ -78,13 +86,16 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
                 Mengecek...
               </>
             ) : (
-              "Buka Pintu"
+              <>
+                <Home className="mr-2 h-4 w-4" />
+                Masuk Rumah
+              </>
             )}
           </Button>
         </form>
 
-        <p className="text-[11px] text-stone-400">
-          Lupa kunci? Tanya teman atau admin coliving kamu.
+        <p className="text-[11px] text-muted-foreground/60">
+          Lupa kunci? Tanya teman sekamar atau admin coliving kamu ya.
         </p>
       </div>
     </div>
