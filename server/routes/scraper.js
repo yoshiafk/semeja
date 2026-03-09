@@ -23,6 +23,9 @@ function extractServings(text) {
     /(\d+)\s*servings?/i,                // "4 servings"
     /serves?\s*(\d+)/i,                  // "serves 4"
     /(\d+)\s*pax/i,                      // "4 pax"
+    /(\d+)\s*cups?/i,                    // "8 cup" / "8 cups"
+    /(\d+)\s*gelas/i,                    // "8 gelas"
+    /(\d+)\s*sajian/i,                   // "4 sajian"
   ];
   
   for (const pattern of patterns) {
@@ -111,8 +114,11 @@ async function scrapeCookpad(url) {
   let servingsText = '';
   
   // Try common Cookpad selectors for serving info
+  // Only accept a selector result if it actually yields a parseable count > 1
   const servingSelectors = [
     '[itemprop="recipeYield"]',
+    '.servings-yield',
+    '.recipe-yield',
     '.servings',
     '.yield',
     '.recipe-serving',
@@ -122,7 +128,7 @@ async function scrapeCookpad(url) {
   
   for (const selector of servingSelectors) {
     const found = $(selector).first().text().trim();
-    if (found) {
+    if (found && extractServings(found) > 1) {
       servingsText = found;
       break;
     }
@@ -132,18 +138,18 @@ async function scrapeCookpad(url) {
   if (!servingsText) {
     $('.recipe-info, .recipe-meta, .recipe-details').each((_, el) => {
       const text = $(el).text();
-      if (text.match(/porsi|orang|serving/i)) {
+      if (text.match(/porsi|orang|serving|cups?|gelas|sajian/i)) {
         servingsText = text;
         return false; // break
       }
     });
   }
   
-  // Search in the full page text as fallback
-  if (!servingsText) {
+  // Search in the full page text as fallback (always run if no valid count yet)
+  if (!servingsText || extractServings(servingsText) <= 1) {
     const bodyText = $('body').text();
-    const servingMatch = bodyText.match(/(?:untuk\s+)?(\d+)\s*(?:porsi|orang)/i);
-    if (servingMatch) {
+    const servingMatch = bodyText.match(/(?:untuk\s+)?(\d+)\s*(?:porsi|orang|cups?|gelas|sajian|servings?)/i);
+    if (servingMatch && parseInt(servingMatch[1]) > 1) {
       servingsText = servingMatch[0];
     }
   }
@@ -154,10 +160,11 @@ async function scrapeCookpad(url) {
   const ingredients = [];
   $('.ingredient-list li, [itemprop="recipeIngredient"], .ingredient, .recipe-ingredient').each((_, el) => {
     const text = $(el).text().trim().replace(/\s+/g, ' ');
-    if (text && text.length > 1) {
-      const parsed = parseIngredientText(text);
-      ingredients.push(parsed);
-    }
+    if (!text || text.length <= 1) return;
+    // Skip section headers: lines that have no leading digit and end with : or ;
+    if (/^[^\d]+[;:]\s*$/.test(text)) return;
+    const parsed = parseIngredientText(text);
+    ingredients.push(parsed);
   });
   
   return { title, servings, ingredients };
