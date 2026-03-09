@@ -54,7 +54,59 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   get: <T>(path: string) => request<T>(path, { method: 'GET' }),
-  post: <T>(path: string, body: any) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
-  put: <T>(path: string, body: any) => request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
+  post: <T>(path: string, body?: any) => request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+  put: <T>(path: string, body?: any) => request<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+};
+
+// Types for member summary
+export interface MemberSummary {
+  member: {
+    id: number;
+    name: string;
+    role: 'superadmin' | 'admin' | 'member';
+  };
+  currentWeek: {
+    mealPlanId: number;
+    weekLabel: string;
+    daysJoined: number;
+    estimatedCost: number;
+    actualCost: number;
+    dailyBreakdown: Array<{
+      date: string;
+      dayName: string;
+      costPerPerson: number;
+    }>;
+  } | null;
+  history: {
+    totalWeeks: number;
+    totalCost: number;
+    totalDays: number;
+    averageWeekly: number;
+  };
+}
+
+// Get member-specific summary for Profile page
+export const getMemberSummary = (memberId: number) => 
+  api.get<MemberSummary>(`/summary/member/${memberId}`);
+
+// Get today's participation count
+export const getTodayParticipation = async (): Promise<{ count: number; mealId: number | null }> => {
+  try {
+    const plans = await api.get<any[]>('/meal-plans/active');
+    if (!plans || plans.length === 0) return { count: 0, mealId: null };
+    
+    const today = new Date().toISOString().split('T')[0];
+    const meals = await api.get<any[]>(`/meals/plan/${plans[0].id}`);
+    const todayMeal = meals?.find(m => m.date === today);
+    
+    if (!todayMeal) return { count: 0, mealId: null };
+    
+    const participations = await api.get<any[]>(`/participations/${plans[0].id}`);
+    const todayCount = participations?.filter(p => p.meal_id === todayMeal.id).length || 0;
+    
+    return { count: todayCount, mealId: todayMeal.id };
+  } catch {
+    return { count: 0, mealId: null };
+  }
 };

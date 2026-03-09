@@ -11,12 +11,27 @@ export default defineConfig({
     },
   },
   build: {
+    target: 'esnext',
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
-          ui: ["@radix-ui/react-dialog", "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-toggle", "@radix-ui/react-label", "@radix-ui/react-separator", "@radix-ui/react-slot"],
-          icons: ["lucide-react"],
+          // Core vendor bundle
+          'vendor': ['react', 'react-dom', 'react-router-dom'],
+          // UI framework components
+          'radix-ui': [
+            '@radix-ui/react-dialog', 
+            '@radix-ui/react-select', 
+            '@radix-ui/react-tabs', 
+            '@radix-ui/react-toggle', 
+            '@radix-ui/react-label', 
+            '@radix-ui/react-separator', 
+            '@radix-ui/react-slot'
+          ],
+          // Icons tree-shaken separately
+          'icons': ['lucide-react'],
+          // Toast notifications
+          'toast': ['sonner'],
         },
       },
     },

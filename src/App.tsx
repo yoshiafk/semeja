@@ -10,13 +10,27 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Toaster } from "sonner";
 
+// Home
+const HomeHub = lazy(() => import("@/pages/HomeHub"));
+
+// Meals Module
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const Members = lazy(() => import("@/pages/Members"));
-const Ingredients = lazy(() => import("@/pages/Ingredients"));
 const MealPlan = lazy(() => import("@/pages/MealPlan"));
-const Costs = lazy(() => import("@/pages/Costs"));
-const Suppliers = lazy(() => import("@/pages/Suppliers"));
 const Menus = lazy(() => import("@/pages/Menus"));
+
+// Activities Module
+const ActivitiesComingSoon = lazy(() => import("@/pages/activities/ComingSoon"));
+
+// Community Module
+const Members = lazy(() => import("@/pages/Members"));
+
+// Finance Module
+const Costs = lazy(() => import("@/pages/Costs"));
+const Ingredients = lazy(() => import("@/pages/Ingredients"));
+const Suppliers = lazy(() => import("@/pages/Suppliers"));
+
+// Profile
+const Profile = lazy(() => import("@/pages/Profile"));
 
 const PageLoader = () => (
   <div className="flex h-[60vh] items-center justify-center">
@@ -58,21 +72,44 @@ function App() {
         
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/members" element={<Members />} />
-            <Route path="/costs" element={<Costs />} />
-            <Route path="/suppliers" element={<Suppliers />} />
-            <Route path="/menus" element={<Menus />} />
+            {/* Home Hub */}
+            <Route path="/" element={<HomeHub />} />
             
-            {/* Admin Protected Routes */}
+            {/* Meals Module */}
+            <Route path="/meals" element={<Dashboard />} />
             <Route 
-              path="/meal-plan" 
-              element={isAdmin ? <MealPlan /> : <Navigate to="/" />} 
+              path="/meals/plan" 
+              element={isAdmin ? <MealPlan /> : <Navigate to="/meals" />} 
             />
             <Route 
-              path="/ingredients" 
-              element={isAdmin ? <Ingredients /> : <Navigate to="/" />} 
+              path="/meals/menus" 
+              element={isAdmin ? <Menus /> : <Navigate to="/meals" />} 
             />
+            
+            {/* Activities Module */}
+            <Route path="/activities" element={<ActivitiesComingSoon />} />
+            
+            {/* Community Module */}
+            <Route path="/community/members" element={<Members />} />
+            
+            {/* Finance Module */}
+            <Route path="/finance/costs" element={<Costs />} />
+            <Route 
+              path="/finance/ingredients" 
+              element={isAdmin ? <Ingredients /> : <Navigate to="/finance/costs" />} 
+            />
+            <Route path="/finance/suppliers" element={<Suppliers />} />
+            
+            {/* Profile */}
+            <Route path="/profile" element={<Profile />} />
+            
+            {/* Legacy routes - redirect to new paths */}
+            <Route path="/members" element={<Navigate to="/community/members" />} />
+            <Route path="/costs" element={<Navigate to="/finance/costs" />} />
+            <Route path="/suppliers" element={<Navigate to="/finance/suppliers" />} />
+            <Route path="/menus" element={<Navigate to="/meals/menus" />} />
+            <Route path="/meal-plan" element={<Navigate to="/meals/plan" />} />
+            <Route path="/ingredients" element={<Navigate to="/finance/ingredients" />} />
             
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" />} />

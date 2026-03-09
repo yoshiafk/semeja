@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Link2, Plus, Edit2, Trash2, Search, Utensils, Carrot, IceCream, X } from "lucide-react";
+import { Loader2, Link2, Plus, Edit2, Trash2, Search, Utensils, Carrot, IceCream, X, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Recipe {
@@ -16,6 +16,8 @@ interface Recipe {
   description: string;
   category: 'Lauk' | 'Sayur' | 'Dessert';
   source_url: string;
+  servings: number;
+  is_normalized: boolean;
   ingredients: Array<{
     id: number;
     name: string;
@@ -46,6 +48,10 @@ export default function Menus() {
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
+  const [isRescraping, setIsRescraping] = useState<number | null>(null);
+  const [isRescrapingAll, setIsRescrapingAll] = useState(false);
+  const [normalizeDialogRecipe, setNormalizeDialogRecipe] = useState<Recipe | null>(null);
+  const [normalizeServings, setNormalizeServings] = useState<number>(1);
 
   useEffect(() => {
     fetchRecipes();
@@ -105,6 +111,65 @@ export default function Menus() {
     }
   };
 
+  const handleRescrape = async (recipe: Recipe) => {
+    if (!recipe.source_url) {
+      toast.error("Resep ini tidak memiliki URL sumber untuk di-scrape ulang");
+      return;
+    }
+    try {
+      setIsRescraping(recipe.id);
+      const result = await api.put<{ message: string; updated_meals: number }>(`/scraper/rescrape/${recipe.id}`);
+      fetchRecipes();
+      toast.success(`${result.message}. ${result.updated_meals} jadwal makan diperbarui.`);
+    } catch (err: any) {
+      toast.error("Gagal re-scrape: " + (err.data?.error || err.message));
+    } finally {
+      setIsRescraping(null);
+    }
+  };
+
+  const handleRescrapeAll = async () => {
+    const unNormalized = recipes.filter(r => r.source_url && !r.is_normalized);
+    if (unNormalized.length === 0) {
+      toast.info("Semua resep sudah dinormalisasi");
+      return;
+    }
+    if (!confirm(`Re-scrape ${unNormalized.length} resep yang belum dinormalisasi? Proses ini mungkin memakan waktu.`)) return;
+    
+    try {
+      setIsRescrapingAll(true);
+      const result = await api.post<{ message: string; success: Array<{name: string}>; failed: Array<{name: string; error: string}> }>('/scraper/rescrape-all');
+      fetchRecipes();
+      
+      if (result.failed.length > 0) {
+        toast.warning(`${result.success.length} berhasil, ${result.failed.length} gagal. Cek console untuk detail.`);
+        console.log('Failed recipes:', result.failed);
+      } else {
+        toast.success(`${result.success.length} resep berhasil di-scrape ulang dan dinormalisasi!`);
+      }
+    } catch (err: any) {
+      toast.error("Gagal re-scrape: " + err.message);
+    } finally {
+      setIsRescrapingAll(false);
+    }
+  };
+
+  const handleManualNormalize = async () => {
+    if (!normalizeDialogRecipe || normalizeServings < 1) return;
+    
+    try {
+      setIsSavingEdit(true);
+      await api.put(`/scraper/normalize/${normalizeDialogRecipe.id}`, { servings: normalizeServings });
+      setNormalizeDialogRecipe(null);
+      fetchRecipes();
+      toast.success(`Resep dinormalisasi dengan membagi semua jumlah bahan dengan ${normalizeServings}`);
+    } catch (err: any) {
+      toast.error("Gagal normalisasi: " + (err.data?.error || err.message));
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const handleSaveRecipe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingRecipe) return;
@@ -148,16 +213,51 @@ export default function Menus() {
     <div className="rounded-2xl border border-stone-100 bg-white hover:border-stone-200 transition-all p-4 group">
       <div className="flex justify-between items-start mb-3">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm text-stone-900 leading-tight mb-1 line-clamp-2">{recipe.name}</h3>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold text-sm text-stone-900 leading-tight line-clamp-2">{recipe.name}</h3>
+            {recipe.is_normalized ? (
+              <span className="flex items-center text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full" title="Resep sudah dinormalisasi per 1 porsi">
+                <CheckCircle2 className="h-3 w-3 mr-0.5" /> 1 porsi
+              </span>
+            ) : (
+              <span className="flex items-center text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full" title="Resep belum dinormalisasi - jumlah bahan mungkin untuk beberapa porsi">
+                <AlertTriangle className="h-3 w-3 mr-0.5" /> Belum normal
+              </span>
+            )}
+          </div>
           {recipe.source_url ? (
             <a href={recipe.source_url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-500 hover:text-blue-700 flex items-center gap-1">
-              <Link2 className="h-3 w-3" /> Cookpad
+              <Link2 className="h-3 w-3" /> Cookpad {recipe.servings > 1 && `(${recipe.servings} porsi asli)`}
             </a>
           ) : (
             <p className="text-[11px] text-stone-400">Manual Entry</p>
           )}
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {recipe.source_url && (
+            <Button 
+              variant="ghost" size="icon" 
+              disabled={isRescraping === recipe.id}
+              className="h-7 w-7 rounded-lg text-stone-400 hover:text-blue-600 hover:bg-blue-50" 
+              onClick={() => handleRescrape(recipe)}
+              title="Re-scrape dari Cookpad"
+            >
+              {isRescraping === recipe.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+            </Button>
+          )}
+          {!recipe.is_normalized && !recipe.source_url && (
+            <Button 
+              variant="ghost" size="icon" 
+              className="h-7 w-7 rounded-lg text-stone-400 hover:text-amber-600 hover:bg-amber-50" 
+              onClick={() => {
+                setNormalizeDialogRecipe(recipe);
+                setNormalizeServings(1);
+              }}
+              title="Normalisasi manual"
+            >
+              <AlertTriangle className="h-3 w-3" />
+            </Button>
+          )}
           <Button 
             variant="ghost" size="icon" 
             className="h-7 w-7 rounded-lg text-stone-400 hover:text-amber-600 hover:bg-amber-50" 
@@ -202,8 +302,14 @@ export default function Menus() {
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-stone-900 tracking-tight">Menu Makanan</h1>
             <p className="text-sm text-stone-500 mt-0.5">Kelola daftar menu dan resep, atau import dari Cookpad.</p>
+            {recipes.filter(r => !r.is_normalized).length > 0 && (
+              <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" /> 
+                {recipes.filter(r => !r.is_normalized).length} resep belum dinormalisasi (jumlah per 1 porsi)
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
               <Input 
@@ -213,11 +319,25 @@ export default function Menus() {
                 className="pl-9 h-9 w-full md:w-[200px] rounded-xl bg-stone-50/80 border-stone-200 text-sm"
               />
             </div>
+            {recipes.filter(r => r.source_url && !r.is_normalized).length > 0 && (
+              <Button 
+                onClick={handleRescrapeAll} 
+                disabled={isRescrapingAll}
+                variant="outline"
+                className="h-9 rounded-xl text-xs font-semibold border-amber-300 text-amber-700 hover:bg-amber-50"
+              >
+                {isRescrapingAll ? (
+                  <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Re-scraping...</>
+                ) : (
+                  <><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Re-scrape All</>
+                )}
+              </Button>
+            )}
             <Button onClick={() => setIsCookpadOpen(true)} className="h-9 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700">
               <Link2 className="mr-1.5 h-3.5 w-3.5" /> Cookpad
             </Button>
             <Button 
-              onClick={() => setEditingRecipe({ id: 0, name: "", description: "", category: "Lauk", source_url: "", ingredients: [] })} 
+              onClick={() => setEditingRecipe({ id: 0, name: "", description: "", category: "Lauk", source_url: "", servings: 1, is_normalized: true, ingredients: [] })} 
               variant="default" 
               className="h-9 rounded-xl text-xs font-semibold bg-orange-500 hover:bg-orange-600 border-none"
             >
@@ -456,6 +576,55 @@ export default function Menus() {
               </DialogFooter>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Normalize Dialog */}
+      <Dialog open={!!normalizeDialogRecipe} onOpenChange={(open) => !open && setNormalizeDialogRecipe(null)}>
+        <DialogContent className="w-[95vw] max-w-md rounded-2xl p-6 border-stone-200">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">Normalisasi Resep</DialogTitle>
+            <DialogDescription className="text-sm text-stone-500">
+              Masukkan jumlah porsi asli resep ini. Semua jumlah bahan akan dibagi dengan angka ini untuk mendapatkan jumlah per 1 porsi.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-3">
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
+              <p className="text-sm font-medium text-amber-800">{normalizeDialogRecipe?.name}</p>
+              <p className="text-xs text-amber-600 mt-1">
+                {normalizeDialogRecipe?.ingredients?.length || 0} bahan akan dinormalisasi
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-stone-600">Jumlah Porsi Asli</Label>
+              <Input 
+                type="number" 
+                min="1" 
+                step="1"
+                value={normalizeServings} 
+                onChange={e => setNormalizeServings(parseInt(e.target.value) || 1)} 
+                className="h-10 rounded-xl bg-stone-50/80 border-stone-200 text-sm"
+                placeholder="Contoh: 4 (jika resep untuk 4 orang)"
+              />
+              <p className="text-[11px] text-stone-400">
+                Contoh: Jika resep ini awalnya untuk 4 porsi, masukkan 4. Jumlah bahan akan dibagi 4.
+              </p>
+            </div>
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="ghost" className="text-sm text-stone-500" onClick={() => setNormalizeDialogRecipe(null)}>Batal</Button>
+              <Button 
+                onClick={handleManualNormalize} 
+                disabled={isSavingEdit || normalizeServings < 1} 
+                className="h-10 rounded-xl text-sm font-semibold"
+              >
+                {isSavingEdit ? (
+                  <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Menyimpan...</>
+                ) : (
+                  "Normalisasi"
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </PageContainer>

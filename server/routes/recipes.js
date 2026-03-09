@@ -55,15 +55,17 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST new recipe with ingredients
+// When creating manually, ingredients should already be per-serving (for 1 person)
 router.post('/', async (req, res) => {
-  const { name, description, ingredients, category, source_url } = req.body;
+  const { name, description, ingredients, category, source_url, servings } = req.body;
   if (!name) return res.status(400).json({ error: 'name is required' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
-      'INSERT INTO recipes (name, description, category, source_url) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name.trim(), description || '', category || 'Lauk', source_url || '']
+      `INSERT INTO recipes (name, description, category, source_url, servings, is_normalized) 
+       VALUES ($1, $2, $3, $4, $5, true) RETURNING *`,
+      [name.trim(), description || '', category || 'Lauk', source_url || '', servings || 1]
     );
     const recipe = rows[0];
     if (ingredients && ingredients.length) {
@@ -86,13 +88,20 @@ router.post('/', async (req, res) => {
 
 // PUT update recipe
 router.put('/:id', async (req, res) => {
-  const { name, description, ingredients, category, source_url } = req.body;
+  const { name, description, ingredients, category, source_url, servings } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
-      'UPDATE recipes SET name = COALESCE($1, name), description = COALESCE($2, description), category = COALESCE($3, category), source_url = COALESCE($4, source_url) WHERE id = $5 RETURNING *',
-      [name, description, category, source_url, req.params.id]
+      `UPDATE recipes SET 
+         name = COALESCE($1, name), 
+         description = COALESCE($2, description), 
+         category = COALESCE($3, category), 
+         source_url = COALESCE($4, source_url),
+         servings = COALESCE($5, servings),
+         is_normalized = true
+       WHERE id = $6 RETURNING *`,
+      [name, description, category, source_url, servings, req.params.id]
     );
     if (!rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Not found' }); }
     if (ingredients) {

@@ -41,6 +41,8 @@ async function initDB() {
 
       ALTER TABLE recipes ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'Lauk';
       ALTER TABLE recipes ADD COLUMN IF NOT EXISTS source_url VARCHAR(500) DEFAULT '';
+      ALTER TABLE recipes ADD COLUMN IF NOT EXISTS servings INTEGER DEFAULT 1;
+      ALTER TABLE recipes ADD COLUMN IF NOT EXISTS is_normalized BOOLEAN DEFAULT false;
 
       CREATE TABLE IF NOT EXISTS recipe_ingredients (
         id SERIAL PRIMARY KEY,
