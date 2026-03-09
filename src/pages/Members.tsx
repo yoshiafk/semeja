@@ -126,18 +126,18 @@ export default function Members() {
     <PageContainer>
       <div className="space-y-5">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 pb-4 border-b border-stone-100">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 pb-4 border-b border-border/50">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-stone-900 tracking-tight">Warga Coliving</h1>
-            <p className="text-sm text-stone-400 mt-0.5">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">Warga Coliving</h1>
+            <p className="text-sm text-muted-foreground/70 mt-0.5">
               {members.length} warga terdaftar
             </p>
           </div>
           <Select value={selectedPlanId || ""} onValueChange={setSelectedPlanId}>
-            <SelectTrigger className="h-9 w-auto md:w-[180px] bg-stone-50 border-stone-100 rounded-lg font-medium text-xs shadow-none px-3">
+            <SelectTrigger className="h-9 w-auto md:w-[180px] bg-secondary border-border/50 rounded-lg font-medium text-xs shadow-none px-3">
               <SelectValue placeholder="Pilih Pekan" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl border-stone-100">
+            <SelectContent className="rounded-xl border-border/50">
               {plans.map(p => (
                 <SelectItem key={p.id} value={p.id.toString()} className="text-sm">
                   {formatDate(p.week_start)}
@@ -148,7 +148,7 @@ export default function Members() {
         </div>
 
         <Tabs defaultValue="grid" className="w-full">
-          <TabsList className="grid w-full max-w-xs grid-cols-2 bg-stone-100 p-0.5 h-9 rounded-lg mb-5">
+          <TabsList className="grid w-full max-w-xs grid-cols-2 bg-muted p-0.5 h-9 rounded-lg mb-5">
             <TabsTrigger value="grid" className="rounded-md text-xs font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm gap-1.5">
               <LayoutDashboard className="h-3.5 w-3.5" /> Partisipasi
             </TabsTrigger>
@@ -158,14 +158,14 @@ export default function Members() {
           </TabsList>
 
           <TabsContent value="grid" className="mt-0">
-            <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-border/50 overflow-hidden">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-stone-50/80 border-b border-stone-100">
-                      <TableHead className="w-[180px] text-[11px] font-semibold text-stone-400 uppercase tracking-wide h-10">Nama</TableHead>
+                    <TableRow className="bg-secondary/80 border-b border-border/50">
+                      <TableHead className="w-[180px] text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide h-10">Nama</TableHead>
                       {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map(d => (
-                        <TableHead key={d} className="text-center text-[11px] font-semibold text-stone-400 uppercase tracking-wide px-2 h-10 w-12">{d}</TableHead>
+                        <TableHead key={d} className="text-center text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wide px-2 h-10 w-12">{d}</TableHead>
                       ))}
                     </TableRow>
                   </TableHeader>
@@ -173,14 +173,14 @@ export default function Members() {
                     {members.map(m => {
                       const userParts = participations.filter(p => p.member_id === m.id);
                       return (
-                        <TableRow key={m.id} className="hover:bg-stone-50/50 transition-colors border-stone-50">
+                        <TableRow key={m.id} className="hover:bg-secondary/50 transition-colors border-border/30">
                           <TableCell className="py-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="h-7 w-7 rounded-full bg-stone-100 flex items-center justify-center text-[10px] font-semibold text-stone-500 uppercase shrink-0">
+                              <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold text-muted-foreground uppercase shrink-0">
                                 {m.name.substring(0, 2)}
                               </div>
                               <div className="min-w-0">
-                                <span className="text-sm font-medium text-stone-800 truncate block">{m.name}</span>
+                                <span className="text-sm font-medium text-foreground truncate block">{m.name}</span>
                                 {m.role !== 'member' && (
                                   <span className={cn(
                                     "text-[10px] font-medium leading-tight",
@@ -202,7 +202,7 @@ export default function Members() {
                                       <CheckCircle2 className="h-3.5 w-3.5 text-primary stroke-[2.5px]" />
                                     </div>
                                   ) : (
-                                    <Circle className="h-4 w-4 text-stone-200" />
+                                    <Circle className="h-4 w-4 text-border" />
                                   )}
                                 </div>
                               </TableCell>
@@ -215,7 +215,7 @@ export default function Members() {
                 </Table>
               </div>
             </div>
-            <p className="mt-3 text-[11px] text-stone-400 text-center">
+            <p className="mt-3 text-[11px] text-muted-foreground/70 text-center">
               Centang = terdaftar makan di hari tersebut
             </p>
           </TabsContent>
@@ -223,18 +223,18 @@ export default function Members() {
           <TabsContent value="list" className="mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {members.map(m => (
-                <div key={m.id} className="bg-white border border-stone-100 rounded-xl p-4 flex items-center justify-between group hover:shadow-sm transition-shadow">
+                <div key={m.id} className="bg-white border border-border/50 rounded-xl p-4 flex items-center justify-between group hover:shadow-sm transition-shadow">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-stone-100 flex items-center justify-center text-stone-500 text-sm font-semibold uppercase group-hover:bg-primary/8 group-hover:text-primary transition-colors">
+                    <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground text-sm font-semibold uppercase group-hover:bg-primary/8 group-hover:text-primary transition-colors">
                       {m.name.substring(0, 2)}
                     </div>
                     <div>
-                      <div className="font-medium text-stone-800 flex items-center gap-1.5 text-sm">
+                      <div className="font-medium text-foreground flex items-center gap-1.5 text-sm">
                         {m.name}
                         {m.role === 'superadmin' && <ShieldCheck className="h-3.5 w-3.5 text-amber-500" />}
                         {m.role === 'admin' && <UserCheck className="h-3.5 w-3.5 text-teal-500" />}
                       </div>
-                      <p className="text-[11px] text-stone-400">{m.role}</p>
+                      <p className="text-[11px] text-muted-foreground/70">{m.role}</p>
                     </div>
                   </div>
 
@@ -262,7 +262,7 @@ export default function Members() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-7 w-7 text-stone-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
+                        className="h-7 w-7 text-muted-foreground/50 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
                         onClick={() => deleteMember(m.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />

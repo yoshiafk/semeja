@@ -122,12 +122,12 @@ export default function Dashboard() {
     return (
       <PageContainer>
         <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-3 px-8">
-          <div className="h-14 w-14 rounded-2xl bg-stone-100 flex items-center justify-center">
-            <CalendarDays className="h-6 w-6 text-stone-400" />
+          <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center">
+            <CalendarDays className="h-6 w-6 text-muted-foreground/70" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-stone-800">Belum ada menu pekan ini</h2>
-            <p className="text-sm text-stone-400 mt-1">Tunggu admin buat jadwalnya ya!</p>
+            <h2 className="text-lg font-semibold text-foreground">Belum ada menu pekan ini</h2>
+            <p className="text-sm text-muted-foreground/70 mt-1">Tunggu admin buat jadwalnya ya!</p>
           </div>
         </div>
       </PageContainer>
@@ -145,17 +145,17 @@ export default function Dashboard() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-stone-900 tracking-tight">Menu Pekanan</h1>
-              <p className="text-sm text-stone-400 mt-0.5">
+              <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">Menu Pekanan</h1>
+              <p className="text-sm text-muted-foreground/70 mt-0.5">
                 {formatDate(plan.week_start)} — {formatDate(plan.week_end)}
               </p>
             </div>
             {plans.length > 1 && (
               <Select value={selectedPlanId || ""} onValueChange={setSelectedPlanId}>
-                <SelectTrigger className="h-9 w-auto gap-1.5 bg-stone-50 border-stone-100 rounded-lg font-medium text-xs text-stone-600 shadow-none px-3">
+                <SelectTrigger className="h-9 w-auto gap-1.5 bg-secondary border-border/50 rounded-lg font-medium text-xs text-muted-foreground shadow-none px-3">
                   <SelectValue placeholder="Pekan" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-stone-100">
+                <SelectContent className="rounded-xl border-border/50">
                   {plans.map(p => (
                     <SelectItem key={p.id} value={p.id.toString()} className="text-sm">
                       {formatDate(p.week_start)} {p.id === plans[0].id ? '(Ini)' : ''}
@@ -172,7 +172,7 @@ export default function Dashboard() {
               <Check className="h-3.5 w-3.5 stroke-[2.5px]" />
               <span className="text-xs font-semibold">{joinedCount}/{totalMeals} hari ikut</span>
             </div>
-            <div className="flex-shrink-0 flex items-center gap-1.5 bg-stone-100 text-stone-500 px-3 py-1.5 rounded-lg">
+            <div className="flex-shrink-0 flex items-center gap-1.5 bg-muted text-muted-foreground px-3 py-1.5 rounded-lg">
               <span className="text-[10px] uppercase font-semibold tracking-wide">{plan.status}</span>
             </div>
           </div>
@@ -190,22 +190,22 @@ export default function Dashboard() {
                 key={meal.id}
                 className={cn(
                   "bg-white rounded-2xl border transition-all duration-200 overflow-hidden touch-active",
-                  isToday ? "border-primary/20 shadow-sm shadow-primary/5" : "border-stone-100",
+                  isToday ? "border-primary/20 shadow-sm shadow-primary/5" : "border-border/50",
                   isJoined && "ring-1 ring-primary/10"
                 )}
               >
                 {/* Day Header */}
                 <div className={cn(
                   "flex items-center justify-between px-4 py-3",
-                  isToday ? "bg-primary/4" : "bg-stone-50/60"
+                  isToday ? "bg-primary/4" : "bg-secondary/60"
                 )}>
                   <div className="flex items-center gap-2.5">
-                    <span className="text-[15px] font-semibold text-stone-900">{formatDayName(meal.date)}</span>
+                    <span className="text-[15px] font-semibold text-foreground">{formatDayName(meal.date)}</span>
                     {isToday && (
                       <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md uppercase tracking-wider">Hari Ini</span>
                     )}
                   </div>
-                  <span className="text-xs text-stone-400 font-medium">{formatShortDate(meal.date)}</span>
+                  <span className="text-xs text-muted-foreground/70 font-medium">{formatShortDate(meal.date)}</span>
                 </div>
 
                 {/* Menu Content */}
@@ -214,9 +214,9 @@ export default function Dashboard() {
                   <div className="flex items-start gap-2.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0" />
                     <div className="min-w-0">
-                      <span className="text-[10px] text-stone-400 font-medium uppercase tracking-wide">Lauk</span>
-                      <p className="text-sm font-medium text-stone-800 leading-snug">
-                        {meal.main_course_menu || <span className="text-stone-300 italic">Belum ditentukan</span>}
+                      <span className="text-[10px] text-muted-foreground/70 font-medium uppercase tracking-wide">Lauk</span>
+                      <p className="text-sm font-medium text-foreground leading-snug">
+                        {meal.main_course_menu || <span className="text-muted-foreground/50 italic">Belum ditentukan</span>}
                       </p>
                     </div>
                   </div>
@@ -225,9 +225,9 @@ export default function Dashboard() {
                   <div className="flex items-start gap-2.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
                     <div className="min-w-0">
-                      <span className="text-[10px] text-stone-400 font-medium uppercase tracking-wide">Sayur</span>
-                      <p className="text-sm font-medium text-stone-800 leading-snug">
-                        {meal.second_course_menu || <span className="text-stone-300 italic">Belum ditentukan</span>}
+                      <span className="text-[10px] text-muted-foreground/70 font-medium uppercase tracking-wide">Sayur</span>
+                      <p className="text-sm font-medium text-foreground leading-snug">
+                        {meal.second_course_menu || <span className="text-muted-foreground/50 italic">Belum ditentukan</span>}
                       </p>
                     </div>
                   </div>
@@ -237,21 +237,21 @@ export default function Dashboard() {
                     <div className="flex items-start gap-2.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-violet-400 mt-1.5 shrink-0" />
                       <div className="min-w-0">
-                        <span className="text-[10px] text-stone-400 font-medium uppercase tracking-wide">Dessert</span>
-                        <p className="text-sm font-medium text-stone-800 leading-snug">{meal.dessert_menu}</p>
+                        <span className="text-[10px] text-muted-foreground/70 font-medium uppercase tracking-wide">Dessert</span>
+                        <p className="text-sm font-medium text-foreground leading-snug">{meal.dessert_menu}</p>
                       </div>
                     </div>
                   )}
 
                   {Boolean(meal.requires_rice) && (
-                    <span className="inline-block text-[10px] font-medium text-stone-400 bg-stone-50 px-2 py-0.5 rounded-md">+ Nasi Putih</span>
+                    <span className="inline-block text-[10px] font-medium text-muted-foreground/70 bg-secondary px-2 py-0.5 rounded-md">+ Nasi Putih</span>
                   )}
                 </div>
 
                 {/* Action Footer */}
-                <div className="flex items-center justify-between px-4 py-2.5 border-t border-stone-50">
-                  <span className="text-xs text-stone-400">
-                    <span className="font-semibold text-stone-600">{meal.participant_count}</span> orang ikut
+                <div className="flex items-center justify-between px-4 py-2.5 border-t border-border/30">
+                  <span className="text-xs text-muted-foreground/70">
+                    <span className="font-semibold text-muted-foreground">{meal.participant_count}</span> orang ikut
                   </span>
                   <Button
                     size="sm"
@@ -260,7 +260,7 @@ export default function Dashboard() {
                       "h-9 px-4 rounded-xl text-xs font-semibold transition-all",
                       isJoined
                         ? "bg-primary hover:bg-primary/90 shadow-none"
-                        : "border-stone-200 text-stone-600 hover:bg-primary/5 hover:text-primary hover:border-primary/20"
+                        : "border-border text-muted-foreground hover:bg-primary/5 hover:text-primary hover:border-primary/20"
                     )}
                     disabled={isToggling}
                     onClick={() => toggleJoin(meal.id)}

@@ -95,7 +95,7 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
         </form>
 
         <p className="text-[11px] text-muted-foreground/60">
-          Lupa kunci? Tanya teman sekamar atau admin coliving kamu ya.
+          Lupa kunci? Tanya teman atau admin coliving kamu ya.
         </p>
       </div>
     </div>

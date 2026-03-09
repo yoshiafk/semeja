@@ -43,7 +43,7 @@ export function NameEntry() {
               Halo! <Sparkles className="h-5 w-5 text-accent" />
             </h1>
             <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-              Siapa nih yang mau gabung makan bareng?
+              Siapa nih yang mau gabung aktivitas bareng?
             </p>
           </div>
         </div>

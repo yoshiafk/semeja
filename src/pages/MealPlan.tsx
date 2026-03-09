@@ -169,17 +169,17 @@ export default function MealPlanPage() {
     <PageContainer>
       <div className="space-y-6 pb-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-stone-100">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-border/50">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-stone-900 tracking-tight">Atur Jadwal Makan</h1>
-            <p className="text-sm text-stone-400 mt-0.5">Pilih resep untuk kalkulasi otomatis bahan & biaya.</p>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">Atur Rencana Makan</h1>
+            <p className="text-sm text-muted-foreground/70 mt-0.5">Pilih resep untuk kalkulasi otomatis bahan & biaya.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Select value={activePlan?.id.toString()} onValueChange={(v) => setActivePlan(plans.find(p => p.id.toString() === v) || null)}>
-              <SelectTrigger className="h-9 w-[180px] bg-stone-50 border-stone-100 rounded-lg font-medium text-xs shadow-none">
+              <SelectTrigger className="h-9 w-[180px] bg-secondary border-border/50 rounded-lg font-medium text-xs shadow-none">
                 <SelectValue placeholder="Pilih Pekan" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-stone-100">
+              <SelectContent className="rounded-xl border-border/50">
                 {plans.map(p => (
                   <SelectItem key={p.id} value={p.id.toString()} className="text-sm">
                     {formatDate(p.week_start)} {p.status === 'archived' ? '(Arsip)' : ''}
@@ -194,7 +194,7 @@ export default function MealPlanPage() {
                 size="sm"
                 onClick={archivePlan}
                 disabled={isUpdatingStatus}
-                className="h-9 px-3 rounded-lg text-xs font-medium border-stone-100 text-stone-400 hover:text-amber-600 hover:bg-amber-50 gap-1.5"
+                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-amber-600 hover:bg-amber-50 gap-1.5"
               >
                 {isUpdatingStatus ? <Loader2 className="h-3 w-3 animate-spin" /> : <Archive className="h-3 w-3" />}
                 Arsipkan
@@ -206,14 +206,14 @@ export default function MealPlanPage() {
                 variant="ghost" 
                 size="icon"
                 onClick={() => setIsDeleteDialogOpen(true)}
-                className="h-9 w-9 rounded-lg text-stone-300 hover:text-rose-500 hover:bg-rose-50"
+                className="h-9 w-9 rounded-lg text-muted-foreground/50 hover:text-rose-500 hover:bg-rose-50"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             )}
 
             <Button onClick={() => setIsCreateDialogOpen(true)} className="h-9 px-4 rounded-lg text-xs font-semibold shadow-none bg-primary hover:bg-primary/90 gap-1.5 ml-auto">
-              <Plus className="h-3.5 w-3.5 stroke-[2.5px]" /> Pekan Baru
+              <Plus className="h-3.5 w-3.5 stroke-[2.5px]" /> Rencana Baru
             </Button>
           </div>
         </div>
@@ -225,14 +225,14 @@ export default function MealPlanPage() {
               const formattedDateStr = formatShortDate(meal.date);
 
               return (
-                <div key={meal.id} className="bg-white border border-stone-100 rounded-2xl overflow-hidden hover:shadow-md hover:shadow-stone-100/50 transition-shadow">
+                <div key={meal.id} className="bg-white border border-border/50 rounded-2xl overflow-hidden hover:shadow-md hover:shadow-border/50 transition-shadow">
                   {/* Card Header */}
-                  <div className="flex items-center justify-between px-5 py-3.5 border-b border-stone-50">
+                  <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/30">
                     <div>
-                      <h3 className="text-base font-semibold text-stone-900">{dayName}</h3>
+                      <h3 className="text-base font-semibold text-foreground">{dayName}</h3>
                       <span className="text-xs text-primary/70 font-medium">{formattedDateStr}</span>
                     </div>
-                    <Calendar className="h-4 w-4 text-stone-200" />
+                    <Calendar className="h-4 w-4 text-border" />
                   </div>
 
                   {/* Card Body */}
@@ -241,7 +241,7 @@ export default function MealPlanPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-1.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                        <span className="text-[11px] font-medium text-stone-400 uppercase tracking-wide">Lauk</span>
+                        <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">Lauk</span>
                       </div>
                       <Select 
                         disabled={isSaving[`${meal.id}-main_course_recipe_id`]}
@@ -256,14 +256,14 @@ export default function MealPlanPage() {
                           }
                         }}
                       >
-                        <SelectTrigger className="h-10 w-full bg-stone-50/80 border-stone-100 rounded-xl text-sm font-medium hover:bg-stone-50 transition-colors">
+                        <SelectTrigger className="h-10 w-full bg-secondary/80 border-border/50 rounded-xl text-sm font-medium hover:bg-secondary transition-colors">
                           <div className="flex items-center gap-2 truncate">
-                            {isSaving[`${meal.id}-main_course_recipe_id`] ? <Loader2 className="h-3.5 w-3.5 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="h-3.5 w-3.5 text-stone-400 shrink-0" />}
+                            {isSaving[`${meal.id}-main_course_recipe_id`] ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/70 shrink-0" /> : <ChefHat className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />}
                             <SelectValue placeholder="Pilih Menu..." />
                           </div>
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl border-stone-100">
-                          <SelectItem value="placeholder" className="text-stone-400 italic">Pilih Menu...</SelectItem>
+                        <SelectContent className="rounded-xl border-border/50">
+                          <SelectItem value="placeholder" className="text-muted-foreground/70 italic">Pilih Menu...</SelectItem>
                           {recipes.filter(r => r.category === 'Lauk' || !r.category).map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
@@ -273,7 +273,7 @@ export default function MealPlanPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-1.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                        <span className="text-[11px] font-medium text-stone-400 uppercase tracking-wide">Sayur</span>
+                        <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">Sayur</span>
                       </div>
                       <Select 
                         disabled={isSaving[`${meal.id}-second_course_recipe_id`]}
@@ -288,14 +288,14 @@ export default function MealPlanPage() {
                           }
                         }}
                       >
-                        <SelectTrigger className="h-10 w-full bg-stone-50/80 border-stone-100 rounded-xl text-sm font-medium hover:bg-stone-50 transition-colors">
+                        <SelectTrigger className="h-10 w-full bg-secondary/80 border-border/50 rounded-xl text-sm font-medium hover:bg-secondary transition-colors">
                           <div className="flex items-center gap-2 truncate">
-                            {isSaving[`${meal.id}-second_course_recipe_id`] ? <Loader2 className="h-3.5 w-3.5 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="h-3.5 w-3.5 text-stone-400 shrink-0" />}
+                            {isSaving[`${meal.id}-second_course_recipe_id`] ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/70 shrink-0" /> : <ChefHat className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />}
                             <SelectValue placeholder="Pilih Menu..." />
                           </div>
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl border-stone-100">
-                          <SelectItem value="placeholder" className="text-stone-400 italic">Pilih Menu...</SelectItem>
+                        <SelectContent className="rounded-xl border-border/50">
+                          <SelectItem value="placeholder" className="text-muted-foreground/70 italic">Pilih Menu...</SelectItem>
                           {recipes.filter(r => r.category === 'Sayur').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
@@ -305,7 +305,7 @@ export default function MealPlanPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-1.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-                        <span className="text-[11px] font-medium text-stone-400 uppercase tracking-wide">Dessert</span>
+                        <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">Dessert</span>
                       </div>
                       <Select 
                         disabled={isSaving[`${meal.id}-dessert_recipe_id`]}
@@ -320,23 +320,23 @@ export default function MealPlanPage() {
                           }
                         }}
                       >
-                        <SelectTrigger className="h-10 w-full bg-stone-50/80 border-stone-100 rounded-xl text-sm font-medium hover:bg-stone-50 transition-colors">
+                        <SelectTrigger className="h-10 w-full bg-secondary/80 border-border/50 rounded-xl text-sm font-medium hover:bg-secondary transition-colors">
                           <div className="flex items-center gap-2 truncate">
-                            {isSaving[`${meal.id}-dessert_recipe_id`] ? <Loader2 className="h-3.5 w-3.5 animate-spin text-stone-400 shrink-0" /> : <ChefHat className="h-3.5 w-3.5 text-stone-400 shrink-0" />}
+                            {isSaving[`${meal.id}-dessert_recipe_id`] ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/70 shrink-0" /> : <ChefHat className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />}
                             <SelectValue placeholder="Pilih Menu..." />
                           </div>
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl border-stone-100">
-                          <SelectItem value="placeholder" className="text-stone-400 italic">Pilih Menu...</SelectItem>
+                        <SelectContent className="rounded-xl border-border/50">
+                          <SelectItem value="placeholder" className="text-muted-foreground/70 italic">Pilih Menu...</SelectItem>
                           {recipes.filter(r => r.category === 'Dessert').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
 
                     {/* Rice Toggle */}
-                    <div className="pt-4 border-t border-stone-50 flex items-center justify-between">
+                    <div className="pt-4 border-t border-border/30 flex items-center justify-between">
                       <div>
-                        <span className="text-[11px] text-stone-400 font-medium block">Nasi Putih</span>
+                        <span className="text-[11px] text-muted-foreground/70 font-medium block">Nasi Putih</span>
                       </div>
                       <Button
                         size="sm"
@@ -345,7 +345,7 @@ export default function MealPlanPage() {
                           "h-8 px-3 rounded-lg text-xs font-medium transition-all",
                           meal.requires_rice 
                             ? "bg-primary hover:bg-primary/90 shadow-none text-white" 
-                            : "border-stone-200 text-stone-500 hover:bg-primary/5 hover:text-primary"
+                            : "border-border text-muted-foreground hover:bg-primary/5 hover:text-primary"
                         )}
                         disabled={isSaving[`${meal.id}-requires_rice`]}
                         onClick={() => updateMeal(meal.id, { requires_rice: !meal.requires_rice })}
@@ -364,36 +364,36 @@ export default function MealPlanPage() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-            <div className="h-14 w-14 rounded-2xl bg-stone-100 flex items-center justify-center">
-              <LayoutGrid className="h-6 w-6 text-stone-400" />
+            <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center">
+              <LayoutGrid className="h-6 w-6 text-muted-foreground/70" />
             </div>
-            <p className="text-sm text-stone-400 font-medium">Belum ada perencanaan pekan ini</p>
+            <p className="text-sm text-muted-foreground/70 font-medium">Belum ada perencanaan untuk pekan ini</p>
           </div>
         )}
       </div>
       
       {/* Create Plan Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="w-[95vw] max-w-md rounded-2xl p-6 border-stone-100">
+        <DialogContent className="w-[95vw] max-w-md rounded-2xl p-6 border-border/50">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-stone-900">Buat Pekan Baru</DialogTitle>
-            <DialogDescription className="text-sm text-stone-400">
+            <DialogTitle className="text-lg font-bold text-foreground">Buat Rencana Baru</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground/70">
               Pilih tanggal mulai untuk jadwal 7 hari ke depan
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-stone-500">Tanggal Mulai</label>
+              <label className="text-xs font-medium text-muted-foreground">Tanggal Mulai</label>
               <Input
                 type="date"
                 value={newPlanStartDate}
                 onChange={e => setNewPlanStartDate(e.target.value)}
-                className="h-11 bg-stone-50 border-stone-200 rounded-xl"
+                className="h-11 bg-secondary border-border rounded-xl"
               />
             </div>
           </div>
           <DialogFooter className="flex gap-2 pt-2">
-            <Button variant="ghost" className="flex-1 h-11 rounded-xl text-stone-400" onClick={() => setIsCreateDialogOpen(false)}>
+            <Button variant="ghost" className="flex-1 h-11 rounded-xl text-muted-foreground/70" onClick={() => setIsCreateDialogOpen(false)}>
               Batal
             </Button>
             <Button disabled={isCreatingPlan} className="flex-1 h-11 rounded-xl font-semibold shadow-none" onClick={createNewPlan}>
@@ -405,18 +405,18 @@ export default function MealPlanPage() {
 
       {/* Delete Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="w-[95vw] max-w-md rounded-2xl p-6 border-stone-100">
+        <DialogContent className="w-[95vw] max-w-md rounded-2xl p-6 border-border/50">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-stone-900">Hapus Jadwal Pekan?</DialogTitle>
-            <DialogDescription className="text-sm text-stone-400">
+            <DialogTitle className="text-lg font-bold text-foreground">Hapus Rencana Makan?</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground/70">
               Tindakan ini tidak dapat dibatalkan
             </DialogDescription>
           </DialogHeader>
-          <p className="text-sm text-stone-500 py-2">
+          <p className="text-sm text-muted-foreground py-2">
             Seluruh data menu dan partisipasi pada pekan ini akan dihapus secara permanen.
           </p>
           <DialogFooter className="flex gap-2 pt-2">
-            <Button variant="ghost" className="flex-1 h-11 rounded-xl text-stone-400" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button variant="ghost" className="flex-1 h-11 rounded-xl text-muted-foreground/70" onClick={() => setIsDeleteDialogOpen(false)}>
               Batal
             </Button>
             <Button 

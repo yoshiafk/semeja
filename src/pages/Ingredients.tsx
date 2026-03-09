@@ -194,8 +194,8 @@ export default function Ingredients() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-stone-900">Inventory Bahan</h1>
-            <p className="text-sm text-stone-500 mt-0.5">Atur daftar bahan makanan dan harga pasar terbaru.</p>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Inventory Bahan</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Atur daftar bahan makanan dan harga pasar terbaru.</p>
           </div>
           <Button onClick={() => {
             setCurrentIng({ name: "", unit: "kg", price_per_unit: 0, category: "Lainnya" });
@@ -208,52 +208,52 @@ export default function Ingredients() {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
             <Input
               placeholder="Cari nama bahan..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-10 bg-stone-50/80 border-stone-200 rounded-xl text-sm"
+              className="pl-9 h-10 bg-secondary/80 border-border rounded-xl text-sm"
             />
           </div>
           <div className="relative w-full sm:w-44">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-400 z-10" />
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70 z-10" />
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="pl-9 h-10 bg-stone-50/80 border-stone-200 rounded-xl text-sm font-medium">
+              <SelectTrigger className="pl-9 h-10 bg-secondary/80 border-border rounded-xl text-sm font-medium">
                 <SelectValue placeholder="Kategori" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-stone-200">
+              <SelectContent className="rounded-xl border-border">
                 {CATEGORIES.map(c => (
                   <SelectItem key={c} value={c} className="text-sm">{c}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="hidden sm:flex items-center px-4 h-10 rounded-xl bg-stone-50/80 border border-stone-200 text-xs text-stone-500 font-medium whitespace-nowrap">
-            <span className="text-stone-900 font-semibold mr-1">{filtered.length}</span> item
+          <div className="hidden sm:flex items-center px-4 h-10 rounded-xl bg-secondary/80 border border-border text-xs text-muted-foreground font-medium whitespace-nowrap">
+            <span className="text-foreground font-semibold mr-1">{filtered.length}</span> item
           </div>
         </div>
 
         {/* Grid List */}
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-            <Carrot className="h-12 w-12 text-stone-200" />
-            <p className="text-stone-400 font-medium text-sm">Bahan tidak ditemukan</p>
+            <Carrot className="h-12 w-12 text-border" />
+            <p className="text-muted-foreground/70 font-medium text-sm">Bahan tidak ditemukan</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {filtered.map(ing => (
-              <div key={ing.id} className="rounded-2xl border border-stone-100 bg-white hover:border-stone-200 transition-all group overflow-hidden">
+              <div key={ing.id} className="rounded-2xl border border-border/50 bg-white hover:border-border transition-all group overflow-hidden">
                 <div className="p-4 space-y-4">
                   {/* Header */}
                   <div className="flex items-start justify-between">
-                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-stone-50 text-stone-500 font-medium">
+                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground font-medium">
                       {ing.category}
                     </span>
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button 
                         variant="ghost" size="icon" 
-                        className="h-7 w-7 rounded-lg text-stone-400 hover:text-primary hover:bg-stone-50"
+                        className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-primary hover:bg-secondary"
                         onClick={() => { setCurrentIng(ing); setIsDialogOpen(true); }}
                       >
                         <Pencil className="h-3 w-3" />
@@ -261,7 +261,7 @@ export default function Ingredients() {
                       <Button 
                         variant="ghost" size="icon" 
                         disabled={isDeleting === ing.id}
-                        className="h-7 w-7 rounded-lg text-stone-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-50"
+                        className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-50 disabled:opacity-50"
                         onClick={() => deleteIngredient(ing.id)}
                       >
                         {isDeleting === ing.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
@@ -270,20 +270,20 @@ export default function Ingredients() {
                   </div>
 
                   {/* Name */}
-                  <h3 className="text-base font-semibold text-stone-900 leading-tight line-clamp-2">
+                  <h3 className="text-base font-semibold text-foreground leading-tight line-clamp-2">
                     {ing.name}
                   </h3>
 
                   {/* Stats */}
                   <div className="flex items-end justify-between">
                     <div>
-                      <p className="text-[11px] text-stone-400 font-medium">Harga</p>
-                      <p className="text-sm font-semibold text-stone-800">
-                        {formatRupiah(ing.price_per_unit)}<span className="text-xs text-stone-400 font-normal ml-0.5">/{ing.unit}</span>
+                      <p className="text-[11px] text-muted-foreground/70 font-medium">Harga</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        {formatRupiah(ing.price_per_unit)}<span className="text-xs text-muted-foreground/70 font-normal ml-0.5">/{ing.unit}</span>
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[11px] text-stone-400 font-medium">Stok</p>
+                      <p className="text-[11px] text-muted-foreground/70 font-medium">Stok</p>
                       <span className={`text-sm font-semibold ${
                         ing.stock_quantity <= 0 ? "text-rose-600" :
                         ing.stock_quantity <= ing.min_stock_threshold ? "text-amber-600" :
@@ -312,7 +312,7 @@ export default function Ingredients() {
                     </Button>
                     <Button 
                       variant="secondary" size="sm" 
-                      className="flex-1 rounded-xl h-8 font-medium text-xs bg-stone-50 text-stone-600 hover:bg-stone-100 shadow-none"
+                      className="flex-1 rounded-xl h-8 font-medium text-xs bg-secondary text-muted-foreground hover:bg-muted shadow-none"
                       onClick={() => fetchHistory(ing.id)}
                     >
                       Riwayat
@@ -331,29 +331,29 @@ export default function Ingredients() {
 
                   {/* Expandable History */}
                   {expandedIngredientId === ing.id && (
-                    <div className="pt-3 border-t border-stone-100">
+                    <div className="pt-3 border-t border-border/50">
                       <div className="flex items-center justify-between mb-3">
-                        <p className="text-xs font-semibold text-stone-500">Riwayat Pembelian</p>
-                        {loadingHistory && <Loader2 className="h-3.5 w-3.5 animate-spin text-stone-400" />}
+                        <p className="text-xs font-semibold text-muted-foreground">Riwayat Pembelian</p>
+                        {loadingHistory && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/70" />}
                       </div>
                       
                       {purchaseHistory.length === 0 && !loadingHistory ? (
-                        <div className="text-xs text-stone-400 text-center py-4 bg-stone-50 rounded-xl">Belum ada riwayat</div>
+                        <div className="text-xs text-muted-foreground/70 text-center py-4 bg-secondary rounded-xl">Belum ada riwayat</div>
                       ) : (
                         <div className="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar">
                           {purchaseHistory.map(ph => (
-                            <div key={ph.id} className="bg-stone-50 p-3 rounded-xl flex flex-col gap-1">
+                            <div key={ph.id} className="bg-secondary p-3 rounded-xl flex flex-col gap-1">
                               <div className="flex justify-between items-start">
-                                <span className="font-medium text-stone-700 text-xs">{ph.supplier_name || 'Tanpa Supplier'}</span>
-                                <span className="text-[10px] text-stone-400">
+                                <span className="font-medium text-foreground/90 text-xs">{ph.supplier_name || 'Tanpa Supplier'}</span>
+                                <span className="text-[10px] text-muted-foreground/70">
                                   {new Date(ph.purchased_at).toLocaleDateString('id-ID')}
                                 </span>
                               </div>
                               <div className="flex justify-between items-end">
-                                <span className="text-xs text-stone-500">{ph.quantity} {ing.unit}</span>
+                                <span className="text-xs text-muted-foreground">{ph.quantity} {ing.unit}</span>
                                 <div className="text-right">
                                   <span className="text-xs font-semibold text-emerald-600">{formatRupiah(ph.price_per_unit)}/{ing.unit}</span>
-                                  <span className="block text-[10px] text-stone-400">Total {formatRupiah(ph.total_price)}</span>
+                                  <span className="block text-[10px] text-muted-foreground/70">Total {formatRupiah(ph.total_price)}</span>
                                 </div>
                               </div>
                             </div>
@@ -371,41 +371,41 @@ export default function Ingredients() {
 
       {/* Add/Edit Ingredient Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-6 border-stone-200">
+        <DialogContent className="max-w-md rounded-2xl p-6 border-border">
           <DialogHeader className="mb-4">
-            <DialogTitle className="text-lg font-bold text-stone-900">{currentIng.id ? "Edit Bahan" : "Tambah Bahan"}</DialogTitle>
-            <DialogDescription className="text-sm text-stone-500">Update informasi harga dan unit bahan makanan</DialogDescription>
+            <DialogTitle className="text-lg font-bold text-foreground">{currentIng.id ? "Edit Bahan" : "Tambah Bahan"}</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">Update informasi harga dan unit bahan makanan</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-stone-600">Nama Bahan</label>
+              <label className="text-xs font-medium text-muted-foreground">Nama Bahan</label>
               <Input
                 placeholder="Contoh: Ayam Broiler"
                 value={currentIng.name}
                 onChange={e => setCurrentIng({ ...currentIng, name: e.target.value })}
-                className="h-10 bg-stone-50/80 border-stone-200 rounded-xl text-sm"
+                className="h-10 bg-secondary/80 border-border rounded-xl text-sm"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-600">Satuan</label>
+                <label className="text-xs font-medium text-muted-foreground">Satuan</label>
                 <Input
                   placeholder="kg, pcs, ikat..."
                   value={currentIng.unit}
                   onChange={e => setCurrentIng({ ...currentIng, unit: e.target.value })}
-                  className="h-10 bg-stone-50/80 border-stone-200 rounded-xl text-sm"
+                  className="h-10 bg-secondary/80 border-border rounded-xl text-sm"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-600">Kategori</label>
+                <label className="text-xs font-medium text-muted-foreground">Kategori</label>
                 <Select 
                   value={currentIng.category} 
                   onValueChange={v => setCurrentIng({ ...currentIng, category: v })}
                 >
-                  <SelectTrigger className="h-10 bg-stone-50/80 border-stone-200 rounded-xl text-sm">
+                  <SelectTrigger className="h-10 bg-secondary/80 border-border rounded-xl text-sm">
                     <SelectValue placeholder="Kategori" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-stone-200">
+                  <SelectContent className="rounded-xl border-border">
                     {CATEGORIES.slice(1).map(c => (
                       <SelectItem key={c} value={c} className="text-sm">{c}</SelectItem>
                     ))}
@@ -414,21 +414,21 @@ export default function Ingredients() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-stone-600">Harga per Unit (IDR)</label>
+              <label className="text-xs font-medium text-muted-foreground">Harga per Unit (IDR)</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 text-sm font-medium">Rp</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">Rp</span>
                 <Input
                   type="number"
                   placeholder="0"
                   value={currentIng.price_per_unit}
                   onChange={e => setCurrentIng({ ...currentIng, price_per_unit: parseInt(e.target.value) || 0 })}
-                  className="h-10 pl-10 bg-stone-50/80 border-stone-200 rounded-xl text-sm font-semibold text-emerald-600"
+                  className="h-10 pl-10 bg-secondary/80 border-border rounded-xl text-sm font-semibold text-emerald-600"
                 />
               </div>
             </div>
           </div>
           <DialogFooter className="mt-6 flex gap-2">
-            <Button variant="ghost" className="flex-1 h-10 rounded-xl text-sm font-medium text-stone-500" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="ghost" className="flex-1 h-10 rounded-xl text-sm font-medium text-muted-foreground" onClick={() => setIsDialogOpen(false)}>
               Batal
             </Button>
             <Button className="flex-1 h-10 rounded-xl text-sm font-semibold" onClick={saveIngredient} disabled={isSaving}>
@@ -441,22 +441,22 @@ export default function Ingredients() {
 
       {/* Purchase Dialog */}
       <Dialog open={isPurchaseDialogOpen} onOpenChange={setIsPurchaseDialogOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-6 border-stone-200">
+        <DialogContent className="max-w-md rounded-2xl p-6 border-border">
           <DialogHeader className="mb-4">
-            <DialogTitle className="text-lg font-bold text-stone-900">Catat Pembelian</DialogTitle>
-            <DialogDescription className="text-sm text-stone-500">
+            <DialogTitle className="text-lg font-bold text-foreground">Catat Pembelian</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
               {ingredients.find(i => i.id === purchaseData.ingredient_id)?.name || "Bahan"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-stone-600">Tempat Beli</label>
+              <label className="text-xs font-medium text-muted-foreground">Tempat Beli</label>
               <Input
                 placeholder="Contoh: Pasar Kebayoran, Indomaret..."
                 value={purchaseData.supplier_name}
                 onChange={e => setPurchaseData({ ...purchaseData, supplier_name: e.target.value })}
                 list="suppliers-list"
-                className="h-10 bg-stone-50/80 border-stone-200 rounded-xl text-sm"
+                className="h-10 bg-secondary/80 border-border rounded-xl text-sm"
               />
               <datalist id="suppliers-list">
                 {suppliers.map(s => <option key={s.id} value={s.name} />)}
@@ -465,7 +465,7 @@ export default function Ingredients() {
             
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-600">
+                <label className="text-xs font-medium text-muted-foreground">
                   Kuantitas ({ingredients.find(i => i.id === purchaseData.ingredient_id)?.unit || "unit"})
                 </label>
                 <Input
@@ -473,30 +473,30 @@ export default function Ingredients() {
                   placeholder="0"
                   value={purchaseData.quantity || ""}
                   onChange={e => setPurchaseData({ ...purchaseData, quantity: parseFloat(e.target.value) || 0 })}
-                  className="h-10 bg-stone-50/80 border-stone-200 rounded-xl text-sm"
+                  className="h-10 bg-secondary/80 border-border rounded-xl text-sm"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-600">Tanggal</label>
+                <label className="text-xs font-medium text-muted-foreground">Tanggal</label>
                 <Input
                   type="date"
                   value={purchaseData.purchased_at}
                   onChange={e => setPurchaseData({ ...purchaseData, purchased_at: e.target.value })}
-                  className="h-10 bg-stone-50/80 border-stone-200 rounded-xl text-sm"
+                  className="h-10 bg-secondary/80 border-border rounded-xl text-sm"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-stone-600">Total Harga (IDR)</label>
+              <label className="text-xs font-medium text-muted-foreground">Total Harga (IDR)</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 text-sm font-medium">Rp</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">Rp</span>
                 <Input
                   type="number"
                   placeholder="0"
                   value={purchaseData.total_price || ""}
                   onChange={e => setPurchaseData({ ...purchaseData, total_price: parseInt(e.target.value) || 0 })}
-                  className="h-10 pl-10 bg-stone-50/80 border-stone-200 rounded-xl text-sm font-semibold text-emerald-600"
+                  className="h-10 pl-10 bg-secondary/80 border-border rounded-xl text-sm font-semibold text-emerald-600"
                 />
               </div>
             </div>
@@ -505,15 +505,15 @@ export default function Ingredients() {
               <input 
                 type="checkbox" 
                 id="update-stock" 
-                className="rounded border-stone-300 text-primary focus:ring-primary/20 h-4 w-4"
+                className="rounded border-border text-primary focus:ring-primary/20 h-4 w-4"
                 checked={purchaseData.update_stock}
                 onChange={e => setPurchaseData({...purchaseData, update_stock: e.target.checked})}
               />
-              <span className="text-sm text-stone-600">Tambahkan ke stok inventory</span>
+              <span className="text-sm text-muted-foreground">Tambahkan ke stok inventory</span>
             </label>
           </div>
           <DialogFooter className="mt-6 flex gap-2">
-            <Button variant="ghost" className="flex-1 h-10 rounded-xl text-sm font-medium text-stone-500" onClick={() => setIsPurchaseDialogOpen(false)}>
+            <Button variant="ghost" className="flex-1 h-10 rounded-xl text-sm font-medium text-muted-foreground" onClick={() => setIsPurchaseDialogOpen(false)}>
               Batal
             </Button>
             <Button className="flex-1 h-10 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-700" onClick={savePurchase} disabled={isSaving}>
@@ -526,10 +526,10 @@ export default function Ingredients() {
 
       {/* Stock Adjustment Dialog */}
       <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
-        <DialogContent className="max-w-[300px] rounded-2xl p-6 border-stone-200 text-center">
+        <DialogContent className="max-w-[300px] rounded-2xl p-6 border-border text-center">
           <DialogHeader className="mb-3">
-            <DialogTitle className="text-lg font-bold text-stone-900 mx-auto">Kurangi Stok</DialogTitle>
-            <DialogDescription className="text-sm text-stone-500 mx-auto">
+            <DialogTitle className="text-lg font-bold text-foreground mx-auto">Kurangi Stok</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground mx-auto">
               Pemakaian manual di luar menu
             </DialogDescription>
           </DialogHeader>
@@ -541,15 +541,15 @@ export default function Ingredients() {
                 autoFocus
                 value={stockAdjustment.adjustment || ""}
                 onChange={e => setStockAdjustment({ ...stockAdjustment, adjustment: Math.abs(parseFloat(e.target.value) || 0) })}
-                className="h-14 text-center bg-stone-50/80 border-stone-200 rounded-xl font-bold text-stone-700 text-2xl"
+                className="h-14 text-center bg-secondary/80 border-border rounded-xl font-bold text-foreground/90 text-2xl"
               />
             </div>
-            <p className="text-xs text-stone-400 font-medium">
+            <p className="text-xs text-muted-foreground/70 font-medium">
               {ingredients.find(i => i.id === stockAdjustment.ingredient_id)?.unit || "unit"} digunakan
             </p>
           </div>
           <DialogFooter className="mt-5 flex gap-2 sm:justify-center">
-            <Button variant="ghost" className="flex-1 h-10 rounded-xl text-sm font-medium text-stone-500" onClick={() => setIsStockDialogOpen(false)}>
+            <Button variant="ghost" className="flex-1 h-10 rounded-xl text-sm font-medium text-muted-foreground" onClick={() => setIsStockDialogOpen(false)}>
               Batal
             </Button>
             <Button className="flex-1 h-10 rounded-xl text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-white" onClick={saveStockAdjustment} disabled={isSaving}>

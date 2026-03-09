@@ -65,7 +65,7 @@ function App() {
           richColors
           closeButton
           toastOptions={{
-            className: "!rounded-xl !border-stone-100 !shadow-lg !text-sm !font-medium",
+            className: "!rounded-xl !border-border/50 !shadow-lg !text-sm !font-medium",
           }}
         />
         <Header />
