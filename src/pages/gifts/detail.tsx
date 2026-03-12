@@ -23,7 +23,7 @@ import { cn, formatRupiah } from "@/lib/utils";
 export default function GiftDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { member, isAdmin } = useMember();
+  const { member } = useMember();
   
   const [gift, setGift] = useState<GiftDetailType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,7 +96,6 @@ export default function GiftDetail() {
   };
 
   const toggleItemStatus = async (itemId: number, currentStatus: string) => {
-    if (!isAdmin) return;
     try {
       await updateGiftItem(parseInt(id!), itemId, {
         status: currentStatus === 'needed' ? 'bought' : 'needed'
@@ -184,16 +183,14 @@ export default function GiftDetail() {
           </Badge>
           <h1 className="text-2xl font-bold text-foreground truncate">{gift.title}</h1>
         </div>
-        {(isAdmin || gift.created_by === member?.id) && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleDeleteGift}
-            className="rounded-full h-10 w-10 text-muted-foreground hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100 transition-colors"
-          >
-            <Trash2 className="w-5 h-5" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleDeleteGift}
+          className="rounded-full h-10 w-10 text-muted-foreground hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100 transition-colors"
+        >
+          <Trash2 className="w-5 h-5" />
+        </Button>
       </div>
 
       <div className="space-y-6 pb-20">
@@ -273,17 +270,15 @@ export default function GiftDetail() {
               Gift Items
               <Badge variant="secondary" className="rounded-full h-5 min-w-[20px] px-1">{gift.items.filter(i => i.status === 'bought').length}/{gift.items.length}</Badge>
             </h2>
-            {isAdmin && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 rounded-lg text-primary hover:bg-primary/5 font-bold text-xs"
-                onClick={() => setShowItemForm(!showItemForm)}
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                Add Item
-              </Button>
-            )}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 rounded-lg text-primary hover:bg-primary/5 font-bold text-xs"
+              onClick={() => setShowItemForm(!showItemForm)}
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              Add Item
+            </Button>
           </div>
 
           {showItemForm && (
@@ -319,7 +314,7 @@ export default function GiftDetail() {
             {gift.items.length === 0 ? (
               <div className="py-10 text-center border-2 border-dashed border-border/50 rounded-2xl bg-muted/20">
                 <p className="text-xs text-muted-foreground font-medium italic">No items added yet</p>
-                {isAdmin && <p className="text-[10px] text-primary mt-1 font-bold">Add item to start splitting costs</p>}
+                <p className="text-[10px] text-primary mt-1 font-bold">Add item to start splitting costs</p>
               </div>
             ) : (
               gift.items.map((item) => (
@@ -338,7 +333,6 @@ export default function GiftDetail() {
                       "p-1 rounded-full transition-colors",
                       item.status === 'bought' ? "text-green-500" : "text-muted-foreground/30 hover:text-primary/40"
                     )}
-                    disabled={!isAdmin}
                   >
                     {item.status === 'bought' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
                   </button>
@@ -350,16 +344,14 @@ export default function GiftDetail() {
                       {formatCurrency(item.estimated_price)}
                     </p>
                   </div>
-                  {isAdmin && (
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleDeleteItem(item.id)}
-                      className="h-8 w-8 text-muted-foreground/50 hover:text-red-500 rounded-full"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleDeleteItem(item.id)}
+                    className="h-8 w-8 text-muted-foreground/50 hover:text-red-500 rounded-full"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               ))
             )}

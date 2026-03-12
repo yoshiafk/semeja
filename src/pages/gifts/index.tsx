@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useMember } from "@/hooks/useMember";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Gift as GiftIcon, Plus, Calendar, Users, ChevronRight, Info } from "lucide-react";
 import { getGifts } from "@/lib/api";
@@ -11,7 +10,6 @@ import { format } from "date-fns";
 import { cn, formatRupiah } from "@/lib/utils";
 
 export default function GiftsList() {
-  const { isAdmin } = useMember();
   const [gifts, setGifts] = useState<GiftType[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,14 +35,12 @@ export default function GiftsList() {
           <h1 className="text-2xl font-bold text-foreground">Gift Pooling</h1>
           <p className="text-sm text-muted-foreground">Plan and split gift costs together</p>
         </div>
-        {isAdmin && (
-          <Link
-            to="/community/gifts/new"
-            className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95"
-          >
-            <Plus className="w-5 h-5" />
-          </Link>
-        )}
+        <Link
+          to="/community/gifts/new"
+          className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95"
+        >
+          <Plus className="w-5 h-5" />
+        </Link>
       </div>
 
       {loading ? (
@@ -61,14 +57,12 @@ export default function GiftsList() {
           <p className="text-sm text-muted-foreground max-w-[240px]">
             No gift pooling plans have been created yet.
           </p>
-          {isAdmin && (
-            <Link
-              to="/community/gifts/new"
-              className="mt-6 px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm shadow-lg shadow-primary/10"
-            >
-              Start First Gift Plan
-            </Link>
-          )}
+          <Link
+            to="/community/gifts/new"
+            className="mt-6 px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm shadow-lg shadow-primary/10"
+          >
+            Start First Gift Plan
+          </Link>
         </div>
       ) : (
         <div className="grid gap-4">
