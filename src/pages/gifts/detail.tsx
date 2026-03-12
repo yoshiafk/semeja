@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { 
   getGiftDetail, addGiftItem, updateGiftItem, deleteGiftItem, 
-  joinGift, leaveGift
+  joinGift, leaveGift, deleteGift
 } from "@/lib/api";
 import type { GiftDetail as GiftDetailType } from "@/lib/api";
 import { format } from "date-fns";
@@ -135,6 +135,22 @@ export default function GiftDetail() {
     }
   };
 
+  const handleDeleteGift = async () => {
+    if (!confirm("Are you sure you want to permanently delete this gift plan? This action cannot be undone.")) return;
+    
+    setSubmitting(true);
+    try {
+      await deleteGift(parseInt(id!));
+      toast.success("Gift plan deleted successfully");
+      navigate("/community/gifts");
+    } catch (error) {
+      console.error("Error deleting gift:", error);
+      toast.error("Failed to delete gift plan");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -168,6 +184,16 @@ export default function GiftDetail() {
           </Badge>
           <h1 className="text-2xl font-bold text-foreground truncate">{gift.title}</h1>
         </div>
+        {(isAdmin || gift.created_by === member?.id) && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDeleteGift}
+            className="rounded-full h-10 w-10 text-muted-foreground hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100 transition-colors"
+          >
+            <Trash2 className="w-5 h-5" />
+          </Button>
+        )}
       </div>
 
       <div className="space-y-6 pb-20">
