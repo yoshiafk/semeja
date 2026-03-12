@@ -4,10 +4,11 @@ const isServerless = !!process.env.VERCEL;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgres://mealplan:mealplan123@localhost:5432/mealplan',
+  ssl: isServerless ? { rejectUnauthorized: false } : false,
   // Serverless: fewer connections + aggressive cleanup
-  max: isServerless ? 3 : 10,
-  idleTimeoutMillis: isServerless ? 10_000 : 30_000,
-  connectionTimeoutMillis: 5_000,
+  max: isServerless ? 5 : 10,
+  idleTimeoutMillis: isServerless ? 15_000 : 30_000,
+  connectionTimeoutMillis: isServerless ? 10_000 : 5_000,
 });
 
 pool.on('error', (err) => {
