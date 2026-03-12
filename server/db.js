@@ -8,15 +8,26 @@ const pool = new Pool({
   // Serverless: fewer connections + aggressive cleanup
   max: isServerless ? 5 : 10,
   idleTimeoutMillis: isServerless ? 15_000 : 30_000,
-  connectionTimeoutMillis: isServerless ? 10_000 : 5_000,
+  connectionTimeoutMillis: isServerless ? 30_000 : 5_000,
 });
 
 pool.on('error', (err) => {
   console.error('Unexpected pool error:', err);
 });
 
-async function initDB() {
-  const client = await pool.connect();
+async function initDB(retries = 3) {
+  let client;
+  try {
+    client = await pool.connect();
+  } catch (err) {
+    if (retries > 0) {
+      console.warn(`Connection failed, retrying in 5s... (${retries} retries left)`);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      return initDB(retries - 1);
+    }
+    throw err;
+  }
+
   try {
     await client.query(`
       CREATE TABLE IF NOT EXISTS members (
