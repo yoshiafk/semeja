@@ -3,11 +3,12 @@ import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Calendar, ChefHat, LayoutGrid, Archive, Trash2 } from "lucide-react";
+import { Loader2, Plus, Archive, Trash2, LayoutGrid } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { formatDate, cn, formatDayName, formatShortDate } from "@/lib/utils";
+import { formatDate, formatDayName, formatShortDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { MealCard } from "@/components/MealCard";
 
 interface Recipe {
   id: number;
@@ -220,147 +221,17 @@ export default function MealPlanPage() {
 
         {activePlan ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {activePlan.meals.map((meal) => {
-              const dayName = formatDayName(meal.date);
-              const formattedDateStr = formatShortDate(meal.date);
-
-              return (
-                <div key={meal.id} className="bg-white border border-border/50 rounded-2xl overflow-hidden hover:shadow-md hover:shadow-border/50 transition-shadow">
-                  {/* Card Header */}
-                  <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/30">
-                    <div>
-                      <h3 className="text-base font-semibold text-foreground">{dayName}</h3>
-                      <span className="text-xs text-primary/70 font-medium">{formattedDateStr}</span>
-                    </div>
-                    <Calendar className="h-4 w-4 text-border" />
-                  </div>
-
-                  {/* Card Body */}
-                  <div className="p-5 space-y-5">
-                    {/* Main Course (Lauk) */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                        <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">Lauk</span>
-                      </div>
-                      <Select 
-                        disabled={isSaving[`${meal.id}-main_course_recipe_id`]}
-                        value={meal.main_course_recipe_id?.toString() || "placeholder"} 
-                        onValueChange={(v) => {
-                          const rid = v === "placeholder" ? null : parseInt(v);
-                          if (rid) {
-                            const r = recipes.find(rec => rec.id === rid);
-                            updateMeal(meal.id, { main_course_recipe_id: rid, ...(r ? { main_course_menu: r.name } : {}) });
-                          } else {
-                            updateMeal(meal.id, { main_course_recipe_id: null, main_course_menu: "" });
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="h-10 w-full bg-secondary/80 border-border/50 rounded-xl text-sm font-medium hover:bg-secondary transition-colors">
-                          <div className="flex items-center gap-2 truncate">
-                            {isSaving[`${meal.id}-main_course_recipe_id`] ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/70 shrink-0" /> : <ChefHat className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />}
-                            <SelectValue placeholder="Pilih Menu..." />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl border-border/50">
-                          <SelectItem value="placeholder" className="text-muted-foreground/70 italic">Pilih Menu...</SelectItem>
-                          {recipes.filter(r => r.category === 'Lauk' || !r.category).map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Second Course (Sayur) */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                        <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">Sayur</span>
-                      </div>
-                      <Select 
-                        disabled={isSaving[`${meal.id}-second_course_recipe_id`]}
-                        value={meal.second_course_recipe_id?.toString() || "placeholder"} 
-                        onValueChange={(v) => {
-                          const rid = v === "placeholder" ? null : parseInt(v);
-                          if (rid) {
-                            const r = recipes.find(rec => rec.id === rid);
-                            updateMeal(meal.id, { second_course_recipe_id: rid, ...(r ? { second_course_menu: r.name } : {}) });
-                          } else {
-                            updateMeal(meal.id, { second_course_recipe_id: null, second_course_menu: "" });
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="h-10 w-full bg-secondary/80 border-border/50 rounded-xl text-sm font-medium hover:bg-secondary transition-colors">
-                          <div className="flex items-center gap-2 truncate">
-                            {isSaving[`${meal.id}-second_course_recipe_id`] ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/70 shrink-0" /> : <ChefHat className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />}
-                            <SelectValue placeholder="Pilih Menu..." />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl border-border/50">
-                          <SelectItem value="placeholder" className="text-muted-foreground/70 italic">Pilih Menu...</SelectItem>
-                          {recipes.filter(r => r.category === 'Sayur').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Dessert */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-                        <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">Dessert</span>
-                      </div>
-                      <Select 
-                        disabled={isSaving[`${meal.id}-dessert_recipe_id`]}
-                        value={meal.dessert_recipe_id?.toString() || "placeholder"} 
-                        onValueChange={(v) => {
-                          const rid = v === "placeholder" ? null : parseInt(v);
-                          if (rid) {
-                            const r = recipes.find(rec => rec.id === rid);
-                            updateMeal(meal.id, { dessert_recipe_id: rid, ...(r ? { dessert_menu: r.name } : {}) });
-                          } else {
-                            updateMeal(meal.id, { dessert_recipe_id: null, dessert_menu: "" });
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="h-10 w-full bg-secondary/80 border-border/50 rounded-xl text-sm font-medium hover:bg-secondary transition-colors">
-                          <div className="flex items-center gap-2 truncate">
-                            {isSaving[`${meal.id}-dessert_recipe_id`] ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/70 shrink-0" /> : <ChefHat className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />}
-                            <SelectValue placeholder="Pilih Menu..." />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl border-border/50">
-                          <SelectItem value="placeholder" className="text-muted-foreground/70 italic">Pilih Menu...</SelectItem>
-                          {recipes.filter(r => r.category === 'Dessert').map(r => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Rice Toggle */}
-                    <div className="pt-4 border-t border-border/30 flex items-center justify-between">
-                      <div>
-                        <span className="text-[11px] text-muted-foreground/70 font-medium block">Nasi Putih</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant={meal.requires_rice ? "default" : "outline"}
-                        className={cn(
-                          "h-8 px-3 rounded-lg text-xs font-medium transition-all",
-                          meal.requires_rice 
-                            ? "bg-primary hover:bg-primary/90 shadow-none text-white" 
-                            : "border-border text-muted-foreground hover:bg-primary/5 hover:text-primary"
-                        )}
-                        disabled={isSaving[`${meal.id}-requires_rice`]}
-                        onClick={() => updateMeal(meal.id, { requires_rice: !meal.requires_rice })}
-                      >
-                        {isSaving[`${meal.id}-requires_rice`] ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          meal.requires_rice ? "Ya" : "Tidak"
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {activePlan.meals.map((meal) => (
+              <MealCard 
+                key={meal.id}
+                meal={meal}
+                dayName={formatDayName(meal.date)}
+                formattedDateStr={formatShortDate(meal.date)}
+                recipes={recipes}
+                isSaving={isSaving}
+                onUpdateMeal={updateMeal}
+              />
+            ))}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
@@ -372,7 +243,7 @@ export default function MealPlanPage() {
         )}
       </div>
       
-      {/* Create Plan Dialog */}
+      {/* Dialogs... */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="w-[95vw] max-w-md rounded-2xl p-6 border-border/50">
           <DialogHeader>
@@ -403,7 +274,6 @@ export default function MealPlanPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="w-[95vw] max-w-md rounded-2xl p-6 border-border/50">
           <DialogHeader>

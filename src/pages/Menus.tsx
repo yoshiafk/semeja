@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useDeferredValue } from "react";
 import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Link2, Plus, Edit2, Trash2, Search, Utensils, Carrot, IceCream, X, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, Plus, Utensils, Carrot, IceCream, X, Search } from "lucide-react";
 import { toast } from "sonner";
+import { RecipeCard } from "@/components/RecipeCard";
 
 interface Recipe {
   id: number;
@@ -38,6 +39,7 @@ export default function Menus() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
 
   const [isCookpadOpen, setIsCookpadOpen] = useState(false);
   const [cookpadUrl, setCookpadUrl] = useState("");
@@ -204,146 +206,52 @@ export default function Menus() {
     }
   };
 
-  const filteredRecipes = recipes.filter(r => r.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredRecipes = recipes.filter(r => r.name.toLowerCase().includes(deferredSearch.toLowerCase()));
   const laukRecipes = filteredRecipes.filter(r => r.category === 'Lauk' || !r.category);
   const sayurRecipes = filteredRecipes.filter(r => r.category === 'Sayur');
   const dessertRecipes = filteredRecipes.filter(r => r.category === 'Dessert');
-
-  const RecipeCard = ({ recipe }: { recipe: Recipe }) => (
-    <div className="rounded-2xl border border-border/50 bg-white hover:border-border transition-all p-4 group">
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-sm text-foreground leading-tight line-clamp-2">{recipe.name}</h3>
-            {recipe.is_normalized ? (
-              <span className="flex items-center text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full" title="Resep sudah dinormalisasi per 1 porsi">
-                <CheckCircle2 className="h-3 w-3 mr-0.5" /> 1 porsi
-              </span>
-            ) : (
-              <span className="flex items-center text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full" title="Resep belum dinormalisasi - jumlah bahan mungkin untuk beberapa porsi">
-                <AlertTriangle className="h-3 w-3 mr-0.5" /> Belum normal
-              </span>
-            )}
-          </div>
-          {recipe.source_url ? (
-            <a href={recipe.source_url} target="_blank" rel="noreferrer" className="text-[11px] text-primary hover:text-primary/80 flex items-center gap-1">
-              <Link2 className="h-3 w-3" /> Cookpad {recipe.servings > 1 && `(${recipe.servings} porsi asli)`}
-            </a>
-          ) : (
-            <p className="text-[11px] text-muted-foreground/70">Manual Entry</p>
-          )}
-        </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {recipe.source_url && (
-            <Button 
-              variant="ghost" size="icon" 
-              disabled={isRescraping === recipe.id}
-              className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-primary hover:bg-primary/10" 
-              onClick={() => handleRescrape(recipe)}
-              title="Re-scrape dari Cookpad"
-            >
-              {isRescraping === recipe.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-            </Button>
-          )}
-          {!recipe.is_normalized && !recipe.source_url && (
-            <Button 
-              variant="ghost" size="icon" 
-              className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-amber-600 hover:bg-amber-50" 
-              onClick={() => {
-                setNormalizeDialogRecipe(recipe);
-                setNormalizeServings(1);
-              }}
-              title="Normalisasi manual"
-            >
-              <AlertTriangle className="h-3 w-3" />
-            </Button>
-          )}
-          <Button 
-            variant="ghost" size="icon" 
-            className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-amber-600 hover:bg-amber-50" 
-            onClick={() => setEditingRecipe(recipe)}
-          >
-            <Edit2 className="h-3 w-3" />
-          </Button>
-          <Button 
-            variant="ghost" size="icon" 
-            disabled={isDeleting === recipe.id}
-            className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-50" 
-            onClick={() => handleDelete(recipe.id)}
-          >
-            {isDeleting === recipe.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-          </Button>
-        </div>
-      </div>
-      
-      <div className="pt-3 border-t border-border/30">
-        <p className="text-[11px] text-muted-foreground/70 mb-1.5">{recipe.ingredients?.length || 0} bahan</p>
-        <div className="flex flex-wrap gap-1">
-          {recipe.ingredients?.slice(0, 5).map(ing => (
-            <span key={ing.id} className="text-[10px] bg-secondary px-1.5 py-0.5 rounded-md text-muted-foreground">
-              {ing.name} ({ing.quantity_per_person} {ing.unit})
-            </span>
-          ))}
-          {(recipe.ingredients?.length || 0) > 5 && (
-            <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded-md text-muted-foreground/70">
-              +{recipe.ingredients.length - 5} lagi
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <PageContainer>
       <div className="space-y-5 md:space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">Menu Makanan</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Kelola daftar menu dan resep, atau import dari Cookpad.</p>
-            {recipes.filter(r => !r.is_normalized).length > 0 && (
-              <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                <AlertTriangle className="h-3 w-3" /> 
-                {recipes.filter(r => !r.is_normalized).length} resep belum dinormalisasi (jumlah per 1 porsi)
-              </p>
-            )}
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Daftar Menu</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Kelola resep masakan dan import dari Cookpad.</p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
-              <Input 
-                placeholder="Cari menu..." 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-9 w-full md:w-[200px] rounded-xl bg-secondary/80 border-border text-sm"
-              />
-            </div>
-            {recipes.filter(r => r.source_url && !r.is_normalized).length > 0 && (
-              <Button 
-                onClick={handleRescrapeAll} 
-                disabled={isRescrapingAll}
-                variant="outline"
-                className="h-9 rounded-xl text-xs font-semibold border-amber-300 text-amber-700 hover:bg-amber-50"
-              >
-                {isRescrapingAll ? (
-                  <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Re-scraping...</>
-                ) : (
-                  <><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Re-scrape All</>
-                )}
-              </Button>
-            )}
-            <Button onClick={() => setIsCookpadOpen(true)} className="h-9 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700">
-              <Link2 className="mr-1.5 h-3.5 w-3.5" /> Cookpad
+          <div className="flex flex-wrap items-center gap-2">
+            <Button 
+               variant="outline" 
+               className="h-9 px-4 rounded-xl text-xs font-semibold gap-2 border-border/50 text-muted-foreground hover:text-primary"
+               onClick={() => setIsCookpadOpen(true)}
+            >
+              <Plus className="h-3.5 w-3.5" /> Import Cookpad
             </Button>
             <Button 
-              onClick={() => setEditingRecipe({ id: 0, name: "", description: "", category: "Lauk", source_url: "", servings: 1, is_normalized: true, ingredients: [] })} 
-              variant="default" 
-              className="h-9 rounded-xl text-xs font-semibold bg-orange-500 hover:bg-orange-600 border-none"
+               variant="outline" 
+               className="h-9 px-4 rounded-xl text-xs font-semibold gap-2 border-border/50 text-muted-foreground hover:text-primary"
+               onClick={handleRescrapeAll}
+               disabled={isRescrapingAll}
             >
-              <Plus className="mr-1.5 h-3.5 w-3.5" /> Manual
+              {isRescrapingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} 
+              Re-scrape Semua
+            </Button>
+            <Button onClick={() => setEditingRecipe({ id: 0, name: "", description: "", category: "Lauk", source_url: "", servings: 1, is_normalized: false, ingredients: [] })} className="h-9 px-5 rounded-xl text-xs font-semibold">
+              <Plus className="mr-1.5 h-3.5 w-3.5" /> Tambah Menu
             </Button>
           </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
+            <Input
+              placeholder="Cari menu masakan..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-10 bg-secondary/80 border-border rounded-xl text-sm"
+            />
         </div>
 
         {loading ? (
@@ -366,19 +274,61 @@ export default function Menus() {
 
             <TabsContent value="lauk" className="mt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {laukRecipes.map(r => <RecipeCard key={r.id} recipe={r} />)}
+                {laukRecipes.map(r => (
+                  <RecipeCard 
+                    key={r.id} 
+                    recipe={r} 
+                    isRescraping={isRescraping === r.id}
+                    isDeleting={isDeleting === r.id}
+                    onRescrape={handleRescrape}
+                    onNormalize={(rec) => {
+                      setNormalizeDialogRecipe(rec);
+                      setNormalizeServings(1);
+                    }}
+                    onEdit={setEditingRecipe}
+                    onDelete={handleDelete}
+                  />
+                ))}
                 {laukRecipes.length === 0 && <p className="text-muted-foreground/70 text-sm">Belum ada menu lauk.</p>}
               </div>
             </TabsContent>
             <TabsContent value="sayur" className="mt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {sayurRecipes.map(r => <RecipeCard key={r.id} recipe={r} />)}
+                {sayurRecipes.map(r => (
+                  <RecipeCard 
+                    key={r.id} 
+                    recipe={r} 
+                    isRescraping={isRescraping === r.id}
+                    isDeleting={isDeleting === r.id}
+                    onRescrape={handleRescrape}
+                    onNormalize={(rec) => {
+                      setNormalizeDialogRecipe(rec);
+                      setNormalizeServings(1);
+                    }}
+                    onEdit={setEditingRecipe}
+                    onDelete={handleDelete}
+                  />
+                ))}
                 {sayurRecipes.length === 0 && <p className="text-muted-foreground/70 text-sm">Belum ada menu sayur.</p>}
               </div>
             </TabsContent>
             <TabsContent value="dessert" className="mt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {dessertRecipes.map(r => <RecipeCard key={r.id} recipe={r} />)}
+                {dessertRecipes.map(r => (
+                  <RecipeCard 
+                    key={r.id} 
+                    recipe={r} 
+                    isRescraping={isRescraping === r.id}
+                    isDeleting={isDeleting === r.id}
+                    onRescrape={handleRescrape}
+                    onNormalize={(rec) => {
+                      setNormalizeDialogRecipe(rec);
+                      setNormalizeServings(1);
+                    }}
+                    onEdit={setEditingRecipe}
+                    onDelete={handleDelete}
+                  />
+                ))}
                 {dessertRecipes.length === 0 && <p className="text-muted-foreground/70 text-sm">Belum ada menu dessert.</p>}
               </div>
             </TabsContent>
@@ -499,11 +449,11 @@ export default function Menus() {
                 
                 <div className="space-y-2">
                   {(editingRecipe.ingredients || []).map((ing, idx) => {
-                    const isNew = ing.id < 0;
+                    const isNewIng = ing.id < 0;
                     return (
                       <div key={idx} className="flex items-center gap-2 p-3 bg-secondary/80 rounded-xl border border-border/50">
                         <div className="flex-1">
-                          {isNew ? (
+                          {isNewIng ? (
                             <Select 
                               value={ing.ingredient_id?.toString() || ""}
                               onValueChange={(val) => {

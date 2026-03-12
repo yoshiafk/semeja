@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useDeferredValue } from "react";
 import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Search, Filter, Pencil, Trash2, Carrot } from "lucide-react";
-import { formatRupiah } from "@/lib/utils";
+import { Loader2, Plus, Search, Filter, Carrot } from "lucide-react";
 import { toast } from "sonner";
+import { IngredientCard } from "@/components/IngredientCard";
 
 interface Ingredient {
   id: number;
@@ -26,6 +26,7 @@ export default function Ingredients() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [category, setCategory] = useState("Segala");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentIng, setCurrentIng] = useState<Partial<Ingredient>>({
@@ -173,7 +174,7 @@ export default function Ingredients() {
   };
 
   const filtered = ingredients.filter(ing => {
-    const matchesSearch = ing.name.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = ing.name.toLowerCase().includes(deferredSearch.toLowerCase());
     const matchesCat = category === "Segala" || ing.category === category;
     return matchesSearch && matchesCat;
   });
@@ -243,127 +244,29 @@ export default function Ingredients() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {filtered.map(ing => (
-              <div key={ing.id} className="rounded-2xl border border-border/50 bg-white hover:border-border transition-all group overflow-hidden">
-                <div className="p-4 space-y-4">
-                  {/* Header */}
-                  <div className="flex items-start justify-between">
-                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground font-medium">
-                      {ing.category}
-                    </span>
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button 
-                        variant="ghost" size="icon" 
-                        className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-primary hover:bg-secondary"
-                        onClick={() => { setCurrentIng(ing); setIsDialogOpen(true); }}
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                      <Button 
-                        variant="ghost" size="icon" 
-                        disabled={isDeleting === ing.id}
-                        className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-50 disabled:opacity-50"
-                        onClick={() => deleteIngredient(ing.id)}
-                      >
-                        {isDeleting === ing.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Name */}
-                  <h3 className="text-base font-semibold text-foreground leading-tight line-clamp-2">
-                    {ing.name}
-                  </h3>
-
-                  {/* Stats */}
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <p className="text-[11px] text-muted-foreground/70 font-medium">Harga</p>
-                      <p className="text-sm font-semibold text-foreground">
-                        {formatRupiah(ing.price_per_unit)}<span className="text-xs text-muted-foreground/70 font-normal ml-0.5">/{ing.unit}</span>
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[11px] text-muted-foreground/70 font-medium">Stok</p>
-                      <span className={`text-sm font-semibold ${
-                        ing.stock_quantity <= 0 ? "text-rose-600" :
-                        ing.stock_quantity <= ing.min_stock_threshold ? "text-amber-600" :
-                        "text-emerald-600"
-                      }`}>
-                        {Number(ing.stock_quantity || 0).toFixed(3).replace(/\.?0+$/, '')} {ing.unit}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-1.5 pt-1">
-                    <Button 
-                      variant="secondary" size="sm" 
-                      className="flex-1 rounded-xl h-8 font-medium text-xs bg-emerald-50 text-emerald-600 hover:bg-emerald-100 shadow-none"
-                      onClick={() => {
-                        setPurchaseData({
-                          ingredient_id: ing.id, supplier_name: "", quantity: 0,
-                          total_price: 0, purchased_at: new Date().toISOString().split('T')[0],
-                          notes: "", update_stock: true
-                        });
-                        setIsPurchaseDialogOpen(true);
-                      }}
-                    >
-                      + Beli
-                    </Button>
-                    <Button 
-                      variant="secondary" size="sm" 
-                      className="flex-1 rounded-xl h-8 font-medium text-xs bg-secondary text-muted-foreground hover:bg-muted shadow-none"
-                      onClick={() => fetchHistory(ing.id)}
-                    >
-                      Riwayat
-                    </Button>
-                    <Button 
-                      variant="secondary" size="icon" 
-                      className="rounded-xl w-8 h-8 bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-none"
-                      onClick={() => {
-                        setStockAdjustment({ ingredient_id: ing.id, adjustment: 0, type: "consume" });
-                        setIsStockDialogOpen(true);
-                      }}
-                    >
-                      <span className="font-bold text-base leading-none">−</span>
-                    </Button>
-                  </div>
-
-                  {/* Expandable History */}
-                  {expandedIngredientId === ing.id && (
-                    <div className="pt-3 border-t border-border/50">
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="text-xs font-semibold text-muted-foreground">Riwayat Pembelian</p>
-                        {loadingHistory && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/70" />}
-                      </div>
-                      
-                      {purchaseHistory.length === 0 && !loadingHistory ? (
-                        <div className="text-xs text-muted-foreground/70 text-center py-4 bg-secondary rounded-xl">Belum ada riwayat</div>
-                      ) : (
-                        <div className="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar">
-                          {purchaseHistory.map(ph => (
-                            <div key={ph.id} className="bg-secondary p-3 rounded-xl flex flex-col gap-1">
-                              <div className="flex justify-between items-start">
-                                <span className="font-medium text-foreground/90 text-xs">{ph.supplier_name || 'Tanpa Supplier'}</span>
-                                <span className="text-[10px] text-muted-foreground/70">
-                                  {new Date(ph.purchased_at).toLocaleDateString('id-ID')}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-end">
-                                <span className="text-xs text-muted-foreground">{ph.quantity} {ing.unit}</span>
-                                <div className="text-right">
-                                  <span className="text-xs font-semibold text-emerald-600">{formatRupiah(ph.price_per_unit)}/{ing.unit}</span>
-                                  <span className="block text-[10px] text-muted-foreground/70">Total {formatRupiah(ph.total_price)}</span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <IngredientCard 
+                key={ing.id}
+                ingredient={ing}
+                isDeleting={isDeleting === ing.id}
+                onEdit={(i) => { setCurrentIng(i); setIsDialogOpen(true); }}
+                onDelete={deleteIngredient}
+                onPurchase={(i) => {
+                  setPurchaseData({
+                    ingredient_id: i.id, supplier_name: "", quantity: 0,
+                    total_price: 0, purchased_at: new Date().toISOString().split('T')[0],
+                    notes: "", update_stock: true
+                  });
+                  setIsPurchaseDialogOpen(true);
+                }}
+                onHistory={fetchHistory}
+                onConsume={(i) => {
+                  setStockAdjustment({ ingredient_id: i.id, adjustment: 0, type: "consume" });
+                  setIsStockDialogOpen(true);
+                }}
+                isExpanded={expandedIngredientId === ing.id}
+                purchaseHistory={purchaseHistory}
+                isLoadingHistory={loadingHistory}
+              />
             ))}
           </div>
         )}
