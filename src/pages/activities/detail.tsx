@@ -6,15 +6,15 @@ import { useMember } from "@/hooks/useMember";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { MapPin, Users, Calendar, Clock, ArrowLeft, Loader2, Info } from "lucide-react";
+import { MapPin, Users, Calendar, Clock, ArrowLeft, Loader2, Info, Archive, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export default function ActivityDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { fetchActivity, joinActivity, leaveActivity } = useActivity();
-  const { member } = useMember();
+  const { fetchActivity, joinActivity, leaveActivity, updateActivity, deleteActivity } = useActivity();
+  const { member, isAdmin } = useMember();
 
   const [activity, setActivity] = useState<Activity | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,6 +73,36 @@ export default function ActivityDetail() {
     }
   };
 
+  const handleArchive = async () => {
+    if (!activity) return;
+    try {
+      setActionLoading(true);
+      await updateActivity(activity.id, { status: "archived" });
+      toast.success("Aktifitas diarsipkan");
+      navigate("/activities");
+    } catch (error: any) {
+      toast.error(error.message || "Gagal mengarsipkan aktifitas");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!activity) return;
+    if (!confirm("Apakah Anda yakin ingin menghapus aktifitas ini? Hal ini tidak dapat dibatalkan.")) return;
+    
+    try {
+      setActionLoading(true);
+      await deleteActivity(activity.id);
+      toast.success("Aktifitas dihapus");
+      navigate("/activities");
+    } catch (error: any) {
+      toast.error(error.message || "Gagal menghapus aktifitas");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleLeave = async () => {
     if (!member) return;
     try {
@@ -97,9 +127,19 @@ export default function ActivityDetail() {
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mr-2">
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight text-foreground line-clamp-1">{activity.title}</h1>
         </div>
+        {(isAdmin || activity.created_by === member?.id) && (
+          <div className="flex gap-2">
+            <Button variant="ghost" size="icon" onClick={handleArchive} disabled={actionLoading} title="Arsipkan">
+              <Archive className="w-5 h-5 text-muted-foreground" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleDelete} disabled={actionLoading} title="Hapus" className="text-destructive hover:text-destructive">
+              <Trash2 className="w-5 h-5" />
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="space-y-6 pb-24">

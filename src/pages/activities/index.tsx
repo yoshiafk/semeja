@@ -1,7 +1,6 @@
 import { PageContainer } from "@/components/layout/PageContainer";
 import type { Activity } from "@/contexts/ActivityContext";
 import { useActivity } from "@/contexts/ActivityContext";
-import { useMember } from "@/hooks/useMember";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { MapPin, Users, Calendar, Clock, Plus, Loader2 } from "lucide-react";
@@ -10,7 +9,6 @@ import { useNavigate } from "react-router-dom";
 
 export default function ActivitiesPage() {
   const { activities, loading } = useActivity();
-  const { isAdmin } = useMember();
   const navigate = useNavigate();
 
   const handleCreateNew = () => {
@@ -24,12 +22,10 @@ export default function ActivitiesPage() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Aktifitas</h1>
           <p className="text-sm text-muted-foreground">Ikuti kegiatan seru warga Semeja</p>
         </div>
-        {isAdmin && (
-          <Button onClick={handleCreateNew} size="sm" className="rounded-xl">
-            <Plus className="w-4 h-4 mr-1" />
-            Buat
-          </Button>
-        )}
+        <Button onClick={handleCreateNew} size="sm" className="rounded-xl">
+          <Plus className="w-4 h-4 mr-1" />
+          Buat
+        </Button>
       </div>
 
       {loading ? (

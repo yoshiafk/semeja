@@ -12,6 +12,7 @@ router.get('/', async (req, res) => {
         CAST(sum(p.guests_count) AS INTEGER) as guests_count_total
       FROM activities a
       LEFT JOIN activity_participations p ON a.id = p.activity_id
+      WHERE a.status != 'archived' OR a.status IS NULL
       GROUP BY a.id
       ORDER BY a.date DESC, a.time DESC
     `);
@@ -155,6 +156,19 @@ router.post('/:id/leave', async (req, res) => {
   } catch (error) {
     console.error('Error leaving activity:', error);
     res.status(500).json({ error: 'Failed to leave activity' });
+  }
+});
+
+// DELETE an activity
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rows } = await pool.query('DELETE FROM activities WHERE id = $1 RETURNING *', [id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Activity not found' });
+    res.json({ message: 'Activity deleted successfully', activity: rows[0] });
+  } catch (error) {
+    console.error('Error deleting activity:', error);
+    res.status(500).json({ error: 'Failed to delete activity' });
   }
 });
 

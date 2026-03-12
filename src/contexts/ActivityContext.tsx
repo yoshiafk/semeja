@@ -25,7 +25,7 @@ export interface Activity {
   cost_amount: number;
   max_participants: number | null;
   created_by: number;
-  status: "upcoming" | "ongoing" | "completed" | "cancelled";
+  status: "upcoming" | "ongoing" | "completed" | "cancelled" | "archived";
   created_at: string;
   
   // Aggregate fields from API
@@ -45,6 +45,7 @@ interface ActivityContextType {
   updateActivity: (id: number, activity: Partial<Activity>) => Promise<Activity>;
   joinActivity: (id: number, memberId: number, guestsCount?: number) => Promise<void>;
   leaveActivity: (id: number, memberId: number) => Promise<void>;
+  deleteActivity: (id: number) => Promise<void>;
 }
 
 const ActivityContext = createContext<ActivityContextType | undefined>(undefined);
@@ -95,6 +96,11 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     await fetchActivities();
   };
 
+  const deleteActivity = async (id: number) => {
+    await api.delete(`/activities/${id}`);
+    await fetchActivities();
+  };
+
   const value: ActivityContextType = {
     activities,
     loading,
@@ -103,7 +109,8 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     createActivity,
     updateActivity,
     joinActivity,
-    leaveActivity
+    leaveActivity,
+    deleteActivity
   };
 
   return (
