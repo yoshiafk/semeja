@@ -46,7 +46,7 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
         <div className="relative mx-auto w-24 h-24 animate-page-in animate-float">
           <picture>
             <source srcSet="/logo.webp" type="image/webp" />
-            <img src="/logo.png" alt="Semeja" className="w-full h-full object-contain drop-shadow-xl" />
+            <img src="/logo.png" alt="Semeja" className="w-full h-full object-contain" />
           </picture>
           <div className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-lg animate-page-in stagger-2">
             <KeyRound className="h-4 w-4 text-primary-foreground" />

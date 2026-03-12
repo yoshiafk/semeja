@@ -9,6 +9,7 @@ const gatekeeperLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 20, // Limit each IP to 20 requests per window
   message: { error: 'Terlalu banyak percobaan. Silakan coba lagi nanti.' },
+  validate: { xForwardedForHeader: false },
 });
 
 // Verify the "Front Door" House Key

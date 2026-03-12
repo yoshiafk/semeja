@@ -20,6 +20,9 @@ const activitiesRouter = require('./routes/activities');
 
 const app = express();
 
+// Trust proxy for Vercel/Rate Limiting
+app.set('trust proxy', 1);
+
 // Allow CORS from production frontend
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',

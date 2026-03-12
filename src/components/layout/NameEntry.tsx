@@ -39,7 +39,7 @@ export function NameEntry() {
           <div className="mx-auto w-20 h-20 animate-page-in animate-float">
             <picture>
               <source srcSet="/logo.webp" type="image/webp" />
-              <img src="/logo.png" alt="Semeja" className="w-full h-full object-contain drop-shadow-xl" />
+              <img src="/logo.png" alt="Semeja" className="w-full h-full object-contain" />
             </picture>
           </div>
           <div className="animate-page-in stagger-1">
