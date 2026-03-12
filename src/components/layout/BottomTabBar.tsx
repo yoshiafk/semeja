@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Home, UtensilsCrossed, Activity, User } from "lucide-react";
+import { Home, UtensilsCrossed, Activity, User, Gift } from "lucide-react";
 
 export function BottomTabBar() {
   const location = useLocation();
@@ -9,6 +9,7 @@ export function BottomTabBar() {
     { to: "/", icon: Home, label: "Beranda" },
     { to: "/meals", icon: UtensilsCrossed, label: "Makan" },
     { to: "/activities", icon: Activity, label: "Aktivitas" },
+    { to: "/community/gifts", icon: Gift, label: "Gifts" },
     { to: "/profile", icon: User, label: "Profil" },
   ];
 

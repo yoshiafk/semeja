@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ModuleCard } from "@/components/ui/module-card";
-import { UtensilsCrossed, Activity, Users, Sparkles, ClipboardList, Carrot } from "lucide-react";
+import { UtensilsCrossed, Activity, Users, Sparkles, ClipboardList, Carrot, Gift } from "lucide-react";
 import { getTodayParticipation } from "@/lib/api";
 
 export default function HomeHub() {
@@ -75,6 +75,14 @@ export default function HomeHub() {
             title="Aktivitas Seru"
             description="Olahraga dan kegiatan bareng"
             href="/activities"
+          />
+
+          {/* Gifts Module */}
+          <ModuleCard
+            icon={Gift}
+            title="Gift Pooling"
+            description="Split the cost for gifts together"
+            href="/community/gifts"
           />
         </div>
 

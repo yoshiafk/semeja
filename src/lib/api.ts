@@ -117,3 +117,53 @@ export const getTodayParticipation = async (): Promise<{ count: number; mealId: 
     return { count: 0, mealId: null };
   }
 };
+// Types for Gift feature
+export interface Gift {
+  id: number;
+  title: string;
+  description: string;
+  event_date: string | null;
+  status: 'planning' | 'active' | 'completed' | 'cancelled';
+  created_by: number;
+  creator_name?: string;
+  created_at: string;
+  participant_count?: number;
+  total_estimated_price?: number;
+}
+
+export interface GiftItem {
+  id: number;
+  gift_id: number;
+  name: string;
+  estimated_price: number;
+  actual_price: number;
+  url: string;
+  status: 'needed' | 'bought';
+  created_at: string;
+}
+
+export interface GiftParticipant {
+  id: number;
+  gift_id: number;
+  member_id: number;
+  member_name: string;
+  contribution_amount: number;
+  joined_at: string;
+}
+
+export interface GiftDetail extends Gift {
+  items: GiftItem[];
+  participants: GiftParticipant[];
+}
+
+// Gift API functions
+export const getGifts = () => api.get<Gift[]>('/gifts');
+export const getGiftDetail = (id: number) => api.get<GiftDetail>(`/gifts/${id}`);
+export const createGift = (data: Partial<Gift>) => api.post<Gift>('/gifts', data);
+export const updateGift = (id: number, data: Partial<Gift>) => api.put<Gift>(`/gifts/${id}`, data);
+export const deleteGift = (id: number) => api.delete<{ message: string; gift: Gift }>(`/gifts/${id}`);
+export const addGiftItem = (giftId: number, data: Partial<GiftItem>) => api.post<GiftItem>(`/gifts/${giftId}/items`, data);
+export const updateGiftItem = (giftId: number, itemId: number, data: Partial<GiftItem>) => api.put<GiftItem>(`/gifts/${giftId}/items/${itemId}`, data);
+export const deleteGiftItem = (giftId: number, itemId: number) => api.delete<{ message: string }>(`/gifts/${giftId}/items/${itemId}`);
+export const joinGift = (giftId: number, data: { member_id: number; contribution_amount?: number }) => api.post<GiftParticipant>(`/gifts/${giftId}/join`, data);
+export const leaveGift = (giftId: number, data: { member_id: number }) => api.post<{ message: string }>(`/gifts/${giftId}/leave`, data);

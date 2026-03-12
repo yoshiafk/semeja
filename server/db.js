@@ -184,10 +184,44 @@ async function initDB(retries = 3) {
         UNIQUE(activity_id, member_id)
       );
 
+      CREATE TABLE IF NOT EXISTS gifts (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(200) NOT NULL,
+        description TEXT DEFAULT '',
+        event_date DATE,
+        status VARCHAR(20) DEFAULT 'planning', -- planning, active, completed, cancelled
+        created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS gift_items (
+        id SERIAL PRIMARY KEY,
+        gift_id INTEGER REFERENCES gifts(id) ON DELETE CASCADE,
+        name VARCHAR(200) NOT NULL,
+        estimated_price INTEGER DEFAULT 0,
+        actual_price INTEGER DEFAULT 0,
+        url TEXT DEFAULT '',
+        status VARCHAR(20) DEFAULT 'needed', -- needed, bought
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS gift_participants (
+        id SERIAL PRIMARY KEY,
+        gift_id INTEGER REFERENCES gifts(id) ON DELETE CASCADE,
+        member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+        contribution_amount INTEGER DEFAULT 0,
+        joined_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(gift_id, member_id)
+      );
+
       -- Performance indexes on foreign keys used in JOINs and WHERE clauses
       CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
       CREATE INDEX IF NOT EXISTS idx_activity_participations_activity_id ON activity_participations(activity_id);
       CREATE INDEX IF NOT EXISTS idx_activity_participations_member_id ON activity_participations(member_id);
+      CREATE INDEX IF NOT EXISTS idx_gifts_created_by ON gifts(created_by);
+      CREATE INDEX IF NOT EXISTS idx_gift_items_gift_id ON gift_items(gift_id);
+      CREATE INDEX IF NOT EXISTS idx_gift_participants_gift_id ON gift_participants(gift_id);
+      CREATE INDEX IF NOT EXISTS idx_gift_participants_member_id ON gift_participants(member_id);
       CREATE INDEX IF NOT EXISTS idx_meals_meal_plan_id ON meals(meal_plan_id);
       CREATE INDEX IF NOT EXISTS idx_meals_date ON meals(date);
       CREATE INDEX IF NOT EXISTS idx_participations_meal_id ON participations(meal_id);

@@ -26,6 +26,9 @@ const ActivityDetail = lazy(() => import("@/pages/activities/detail"));
 
 // Community Module
 const Members = lazy(() => import("@/pages/Members"));
+const GiftsList = lazy(() => import("@/pages/gifts"));
+const NewGift = lazy(() => import("@/pages/gifts/new"));
+const GiftDetail = lazy(() => import("@/pages/gifts/detail"));
 
 // Finance Module
 const Costs = lazy(() => import("@/pages/Costs"));
@@ -101,6 +104,9 @@ function App() {
             
             {/* Community Module */}
             <Route path="/community/members" element={<Members />} />
+            <Route path="/community/gifts" element={<GiftsList />} />
+            <Route path="/community/gifts/new" element={isAdmin ? <NewGift /> : <Navigate to="/community/gifts" />} />
+            <Route path="/community/gifts/:id" element={<GiftDetail />} />
             
             {/* Finance Module */}
             <Route path="/finance/costs" element={<Costs />} />
@@ -120,6 +126,7 @@ function App() {
             <Route path="/menus" element={<Navigate to="/meals/menus" />} />
             <Route path="/meal-plan" element={<Navigate to="/meals/plan" />} />
             <Route path="/ingredients" element={<Navigate to="/finance/ingredients" />} />
+            <Route path="/gifts" element={<Navigate to="/community/gifts" />} />
             
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" />} />
