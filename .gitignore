@@ -11,6 +11,12 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+
+# Temporary scripts
+server/scripts/scraper.js
+server/scripts/normalize_ingredients.js
 
 # Editor directories and files
 .vscode/*

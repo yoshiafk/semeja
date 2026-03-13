@@ -271,6 +271,8 @@ async function initDB(retries = 3) {
         UNIQUE(gift_id, member_id)
       );
 
+      ALTER TABLE gift_items ADD COLUMN IF NOT EXISTS receipt_id INTEGER REFERENCES attachments(id) ON DELETE SET NULL;
+
       -- Performance indexes on foreign keys used in JOINs and WHERE clauses
       CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
       CREATE INDEX IF NOT EXISTS idx_activity_participations_activity_id ON activity_participations(activity_id);
