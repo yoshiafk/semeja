@@ -26,6 +26,7 @@ export interface Activity {
   max_participants: number | null;
   created_by: number;
   status: "upcoming" | "ongoing" | "completed" | "cancelled" | "archived";
+  receipt_id?: number | null;
   created_at: string;
   
   // Aggregate fields from API

@@ -56,17 +56,17 @@ router.get('/:id', async (req, res) => {
 
 // POST to create a new activity
 router.post('/', async (req, res) => {
-  const { title, description, date, time, location, cost_type, cost_amount, max_participants, created_by } = req.body;
+  const { title, description, date, time, location, cost_type, cost_amount, max_participants, created_by, receipt_id } = req.body;
   if (!title || !date || !time) {
     return res.status(400).json({ error: 'title, date, and time are required' });
   }
   
   try {
     const { rows } = await pool.query(`
-      INSERT INTO activities (title, description, date, time, location, cost_type, cost_amount, max_participants, created_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO activities (title, description, date, time, location, cost_type, cost_amount, max_participants, created_by, receipt_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
-    `, [title, description || '', date, time, location || '', cost_type || 'free', cost_amount || 0, max_participants || null, created_by]);
+    `, [title, description || '', date, time, location || '', cost_type || 'free', cost_amount || 0, max_participants || null, created_by, receipt_id || null]);
     res.status(201).json(rows[0]);
   } catch (error) {
     console.error('Error creating activity:', error);
@@ -77,7 +77,7 @@ router.post('/', async (req, res) => {
 // PUT to update activity
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { title, description, date, time, location, cost_type, cost_amount, max_participants, status } = req.body;
+  const { title, description, date, time, location, cost_type, cost_amount, max_participants, status, receipt_id } = req.body;
   
   try {
     const { rows } = await pool.query(`
@@ -90,10 +90,11 @@ router.put('/:id', async (req, res) => {
           cost_type = COALESCE($6, cost_type),
           cost_amount = COALESCE($7, cost_amount),
           max_participants = COALESCE($8, max_participants),
-          status = COALESCE($9, status)
-      WHERE id = $10
+          status = COALESCE($9, status),
+          receipt_id = COALESCE($10, receipt_id)
+      WHERE id = $11
       RETURNING *
-    `, [title, description, date, time, location, cost_type, cost_amount, max_participants, status, id]);
+    `, [title, description, date, time, location, cost_type, cost_amount, max_participants, status, receipt_id, id]);
     
     if (rows.length === 0) return res.status(404).json({ error: 'Activity not found' });
     res.json(rows[0]);

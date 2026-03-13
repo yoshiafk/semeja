@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft, Calendar, Users, Plus, Trash2, 
   CheckCircle2, Circle, DollarSign,
-  UserPlus, UserMinus
+  UserPlus, UserMinus, Receipt, FileImage
 } from "lucide-react";
+import { ReceiptUpload } from "@/components/ReceiptUpload";
+import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { 
   getGiftDetail, addGiftItem, updateGiftItem, deleteGiftItem, 
   joinGift, leaveGift, deleteGift
@@ -340,10 +342,44 @@ export default function GiftDetail() {
                     <p className={cn("text-sm font-bold truncate", item.status === 'bought' && "line-through text-muted-foreground")}>
                       {item.name}
                     </p>
-                    <p className="text-xs text-muted-foreground font-bold">
-                      {formatCurrency(item.estimated_price)}
-                    </p>
+                    <div className="flex items-center gap-2">
+                       <p className="text-xs text-muted-foreground font-bold">
+                        {formatCurrency(item.estimated_price)}
+                      </p>
+                      {item.receipt_id && (
+                        <ReceiptPreview 
+                          receiptId={item.receipt_id}
+                          digitalData={{
+                            title: item.name,
+                            amount: item.estimated_price,
+                            date: item.created_at,
+                            notes: `Keperluan: ${gift.title}`
+                          }}
+                          trigger={
+                            <button className="text-[10px] text-primary flex items-center gap-1 hover:underline font-bold">
+                              <Receipt className="h-3 w-3" /> Lihat Struk
+                            </button>
+                          }
+                        />
+                      )}
+                    </div>
                   </div>
+
+                  {item.status === 'bought' && (
+                    <ReceiptUpload 
+                      className="w-auto"
+                      initialId={item.receipt_id}
+                      onUploadSuccess={async (rid) => {
+                        await updateGiftItem(parseInt(id!), item.id, { receipt_id: rid });
+                        fetchDetail();
+                      }}
+                      onClear={async () => {
+                        await updateGiftItem(parseInt(id!), item.id, { receipt_id: null });
+                        fetchDetail();
+                      }}
+                    />
+                  )}
+
                   <Button 
                     variant="ghost" 
                     size="icon" 

@@ -30,6 +30,15 @@ async function initDB(retries = 3) {
 
   try {
     await client.query(`
+      CREATE TABLE IF NOT EXISTS attachments (
+        id SERIAL PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL,
+        content_type VARCHAR(100) NOT NULL,
+        size_bytes INTEGER NOT NULL,
+        data BYTEA NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS members (
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL UNIQUE,
@@ -129,7 +138,10 @@ async function initDB(retries = 3) {
         UNIQUE(meal_id, member_id)
       );
 
-      ALTER TABLE members ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+      ALTER TABLE members ADD COLUMN IF NOT EXISTS device_id VARCHAR(255);
+      DROP INDEX IF EXISTS idx_members_name_unique; -- Drop old unique if exists
+      -- We will use a functional index for case-insensitive uniqueness
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_members_name_lower ON members (LOWER(name));
 
       ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS stock_quantity DECIMAL(10,3) DEFAULT 0;
       ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS min_stock_threshold DECIMAL(10,3) DEFAULT 0;
@@ -158,6 +170,7 @@ async function initDB(retries = 3) {
       );
 
       ALTER TABLE purchases ADD COLUMN IF NOT EXISTS meal_plan_id INTEGER REFERENCES meal_plans(id) ON DELETE SET NULL;
+      ALTER TABLE purchases ADD COLUMN IF NOT EXISTS receipt_id INTEGER REFERENCES attachments(id) ON DELETE SET NULL;
 
       CREATE TABLE IF NOT EXISTS activities (
         id SERIAL PRIMARY KEY,
@@ -171,6 +184,7 @@ async function initDB(retries = 3) {
         max_participants INTEGER,
         created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
         status VARCHAR(20) DEFAULT 'upcoming',
+        receipt_id INTEGER REFERENCES attachments(id) ON DELETE SET NULL,
         created_at TIMESTAMP DEFAULT NOW()
       );
 
@@ -202,6 +216,7 @@ async function initDB(retries = 3) {
         actual_price INTEGER DEFAULT 0,
         url TEXT DEFAULT '',
         status VARCHAR(20) DEFAULT 'needed', -- needed, bought
+        receipt_id INTEGER REFERENCES attachments(id) ON DELETE SET NULL,
         created_at TIMESTAMP DEFAULT NOW()
       );
 

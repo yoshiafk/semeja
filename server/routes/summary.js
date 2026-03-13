@@ -567,6 +567,16 @@ router.get('/:mealPlanId', async (req, res) => {
     // Subtotal of only things we ACTUALLY need to buy (using master item price)
     const totalShoppingCost = finalShoppingList.reduce((acc, curr) => acc + curr.cost_to_buy, 0);
 
+    // 7.8 Get individual purchases for the week
+    const { rows: purchasesForWeek } = await pool.query(`
+      SELECT p.*, s.name as supplier_name, i.name as ingredient_name
+      FROM purchases p
+      LEFT JOIN suppliers s ON p.supplier_id = s.id
+      JOIN ingredients i ON p.ingredient_id = i.id
+      WHERE p.meal_plan_id = $1
+      ORDER BY p.purchased_at DESC, p.created_at DESC
+    `, [planId]);
+
     // The 'week_total' represents raw consumption value. We'll return it, but also return 'total_shopping_cost'
     res.json({
       week_total: Math.round(weekTotal),
@@ -576,6 +586,7 @@ router.get('/:mealPlanId', async (req, res) => {
       daily_breakdown: dailyBreakdown,
       member_totals: Object.values(memberTotals),
       shopping_list: finalShoppingList,
+      purchases: purchasesForWeek
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

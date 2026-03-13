@@ -8,12 +8,17 @@ const CACHE_TTL = 5_000; // 5 seconds
 
 async function fetchJSON<T>(path: string, options: RequestInit): Promise<T> {
   const token = localStorage.getItem('semeja_auth_token');
+  const deviceId = localStorage.getItem('semeja_device_id');
   
   const headers = new Headers(options.headers);
   headers.set('Content-Type', 'application/json');
 
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  if (deviceId) {
+    headers.set('X-Device-ID', deviceId);
   }
 
   const response = await fetch(`${BASE_URL}${path}`, {
@@ -139,6 +144,7 @@ export interface GiftItem {
   actual_price: number;
   url: string;
   status: 'needed' | 'bought';
+  receipt_id?: number | null;
   created_at: string;
 }
 

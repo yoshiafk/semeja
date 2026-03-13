@@ -87,7 +87,7 @@ router.get('/ingredient/:id', async (req, res) => {
 
 // POST new purchase
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
-  const { ingredient_id, supplier_name, quantity, total_price, purchased_at, notes, update_stock, meal_plan_id } = req.body;
+  const { ingredient_id, supplier_name, quantity, total_price, purchased_at, notes, update_stock, meal_plan_id, receipt_id } = req.body;
 
   if (!ingredient_id || !supplier_name || !quantity || !total_price) {
     return res.status(400).json({ error: 'ingredient_id, supplier_name, quantity, and total_price are required' });
@@ -115,10 +115,10 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
     const purchaseDate = purchased_at || new Date().toISOString().split('T')[0];
     const { rows: purchaseRows } = await client.query(
       `INSERT INTO purchases 
-        (ingredient_id, supplier_id, quantity, total_price, purchased_at, notes, meal_plan_id) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) 
+        (ingredient_id, supplier_id, quantity, total_price, purchased_at, notes, meal_plan_id, receipt_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
        RETURNING *`,
-      [ingredient_id, supplier_id, quantity, total_price, purchaseDate, notes || '', meal_plan_id || null]
+      [ingredient_id, supplier_id, quantity, total_price, purchaseDate, notes || '', meal_plan_id || null, receipt_id || null]
     );
 
     const newPurchase = purchaseRows[0];

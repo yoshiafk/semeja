@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Receipt, TrendingUp, Users, ShoppingCart, Check, Plus, CalendarDays, Download } from "lucide-react";
-import { formatRupiah } from "@/lib/utils";
+import { Loader2, Receipt, TrendingUp, Users, ShoppingCart, Check, Plus, CalendarDays, Download, FileImage } from "lucide-react";
+import { formatRupiah, cn, formatDate } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
 import { exportShoppingListPDF } from "@/lib/pdf-export";
+import { ReceiptUpload } from "@/components/ReceiptUpload";
+import { ReceiptPreview } from "@/components/ReceiptPreview";
 
 interface CostSummary {
   week_total: number;
@@ -48,6 +50,15 @@ interface CostSummary {
     price_per_unit: number;
     cheapest_supplier: string | null;
   }>;
+  purchases: Array<{
+    id: number;
+    ingredient_name: string;
+    supplier_name: string;
+    quantity: number;
+    total_price: number;
+    purchased_at: string;
+    receipt_id: number | null;
+  }>;
 }
 
 export default function Costs() {
@@ -58,7 +69,7 @@ export default function Costs() {
   
   const [isPurchaseOpen, setIsPurchaseOpen] = useState(false);
   const [selectedIngredient, setSelectedIngredient] = useState<{ id?: number; name: string; qty: number; unit: string } | null>(null);
-  const [formData, setFormData] = useState({ supplier_name: "", quantity: "", total_price: "", notes: "" });
+  const [formData, setFormData] = useState({ supplier_name: "", quantity: "", total_price: "", notes: "", receipt_id: null as number | null });
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -110,10 +121,11 @@ export default function Costs() {
         quantity: parseFloat(formData.quantity),
         total_price: parseInt(formData.total_price),
         update_stock: true,
-        meal_plan_id: activePlanId
+        meal_plan_id: activePlanId,
+        receipt_id: formData.receipt_id
       });
       setIsPurchaseOpen(false);
-      setFormData({ supplier_name: "", quantity: "", total_price: "", notes: "" });
+      setFormData({ supplier_name: "", quantity: "", total_price: "", notes: "", receipt_id: null });
       toast.success("Pembelian berhasil dicatat dan ditagihkan!");
       
       setLoading(true);
@@ -469,6 +481,62 @@ export default function Costs() {
                     </div>
                   ))}
                 </div>
+
+                {/* Purchase History Section */}
+                {data.purchases && data.purchases.length > 0 && (
+                  <div className="mt-8 pt-6 border-t border-border/50 space-y-4">
+                    <h3 className="text-xs font-semibold text-muted-foreground/70 flex items-center gap-1.5 uppercase tracking-wider">
+                      <TrendingUp className="h-3.5 w-3.5" /> Riwayat Belanja Pekan Ini
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {data.purchases.map((p) => (
+                        <div key={p.id} className="bg-white border border-border/50 rounded-xl p-3 flex items-center justify-between group hover:shadow-sm transition-shadow">
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 bg-secondary/80 rounded-lg flex items-center justify-center text-muted-foreground group-hover:bg-primary/5 group-hover:text-primary transition-colors">
+                              <Receipt className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-foreground truncate">{p.ingredient_name}</p>
+                              <p className="text-[10px] text-muted-foreground/70 truncate flex items-center gap-1">
+                                <span>{p.supplier_name}</span>
+                                <span>•</span>
+                                <span>{formatDate(p.purchased_at)}</span>
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right flex items-center gap-3">
+                            <div>
+                              <p className="text-sm font-black text-primary">{formatRupiah(p.total_price)}</p>
+                              <p className="text-[10px] text-muted-foreground/70">{p.quantity} unit</p>
+                            </div>
+                            <ReceiptPreview 
+                              receiptId={p.receipt_id}
+                              digitalData={{
+                                title: p.ingredient_name,
+                                amount: p.total_price,
+                                date: p.purchased_at,
+                                location: p.supplier_name,
+                                notes: `Pembelian ${p.quantity} unit ${p.ingredient_name}`
+                              }}
+                              trigger={
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className={cn(
+                                    "h-8 w-8 rounded-lg",
+                                    p.receipt_id ? "text-emerald-600 bg-emerald-50" : "text-muted-foreground/40 bg-secondary/50"
+                                  )}
+                                >
+                                  <FileImage className="h-4 w-4" />
+                                </Button>
+                              }
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </>
@@ -500,6 +568,14 @@ export default function Costs() {
               <Check className="h-3.5 w-3.5 text-info" />
               <p className="text-xs text-info">Biaya ini akan langsung ditagihkan ke warga secara otomatis.</p>
             </div>
+
+            <ReceiptUpload 
+              label="Lampirkan Struk Belanja (Opsional)"
+              onUploadSuccess={(id) => setFormData(prev => ({ ...prev, receipt_id: id }))}
+              onClear={() => setFormData(prev => ({ ...prev, receipt_id: null }))}
+              initialId={formData.receipt_id}
+            />
+
             <Button type="submit" disabled={isSaving} className="w-full h-10 rounded-xl text-sm font-semibold">
               {isSaving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Simpan Tagihan Aktual

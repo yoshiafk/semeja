@@ -35,16 +35,11 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const HOUSE_KEY_STORAGE = 'semeja_house_key';
   const TOKEN_STORAGE_KEY = 'semeja_auth_token';
 
-  const encodeData = (data: string) => {
-    try {
-      return btoa(encodeURIComponent(data));
-    } catch {
-      return data;
-    }
-  };
+  const encodeData = (data: string) => data; // No longer encoding for simplicity and bug prevention
 
   const decodeData = (data: string) => {
     try {
+      // Transition: Try to decode if looks like base64, else return as is
       return decodeURIComponent(atob(data));
     } catch {
       return data;
@@ -99,12 +94,25 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, []);
 
   useEffect(() => {
+    // 1. Ensure Device ID exists
+    if (!localStorage.getItem('semeja_device_id')) {
+      localStorage.setItem('semeja_device_id', crypto.randomUUID());
+    }
+
     const rawSavedKey = localStorage.getItem(HOUSE_KEY_STORAGE);
     if (rawSavedKey) {
       setHasHouseKey(true);
       const rawSavedName = localStorage.getItem(STORAGE_KEY);
       if (rawSavedName) {
         const savedName = decodeData(rawSavedName);
+        
+        // Cleanup weird symbols if they were accidentally saved literally
+        if (savedName.includes('%') || savedName.includes(' ') && savedName.length > 20) {
+           // If it looks corrupted, skip auto-login
+           setLoading(false);
+           return;
+        }
+
         loadMember(savedName).catch((err) => {
           if (err.message === 'PASSWORD_REQUIRED') {
             setPendingPasswordName(savedName);

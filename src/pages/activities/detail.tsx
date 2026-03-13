@@ -9,6 +9,9 @@ import { id as idLocale } from "date-fns/locale";
 import { MapPin, Users, Calendar, Clock, ArrowLeft, Loader2, Info, Archive, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { ReceiptUpload } from "@/components/ReceiptUpload";
+import { ReceiptPreview } from "@/components/ReceiptPreview";
+import { Receipt } from "lucide-react";
 
 export default function ActivityDetail() {
   const { id } = useParams<{ id: string }>();
@@ -180,6 +183,44 @@ export default function ActivityDetail() {
                 <p className="font-medium text-foreground">{costDisplay}</p>
               </div>
             </div>
+
+            {/* Receipt Section */}
+            {(isAdmin || activity.created_by === member?.id || activity.receipt_id) && (
+              <div className="pt-4 border-t border-border/30 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <Receipt className="h-3.5 w-3.5" /> Bukti Pembayaran
+                  </div>
+                  {activity.receipt_id && (
+                    <ReceiptPreview 
+                      receiptId={activity.receipt_id}
+                      digitalData={{
+                        title: activity.title,
+                        amount: activity.cost_amount,
+                        date: activity.date,
+                        location: activity.location,
+                        notes: activity.description
+                      }}
+                    />
+                  )}
+                </div>
+                
+                {(isAdmin || activity.created_by === member?.id) && (
+                  <ReceiptUpload 
+                    initialId={activity.receipt_id}
+                    onUploadSuccess={async (rid) => {
+                      await updateActivity(activity.id, { receipt_id: rid });
+                      await loadActivity(true);
+                    }}
+                    onClear={async () => {
+                      await updateActivity(activity.id, { receipt_id: null });
+                      await loadActivity(true);
+                    }}
+                    label=""
+                  />
+                )}
+              </div>
+            )}
           </div>
         </div>
 

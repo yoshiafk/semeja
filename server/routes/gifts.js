@@ -100,15 +100,15 @@ router.put('/:id', async (req, res) => {
 // POST to add item to gift
 router.post('/:id/items', async (req, res) => {
   const { id } = req.params;
-  const { name, estimated_price, url } = req.body;
+  const { name, estimated_price, url, receipt_id } = req.body;
   if (!name) return res.status(400).json({ error: 'item name is required' });
 
   try {
     const { rows } = await pool.query(`
-      INSERT INTO gift_items (gift_id, name, estimated_price, url)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO gift_items (gift_id, name, estimated_price, url, receipt_id)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
-    `, [id, name, estimated_price || 0, url || '']);
+    `, [id, name, estimated_price || 0, url || '', receipt_id || null]);
     res.status(201).json(rows[0]);
   } catch (error) {
     console.error('Error adding gift item:', error);
@@ -119,7 +119,7 @@ router.post('/:id/items', async (req, res) => {
 // PUT to update gift item
 router.put('/:id/items/:itemId', async (req, res) => {
   const { itemId } = req.params;
-  const { name, estimated_price, actual_price, url, status } = req.body;
+  const { name, estimated_price, actual_price, url, status, receipt_id } = req.body;
   
   try {
     const { rows } = await pool.query(`
@@ -128,10 +128,11 @@ router.put('/:id/items/:itemId', async (req, res) => {
           estimated_price = COALESCE($2, estimated_price),
           actual_price = COALESCE($3, actual_price),
           url = COALESCE($4, url),
-          status = COALESCE($5, status)
-      WHERE id = $6
+          status = COALESCE($5, status),
+          receipt_id = COALESCE($6, receipt_id)
+      WHERE id = $7
       RETURNING *
-    `, [name, estimated_price, actual_price, url, status, itemId]);
+    `, [name, estimated_price, actual_price, url, status, receipt_id, itemId]);
     
     if (rows.length === 0) return res.status(404).json({ error: 'Item not found' });
     res.json(rows[0]);
