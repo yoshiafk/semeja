@@ -28,6 +28,16 @@ router.post('/', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'meal_id and member_id required' });
   }
   try {
+    // Check if the meal has any menu items
+    const { rows: items } = await pool.query(
+      'SELECT id FROM meal_menu_items WHERE meal_id = $1 LIMIT 1',
+      [meal_id]
+    );
+
+    if (items.length === 0) {
+      return res.status(400).json({ error: 'Cannot join a meal that has no menu items yet' });
+    }
+
     const { rows } = await pool.query(
       `INSERT INTO participations (meal_id, member_id) VALUES ($1, $2)
        ON CONFLICT (meal_id, member_id) DO NOTHING

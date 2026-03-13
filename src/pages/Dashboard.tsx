@@ -283,9 +283,10 @@ export default function Dashboard() {
                       "h-9 px-4 rounded-xl text-xs font-semibold transition-all",
                       isJoined
                         ? "bg-primary hover:bg-primary/90 shadow-none"
-                        : "border-border text-muted-foreground hover:bg-primary/5 hover:text-primary hover:border-primary/20"
+                        : "border-border text-muted-foreground hover:bg-primary/5 hover:text-primary hover:border-primary/20",
+                      !isJoined && (!meal.items || meal.items.length === 0) && "opacity-50 cursor-not-allowed"
                     )}
-                    disabled={isToggling}
+                    disabled={isToggling || (!isJoined && (!meal.items || meal.items.length === 0))}
                     onClick={() => toggleJoin(meal.id)}
                   >
                     {isToggling ? (
@@ -294,6 +295,10 @@ export default function Dashboard() {
                       <>
                         <Check className="mr-1.5 h-3.5 w-3.5 stroke-[2.5px]" />
                         Ikut!
+                      </>
+                    ) : (!meal.items || meal.items.length === 0) ? (
+                      <>
+                        Menu Kosong
                       </>
                     ) : (
                       <>

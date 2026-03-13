@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft, Calendar, Users, Plus, Trash2, 
   CheckCircle2, Circle, DollarSign,
-  UserPlus, UserMinus, Receipt
+  UserPlus, UserMinus, Receipt, Loader2
 } from "lucide-react";
 import { ReceiptUpload } from "@/components/ReceiptUpload";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
@@ -30,6 +30,7 @@ export default function GiftDetail() {
   const [gift, setGift] = useState<GiftDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [togglingItems, setTogglingItems] = useState<number[]>([]);
   
   // State for new item form
   const [newItem, setNewItem] = useState({ name: "", estimated_price: "" });
@@ -98,6 +99,7 @@ export default function GiftDetail() {
   };
 
   const toggleItemStatus = async (itemId: number, currentStatus: string) => {
+    setTogglingItems(prev => [...prev, itemId]);
     try {
       await updateGiftItem(parseInt(id!), itemId, {
         status: currentStatus === 'needed' ? 'bought' : 'needed'
@@ -105,6 +107,8 @@ export default function GiftDetail() {
       fetchDetail();
     } catch (error) {
       toast.error("Failed to update status");
+    } finally {
+      setTogglingItems(prev => prev.filter(id => id !== itemId));
     }
   };
 
@@ -331,12 +335,20 @@ export default function GiftDetail() {
                 >
                   <button 
                     onClick={() => toggleItemStatus(item.id, item.status)}
+                    disabled={togglingItems.includes(item.id)}
                     className={cn(
                       "p-1 rounded-full transition-colors",
-                      item.status === 'bought' ? "text-green-500" : "text-muted-foreground/30 hover:text-primary/40"
+                      item.status === 'bought' ? "text-green-500" : "text-muted-foreground/30 hover:text-primary/40",
+                      togglingItems.includes(item.id) && "animate-pulse"
                     )}
                   >
-                    {item.status === 'bought' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
+                    {togglingItems.includes(item.id) ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-primary/50" />
+                    ) : item.status === 'bought' ? (
+                      <CheckCircle2 className="w-6 h-6" />
+                    ) : (
+                      <Circle className="w-6 h-6" />
+                    )}
                   </button>
                   <div className="flex-1 min-w-0">
                     <p className={cn("text-sm font-bold truncate", item.status === 'bought' && "line-through text-muted-foreground")}>
