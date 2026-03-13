@@ -5,7 +5,6 @@ const isServerless = !!process.env.VERCEL;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgres://mealplan:mealplan123@localhost:5432/mealplan',
   ssl: isServerless ? { rejectUnauthorized: false } : false,
-  // Serverless: fewer connections + aggressive cleanup
   max: isServerless ? 5 : 10,
   idleTimeoutMillis: isServerless ? 15_000 : 30_000,
   connectionTimeoutMillis: isServerless ? 30_000 : 5_000,
@@ -140,8 +139,17 @@ async function initDB(retries = 3) {
 
       ALTER TABLE members ADD COLUMN IF NOT EXISTS device_id VARCHAR(255);
       DROP INDEX IF EXISTS idx_members_name_unique; -- Drop old unique if exists
+      
       -- We will use a functional index for case-insensitive uniqueness
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_members_name_lower ON members (LOWER(name));
+      -- Wrap in a block to handle existing duplicates gracefully with a clear message
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = 'idx_members_name_lower') THEN
+          CREATE UNIQUE INDEX idx_members_name_lower ON members (LOWER(name));
+        END IF;
+      EXCEPTION WHEN unique_violation THEN
+        RAISE NOTICE 'Caught duplicate members. Please run server/scripts/merge_duplicate_members.js';
+      END $$;
 
       ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS stock_quantity DECIMAL(10,3) DEFAULT 0;
       ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS min_stock_threshold DECIMAL(10,3) DEFAULT 0;
