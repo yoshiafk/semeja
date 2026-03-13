@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft, Calendar, Users, Plus, Trash2, 
   CheckCircle2, Circle, DollarSign,
-  UserPlus, UserMinus, Receipt, FileImage
+  UserPlus, UserMinus, Receipt
 } from "lucide-react";
 import { ReceiptUpload } from "@/components/ReceiptUpload";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
