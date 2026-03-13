@@ -40,7 +40,10 @@ export const IngredientCard = React.memo(({
   isLoadingHistory
 }: IngredientCardProps) => {
   return (
-    <div className="rounded-2xl border border-border/50 bg-white hover:border-border transition-all group overflow-hidden">
+    <div className={cn(
+      "rounded-2xl border border-border/50 bg-white hover:border-border transition-all group overflow-hidden",
+      isDeleting && "opacity-40 grayscale-[0.5] pointer-events-none scale-[0.98]"
+    )}>
       <div className="p-4 space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between">

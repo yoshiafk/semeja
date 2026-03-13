@@ -109,8 +109,11 @@ export default function Ingredients() {
     try {
       setIsDeleting(id);
       await api.delete(`/ingredients/${id}`);
-      fetchIngredients(true);
+      // Optimistic update: remove from local state immediately
+      setIngredients(prev => prev.filter(ing => ing.id !== id));
       toast.success("Bahan berhasil dihapus!");
+      // Still fetch in background to ensure sync, but silently
+      fetchIngredients(true);
     } catch (err) {
       toast.error("Gagal menghapus: " + err);
     } finally {
