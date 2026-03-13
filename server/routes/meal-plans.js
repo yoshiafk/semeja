@@ -12,13 +12,23 @@ router.get('/', async (req, res) => {
     const planIds = plans.map(p => p.id);
     let allMeals = [];
     if (planIds.length > 0) {
-      const { rows } = await pool.query(
+      const { rows: meals } = await pool.query(
         `SELECT m.*,
           (SELECT COUNT(*) FROM participations p WHERE p.meal_id = m.id) as participant_count
          FROM meals m WHERE m.meal_plan_id = ANY($1::int[]) ORDER BY m.date`,
         [planIds]
       );
-      allMeals = rows;
+      
+      const { rows: items } = await pool.query(
+        'SELECT * FROM meal_menu_items WHERE meal_id = ANY($1::int[]) ORDER BY sort_order ASC',
+        [meals.map(m => m.id)]
+      );
+
+      for (const meal of meals) {
+        meal.items = items.filter(it => it.meal_id === meal.id);
+      }
+      
+      allMeals = meals;
     }
     for (const plan of plans) {
       plan.meals = allMeals.filter(m => m.meal_plan_id === plan.id);
@@ -38,13 +48,23 @@ router.get('/active', async (req, res) => {
     const planIds = plans.map(p => p.id);
     let allMeals = [];
     if (planIds.length > 0) {
-      const { rows } = await pool.query(
+      const { rows: meals } = await pool.query(
         `SELECT m.*,
           (SELECT COUNT(*) FROM participations p WHERE p.meal_id = m.id) as participant_count
          FROM meals m WHERE m.meal_plan_id = ANY($1::int[]) ORDER BY m.date`,
         [planIds]
       );
-      allMeals = rows;
+      
+      const { rows: items } = await pool.query(
+        'SELECT * FROM meal_menu_items WHERE meal_id = ANY($1::int[]) ORDER BY sort_order ASC',
+        [meals.map(m => m.id)]
+      );
+
+      for (const meal of meals) {
+        meal.items = items.filter(it => it.meal_id === meal.id);
+      }
+      
+      allMeals = meals;
     }
     for (const plan of plans) {
       plan.meals = allMeals.filter(m => m.meal_plan_id === plan.id);

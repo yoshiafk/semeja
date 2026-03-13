@@ -16,16 +16,19 @@ interface Recipe {
   category: 'Lauk' | 'Sayur' | 'Dessert';
 }
 
+interface MealMenuItem {
+  id: number;
+  recipe_id: number | null;
+  custom_name: string;
+  category: 'main' | 'second' | 'dessert';
+  sort_order: number;
+}
+
 interface Meal {
   id: number;
   date: string;
   day_name: string;
-  main_course_menu: string;
-  main_course_recipe_id: number | null;
-  second_course_menu: string;
-  second_course_recipe_id: number | null;
-  dessert_menu: string;
-  dessert_recipe_id: number | null;
+  items: MealMenuItem[];
   requires_rice: boolean;
 }
 

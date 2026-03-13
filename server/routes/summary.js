@@ -66,12 +66,14 @@ router.get('/member/:memberId', async (req, res) => {
       );
       const riceIngredient = riceRows[0];
       
+      // 3. Get all meal menu items for this plan
+      const { rows: mealMenuItems } = await pool.query(
+        'SELECT * FROM meal_menu_items WHERE meal_id = ANY(SELECT id FROM meals WHERE meal_plan_id = $1)',
+        [plan.id]
+      );
+      
       // Batch fetch recipe ingredients
-      const allRecipeIds = [...new Set([
-        ...meals.map(m => m.main_course_recipe_id),
-        ...meals.map(m => m.second_course_recipe_id),
-        ...meals.map(m => m.dessert_recipe_id)
-      ].filter(id => id != null))];
+      const allRecipeIds = [...new Set(mealMenuItems.map(it => it.recipe_id).filter(id => id != null))];
       
       let allRecipeIngredients = [];
       if (allRecipeIds.length > 0) {
@@ -94,21 +96,19 @@ router.get('/member/:memberId', async (req, res) => {
         
         let dayCost = 0;
         
-        // Calculate ingredients cost
-        const processRecipeIngredients = (recipeId) => {
-          if (!recipeId) return;
-          const ings = allRecipeIngredients.filter(i => i.recipe_id === recipeId && i.name !== 'Beras');
-          ings.forEach(ing => {
-            const qtyPerPerson = parseFloat(ing.quantity_per_person) || parseFloat(ing.amount_per_person) || 0;
-            const totalQty = qtyPerPerson * pCount;
-            const pricePerUnit = parseFloat(ing.price_per_unit) || 0;
-            dayCost += totalQty * pricePerUnit;
-          });
-        };
-        
-        processRecipeIngredients(meal.main_course_recipe_id);
-        processRecipeIngredients(meal.second_course_recipe_id);
-        processRecipeIngredients(meal.dessert_recipe_id);
+        // Calculate ingredients cost from all items
+        const currentMealItems = mealMenuItems.filter(i => i.meal_id === meal.id);
+        currentMealItems.forEach(item => {
+          if (item.recipe_id) {
+            const ings = allRecipeIngredients.filter(i => i.recipe_id === item.recipe_id && i.name !== 'Beras');
+            ings.forEach(ing => {
+              const qtyPerPerson = parseFloat(ing.quantity_per_person) || parseFloat(ing.amount_per_person) || 0;
+              const totalQty = qtyPerPerson * pCount;
+              const pricePerUnit = parseFloat(ing.price_per_unit) || 0;
+              dayCost += totalQty * pricePerUnit;
+            });
+          }
+        });
         
         // Add rice if required
         if (meal.requires_rice && riceIngredient) {
@@ -273,24 +273,27 @@ router.get('/:mealPlanId', async (req, res) => {
     const shoppingList = {};
     let weekTotal = 0;
 
-    // --- BATCH FETCH ALL REQUIRED DATA TO AVOID N+1 QUERIES ---
     let manualIngredientRows = [];
     const mealIds = meals.map(m => m.id);
+    let mealMenuItems = [];
     if (mealIds.length > 0) {
-      const { rows } = await pool.query(
+      const { rows: ingredients } = await pool.query(
         `SELECT mi.*, i.name, i.unit, i.price_per_unit, i.stock_quantity, i.category
          FROM meal_ingredients mi
          JOIN ingredients i ON mi.ingredient_id = i.id
          WHERE mi.meal_id = ANY($1::int[])`,
         [mealIds]
       );
-      manualIngredientRows = rows;
+      manualIngredientRows = ingredients;
+
+      const { rows: items } = await pool.query(
+        'SELECT * FROM meal_menu_items WHERE meal_id = ANY($1::int[]) ORDER BY sort_order ASC',
+        [mealIds]
+      );
+      mealMenuItems = items;
     }
 
-    const mainRecipeIds = meals.map(m => m.main_course_recipe_id).filter(id => id != null);
-    const secondRecipeIds = meals.map(m => m.second_course_recipe_id).filter(id => id != null);
-    const dessertRecipeIds = meals.map(m => m.dessert_recipe_id).filter(id => id != null);
-    const allRecipeIds = [...new Set([...mainRecipeIds, ...secondRecipeIds, ...dessertRecipeIds])];
+    const allRecipeIds = [...new Set(mealMenuItems.map(it => it.recipe_id).filter(id => id != null))];
 
     let allRecipeIngredients = [];
     if (allRecipeIds.length > 0) {
@@ -380,35 +383,17 @@ router.get('/:mealPlanId', async (req, res) => {
       const manualIngredients = manualIngredientRows.filter(ing => ing.meal_id === meal.id);
       manualIngredients.forEach(ing => processIngredient(ing, ing.meal_type));
 
-      // 4. Process Recipe Ingredients (Main Course - Lauk)
-      if (meal.main_course_recipe_id) {
-         const mainRecipeIngs = allRecipeIngredients.filter(ing => ing.recipe_id === meal.main_course_recipe_id);
-         mainRecipeIngs.forEach(ing => {
-            // Skip 'Beras' from recipes as it's now handled by the global toggle
+      // 4. Process Recipe Ingredients from all menu items
+      const currentMealItems = mealMenuItems.filter(it => it.meal_id === meal.id);
+      currentMealItems.forEach(item => {
+        if (item.recipe_id) {
+          const recipeIngs = allRecipeIngredients.filter(ing => ing.recipe_id === item.recipe_id);
+          recipeIngs.forEach(ing => {
             if (ing.name === 'Beras') return;
-            processIngredient(ing, 'main');
-         });
-      }
-
-      // 5. Process Recipe Ingredients (Second Course - Sayur)
-      if (meal.second_course_recipe_id) {
-         const secondRecipeIngs = allRecipeIngredients.filter(ing => ing.recipe_id === meal.second_course_recipe_id);
-         secondRecipeIngs.forEach(ing => {
-            // Skip 'Beras' from recipes as it's now handled by the global toggle
-            if (ing.name === 'Beras') return;
-            processIngredient(ing, 'second');
-         });
-      }
-
-      // 6. Process Recipe Ingredients (Dessert - Pencuci Mulut)
-      if (meal.dessert_recipe_id) {
-         const dessertRecipeIngs = allRecipeIngredients.filter(ing => ing.recipe_id === meal.dessert_recipe_id);
-         dessertRecipeIngs.forEach(ing => {
-            // Skip 'Beras' from recipes as it's now handled by the global toggle
-            if (ing.name === 'Beras') return;
-            processIngredient(ing, 'dessert');
-         });
-      }
+            processIngredient(ing, item.category);
+          });
+        }
+      });
 
       // 6.5 Add Rice (Beras) if required for this meal
       if (meal.requires_rice && riceIngredient) {
@@ -435,9 +420,10 @@ router.get('/:mealPlanId', async (req, res) => {
         meal_id: meal.id,
         date: meal.date,
         day_name: meal.day_name,
-        main_course_menu: meal.main_course_menu,
-        second_course_menu: meal.second_course_menu,
-        dessert_menu: meal.dessert_menu,
+        items: currentMealItems,
+        main_course_menu: currentMealItems.filter(i => i.category === 'main').map(i => i.custom_name || 'Resep').join(', '),
+        second_course_menu: currentMealItems.filter(i => i.category === 'second').map(i => i.custom_name || 'Resep').join(', '),
+        dessert_menu: currentMealItems.filter(i => i.category === 'dessert').map(i => i.custom_name || 'Resep').join(', '),
         participant_count: pCount,
         total_cost: Math.round(dayCost),
         cost_per_person: costPerPerson,

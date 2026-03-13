@@ -22,6 +22,46 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET current member (session recovery)
+router.get('/me', async (req, res) => {
+  const deviceId = req.headers['x-device-id'];
+  const authHeader = req.headers['authorization'];
+  let userId = null;
+
+  // 1. Try to get ID from JWT if present
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      const decoded = require('../middleware/auth').verifyToken(token);
+      if (decoded) userId = decoded.id;
+    } catch (e) {
+      // Token invalid, fallback to device_id
+    }
+  }
+
+  try {
+    let user;
+    if (userId) {
+      const { rows } = await pool.query('SELECT id, name, role, device_id FROM members WHERE id = $1', [userId]);
+      user = rows[0];
+    } else if (deviceId) {
+      const { rows } = await pool.query('SELECT id, name, role, device_id FROM members WHERE device_id = $1', [deviceId]);
+      // Only auto-login standard members via device_id alone
+      if (rows.length > 0 && rows[0].role === 'member') {
+        user = rows[0];
+      }
+    }
+
+    if (!user) {
+      return res.status(401).json({ error: 'Session not found' });
+    }
+
+    res.json({ ...user, token: generateToken(user) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST - register/login by name (upsert logic)
 router.post('/', loginLimiter, async (req, res) => {
   const { name, password } = req.body;

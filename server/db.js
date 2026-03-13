@@ -129,6 +129,40 @@ async function initDB(retries = 3) {
         meal_type VARCHAR(10) NOT NULL,
         UNIQUE(meal_id, ingredient_id, meal_type)
       );
+      
+      CREATE TABLE IF NOT EXISTS meal_menu_items (
+        id SERIAL PRIMARY KEY,
+        meal_id INTEGER REFERENCES meals(id) ON DELETE CASCADE,
+        recipe_id INTEGER REFERENCES recipes(id) ON DELETE SET NULL,
+        custom_name VARCHAR(200),
+        category VARCHAR(20) NOT NULL, -- 'main', 'second', 'dessert'
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      -- Migration: Move existing meal columns to meal_menu_items if table was empty
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM meal_menu_items LIMIT 1) THEN
+          -- Migrate Main Course
+          INSERT INTO meal_menu_items (meal_id, recipe_id, custom_name, category, sort_order)
+          SELECT id, main_course_recipe_id, main_course_menu, 'main', 0
+          FROM meals 
+          WHERE main_course_menu != '' OR main_course_recipe_id IS NOT NULL;
+
+          -- Migrate Second Course
+          INSERT INTO meal_menu_items (meal_id, recipe_id, custom_name, category, sort_order)
+          SELECT id, second_course_recipe_id, second_course_menu, 'second', 0
+          FROM meals 
+          WHERE second_course_menu != '' OR second_course_recipe_id IS NOT NULL;
+
+          -- Migrate Dessert
+          INSERT INTO meal_menu_items (meal_id, recipe_id, custom_name, category, sort_order)
+          SELECT id, dessert_recipe_id, dessert_menu, 'dessert', 0
+          FROM meals 
+          WHERE dessert_menu != '' OR dessert_recipe_id IS NOT NULL;
+        END IF;
+      END $$;
 
       CREATE TABLE IF NOT EXISTS participations (
         id SERIAL PRIMARY KEY,

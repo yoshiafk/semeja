@@ -94,36 +94,58 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, []);
 
   useEffect(() => {
-    // 1. Ensure Device ID exists
-    if (!localStorage.getItem('semeja_device_id')) {
-      localStorage.setItem('semeja_device_id', crypto.randomUUID());
-    }
+    const initialize = async () => {
+      // 1. Ensure Device ID exists
+      if (!localStorage.getItem('semeja_device_id')) {
+        localStorage.setItem('semeja_device_id', crypto.randomUUID());
+      }
 
-    const rawSavedKey = localStorage.getItem(HOUSE_KEY_STORAGE);
-    if (rawSavedKey) {
+      const rawSavedKey = localStorage.getItem(HOUSE_KEY_STORAGE);
+      if (!rawSavedKey) {
+        setLoading(false);
+        return;
+      }
+      
       setHasHouseKey(true);
+
+      // 2. Try Silent Session Recovery via /me
+      try {
+        const data = await api.get<any>('/members/me');
+        if (data.id) {
+          setMember({ id: data.id, name: data.name, role: data.role } as Member);
+          if (data.token) {
+            localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
+          }
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        // Silently fail and proceed to legacy name-based check
+      }
+
+      // 3. Fallback: Check local storage for name
       const rawSavedName = localStorage.getItem(STORAGE_KEY);
       if (rawSavedName) {
         const savedName = decodeData(rawSavedName);
         
-        // Cleanup weird symbols if they were accidentally saved literally
-        if (savedName.includes('%') || savedName.includes(' ') && savedName.length > 20) {
-           // If it looks corrupted, skip auto-login
+        if (savedName.includes('%') || (savedName.includes(' ') && savedName.length > 20)) {
            setLoading(false);
            return;
         }
 
-        loadMember(savedName).catch((err) => {
+        try {
+          await loadMember(savedName);
+        } catch (err: any) {
           if (err.message === 'PASSWORD_REQUIRED') {
             setPendingPasswordName(savedName);
           }
-        });
-      } else {
-        setLoading(false);
+        }
       }
-    } else {
+      
       setLoading(false);
-    }
+    };
+
+    initialize();
   }, [loadMember]);
 
   const isAdmin = member?.role === 'admin' || member?.role === 'superadmin';

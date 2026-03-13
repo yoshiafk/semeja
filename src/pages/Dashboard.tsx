@@ -7,13 +7,18 @@ import { cn, formatDate, formatDayName, formatShortDate } from "@/lib/utils";
 import { Loader2, Plus, Check, CalendarDays } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+interface MealMenuItem {
+  id: number;
+  recipe_id: number | null;
+  custom_name: string;
+  category: 'main' | 'second' | 'dessert';
+}
+
 interface Meal {
   id: number;
   date: string;
   day_name: string;
-  main_course_menu: string;
-  second_course_menu: string;
-  dessert_menu: string;
+  items: MealMenuItem[];
   participant_count: number;
   requires_rice: boolean;
 }
@@ -213,33 +218,51 @@ export default function Dashboard() {
                   {/* Main Course */}
                   <div className="flex items-start gap-2.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0" />
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <span className="text-[10px] text-muted-foreground/70 font-medium uppercase tracking-wide">Lauk</span>
-                      <p className="text-sm font-medium text-foreground leading-snug">
-                        {meal.main_course_menu || <span className="text-muted-foreground/50 italic">Belum ditentukan</span>}
-                      </p>
+                      <div className="space-y-0.5">
+                        {meal.items?.filter(i => i.category === 'main').length > 0 ? (
+                          meal.items.filter(i => i.category === 'main').map((it, idx) => (
+                            <p key={idx} className="text-sm font-medium text-foreground leading-snug">{it.custom_name}</p>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground/40 italic">Belum ditentukan</p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Sayur */}
                   <div className="flex items-start gap-2.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <span className="text-[10px] text-muted-foreground/70 font-medium uppercase tracking-wide">Sayur</span>
-                      <p className="text-sm font-medium text-foreground leading-snug">
-                        {meal.second_course_menu || <span className="text-muted-foreground/50 italic">Belum ditentukan</span>}
-                      </p>
+                      <div className="space-y-0.5">
+                        {meal.items?.filter(i => i.category === 'second').length > 0 ? (
+                          meal.items.filter(i => i.category === 'second').map((it, idx) => (
+                            <p key={idx} className="text-sm font-medium text-foreground leading-snug">{it.custom_name}</p>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground/40 italic">Belum ditentukan</p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Dessert */}
                   <div className="flex items-start gap-2.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-violet-400 mt-1.5 shrink-0" />
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <span className="text-[10px] text-muted-foreground/70 font-medium uppercase tracking-wide">Dessert</span>
-                      <p className="text-sm font-medium text-foreground leading-snug">
-                        {meal.dessert_menu || <span className="text-muted-foreground/50 italic">Belum ditentukan</span>}
-                      </p>
+                      <div className="space-y-0.5">
+                        {meal.items?.filter(i => i.category === 'dessert').length > 0 ? (
+                          meal.items.filter(i => i.category === 'dessert').map((it, idx) => (
+                            <p key={idx} className="text-sm font-medium text-foreground leading-snug">{it.custom_name}</p>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground/40 italic">Belum ditentukan</p>
+                        )}
+                      </div>
                     </div>
                   </div>
 

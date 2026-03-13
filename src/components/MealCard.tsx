@@ -1,6 +1,6 @@
 import React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, ChefHat, Calendar } from "lucide-react";
+import { Loader2, ChefHat, Calendar, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Recipe {
@@ -9,16 +9,19 @@ interface Recipe {
   category: 'Lauk' | 'Sayur' | 'Dessert';
 }
 
+interface MealMenuItem {
+  id: number;
+  recipe_id: number | null;
+  custom_name: string;
+  category: 'main' | 'second' | 'dessert';
+  sort_order: number;
+}
+
 interface Meal {
   id: number;
   date: string;
   day_name: string;
-  main_course_menu: string;
-  main_course_recipe_id: number | null;
-  second_course_menu: string;
-  second_course_recipe_id: number | null;
-  dessert_menu: string;
-  dessert_recipe_id: number | null;
+  items: MealMenuItem[];
   requires_rice: boolean;
 }
 
@@ -39,22 +42,31 @@ export const MealCard = React.memo(({
   isSaving,
   onUpdateMeal
 }: MealCardProps) => {
-  const handleSelectChange = (type: 'main' | 'second' | 'dessert', value: string) => {
-    const rid = value === "placeholder" ? null : parseInt(value);
-    const updates: Partial<Meal> = {};
-    const key = type === 'main' ? 'main_course_recipe_id' : type === 'second' ? 'second_course_recipe_id' : 'dessert_recipe_id';
-    const menuKey = type === 'main' ? 'main_course_menu' : type === 'second' ? 'second_course_menu' : 'dessert_menu';
-    
-    updates[key] = rid;
-    if (rid) {
-      const r = recipes.find(rec => rec.id === rid);
-      if (r) updates[menuKey] = r.name;
-    } else {
-      updates[menuKey] = "";
-    }
-    
-    onUpdateMeal(meal.id, updates);
+  const items = meal.items || [];
+
+  const handleAddItem = (type: 'main' | 'second' | 'dessert', recipeId: number) => {
+    const recipe = recipes.find(r => r.id === recipeId);
+    if (!recipe) return;
+
+    const newItem: MealMenuItem = {
+      id: Math.random(), // Temporary ID for UI
+      recipe_id: recipe.id,
+      custom_name: recipe.name,
+      category: type,
+      sort_order: items.length
+    };
+
+    const updatedItems = [...items, newItem];
+    onUpdateMeal(meal.id, { items: updatedItems });
   };
+
+  const handleRemoveItem = (itemId: number) => {
+    const updatedItems = items.filter(it => it.id !== itemId);
+    onUpdateMeal(meal.id, { items: updatedItems });
+  };
+
+  const getCategoryItems = (type: 'main' | 'second' | 'dessert') => 
+    items.filter(it => it.category === type);
 
   return (
     <div className="bg-white border border-border/50 rounded-2xl overflow-hidden hover:shadow-md hover:shadow-border/50 transition-shadow">
@@ -69,34 +81,34 @@ export const MealCard = React.memo(({
 
       {/* Card Body */}
       <div className="p-5 space-y-5">
-        {/* Main Course */}
         <CourseSelector 
           label="Lauk"
           color="bg-orange-400"
-          value={meal.main_course_recipe_id}
-          isSaving={isSaving[`${meal.id}-main_course_recipe_id`]}
+          items={getCategoryItems('main')}
           recipes={recipes.filter(r => r.category === 'Lauk' || !r.category)}
-          onChange={(v: string) => handleSelectChange('main', v)}
+          onAdd={(rid: number) => handleAddItem('main', rid)}
+          onRemove={handleRemoveItem}
+          isSaving={isSaving[`${meal.id}-items`]}
         />
 
-        {/* Second Course */}
         <CourseSelector 
           label="Sayur"
           color="bg-emerald-400"
-          value={meal.second_course_recipe_id}
-          isSaving={isSaving[`${meal.id}-second_course_recipe_id`]}
+          items={getCategoryItems('second')}
           recipes={recipes.filter(r => r.category === 'Sayur')}
-          onChange={(v: string) => handleSelectChange('second', v)}
+          onAdd={(rid: number) => handleAddItem('second', rid)}
+          onRemove={handleRemoveItem}
+          isSaving={isSaving[`${meal.id}-items`]}
         />
 
-        {/* Dessert */}
         <CourseSelector 
           label="Dessert"
           color="bg-violet-400"
-          value={meal.dessert_recipe_id}
-          isSaving={isSaving[`${meal.id}-dessert_recipe_id`]}
+          items={getCategoryItems('dessert')}
           recipes={recipes.filter(r => r.category === 'Dessert')}
-          onChange={(v: string) => handleSelectChange('dessert', v)}
+          onAdd={(rid: number) => handleAddItem('dessert', rid)}
+          onRemove={handleRemoveItem}
+          isSaving={isSaving[`${meal.id}-items`]}
         />
 
         {/* Rice Toggle */}
@@ -106,7 +118,7 @@ export const MealCard = React.memo(({
             className={cn(
               "h-8 px-3 rounded-lg text-xs font-medium transition-all",
               meal.requires_rice 
-                ? "bg-primary text-white" 
+                ? "bg-primary text-white font-semibold" 
                 : "border border-border text-muted-foreground hover:bg-primary/5 hover:text-primary"
             )}
             disabled={isSaving[`${meal.id}-requires_rice`]}
@@ -124,22 +136,51 @@ export const MealCard = React.memo(({
   );
 });
 
-const CourseSelector = ({ label, color, value, isSaving, recipes, onChange }: any) => (
-  <div className="space-y-2">
+const CourseSelector = ({ label, color, items, recipes, onAdd, onRemove, isSaving }: any) => (
+  <div className="space-y-3">
     <div className="flex items-center gap-1.5">
       <div className={cn("w-1.5 h-1.5 rounded-full", color)} />
-      <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">{label}</span>
+      <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">{label}</span>
+      {isSaving && <Loader2 className="h-2.5 w-2.5 animate-spin ml-auto text-muted-foreground/40" />}
     </div>
-    <Select disabled={isSaving} value={value?.toString() || "placeholder"} onValueChange={onChange}>
-      <SelectTrigger className="h-10 w-full bg-secondary/80 border-border/50 rounded-xl text-sm font-medium hover:bg-secondary transition-colors">
-        <div className="flex items-center gap-2 truncate">
-          {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/70 shrink-0" /> : <ChefHat className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />}
-          <SelectValue placeholder="Pilih Menu..." />
+    
+    {/* Selected Items Chips */}
+    <div className="flex flex-wrap gap-1.5 min-h-[24px]">
+      {items.map((item: any) => (
+        <div 
+          key={item.id} 
+          className="flex items-center gap-1.5 px-2 py-1 bg-secondary/50 border border-border/30 rounded-lg group animate-in fade-in zoom-in duration-200"
+        >
+          <span className="text-xs font-medium text-foreground/80">{item.custom_name}</span>
+          <button 
+            type="button"
+            onClick={() => onRemove(item.id)}
+            className="text-muted-foreground/50 hover:text-rose-500 transition-colors"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      ))}
+      {items.length === 0 && (
+        <span className="text-[11px] text-muted-foreground/40 italic py-1">Belum dipilih</span>
+      )}
+    </div>
+
+    {/* Add Item Trigger */}
+    <Select value="placeholder" onValueChange={(v) => v !== "placeholder" && onAdd(parseInt(v))}>
+      <SelectTrigger className="h-8 w-full bg-secondary/30 border-dashed border-border/50 rounded-lg text-[11px] font-medium hover:bg-secondary/50 hover:border-border transition-all">
+        <div className="flex items-center gap-2">
+          <ChefHat className="h-3 w-3 text-muted-foreground/50" />
+          <SelectValue placeholder={`Tambah ${label}...`} />
         </div>
       </SelectTrigger>
-      <SelectContent className="rounded-xl border-border/50">
-        <SelectItem value="placeholder" className="text-muted-foreground/70 italic">Pilih Menu...</SelectItem>
-        {recipes.map((r: any) => <SelectItem key={r.id} value={r.id.toString()} className="font-medium">{r.name}</SelectItem>)}
+      <SelectContent className="rounded-xl border-border/50 shadow-xl">
+        <SelectItem value="placeholder" className="text-muted-foreground/50 italic text-xs">Pilih {label}...</SelectItem>
+        {recipes.map((r: any) => (
+          <SelectItem key={r.id} value={r.id.toString()} className="text-xs font-medium">
+            {r.name}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   </div>

@@ -6,6 +6,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'semeja-default-secret-change-me-in
  * Middleware to require a valid JWT token
  * Validates 'Bearer <token>' inside the Authorization header
  */
+function verifyToken(token) {
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    return null;
+  }
+}
+
 function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -13,11 +21,11 @@ function requireAuth(req, res, next) {
   }
 
   const token = authHeader.split(' ')[1];
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
+  const payload = verifyToken(token);
+  if (payload) {
     req.user = payload;
     next();
-  } catch (err) {
+  } else {
     return res.status(401).json({ error: 'Expired or invalid token' });
   }
 }
@@ -48,4 +56,5 @@ module.exports = {
   requireAuth,
   requireAdmin,
   generateToken,
+  verifyToken,
 };
