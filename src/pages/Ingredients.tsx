@@ -62,7 +62,7 @@ export default function Ingredients() {
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState<number | null>(null);
+  const [deletingIds, setDeletingIds] = useState<number[]>([]);
 
   useEffect(() => {
     fetchIngredients();
@@ -105,9 +105,11 @@ export default function Ingredients() {
   };
 
   const deleteIngredient = async (id: number) => {
+    if (deletingIds.includes(id)) return;
     if (!confirm("Hapus bahan ini?")) return;
+    
+    setDeletingIds(prev => [...prev, id]);
     try {
-      setIsDeleting(id);
       await api.delete(`/ingredients/${id}`);
       // Optimistic update: remove from local state immediately
       setIngredients(prev => prev.filter(ing => ing.id !== id));
@@ -117,7 +119,7 @@ export default function Ingredients() {
     } catch (err) {
       toast.error("Gagal menghapus: " + err);
     } finally {
-      setIsDeleting(null);
+      setDeletingIds(prev => prev.filter(did => did !== id));
     }
   };
 
@@ -250,7 +252,7 @@ export default function Ingredients() {
               <IngredientCard 
                 key={ing.id}
                 ingredient={ing}
-                isDeleting={isDeleting === ing.id}
+                isDeleting={deletingIds.includes(ing.id)}
                 onEdit={(i) => { setCurrentIng(i); setIsDialogOpen(true); }}
                 onDelete={deleteIngredient}
                 onPurchase={(i) => {
