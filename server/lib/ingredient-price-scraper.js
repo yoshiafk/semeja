@@ -25,7 +25,8 @@ const cheerio = require('cheerio');
 // CONSTANTS
 // ---------------------------------------------------------------------------
 
-const HTTP_TIMEOUT_MS = 15_000;
+const HTTP_TIMEOUT_MS = 3_000;   // per-request; keeps each scraper well under Vercel's 10 s limit
+const SCRAPER_DEADLINE_MS = 7_000; // each scraper must resolve within this; falls back to [] on timeout
 
 const USER_AGENT =
   'Mozilla/5.0 (compatible; semeja-price-bot/1.0; Jakarta ingredient price monitor)';
@@ -556,27 +557,24 @@ const MARKETPLACE_SEARCHES = [
  * Only queries volatile/high-value items to avoid rate-limiting.
  */
 async function scrapeTokopedia() {
-  const results = [];
-  for (const keyword of MARKETPLACE_SEARCHES) {
-    try {
-      const res = await axios.get('https://ace.tokopedia.com/search/product/v3', {
-        params: { q: keyword, official: false, start: 0, rows: 5 },
-        timeout: HTTP_TIMEOUT_MS,
-        headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
-      });
+  // Parallel fetch for all keywords — avoids sequential waiting within a single scraper
+  const fetches = MARKETPLACE_SEARCHES.map(keyword =>
+    axios.get('https://ace.tokopedia.com/search/product/v3', {
+      params: { q: keyword, official: false, start: 0, rows: 5 },
+      timeout: HTTP_TIMEOUT_MS,
+      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+    }).then(res => {
       const products = res.data?.data?.products ?? [];
       const top = products.find(p => {
         const price = parseInt((p.price || '').toString().replace(/[^\d]/g, ''), 10);
         return price > 500 && price < 5_000_000;
       });
-      if (top) {
-        const price = parseInt((top.price || '').toString().replace(/[^\d]/g, ''), 10);
-        results.push({ rawName: keyword, price, unit: 'kg', source: 'Tokopedia' });
-      }
-    } catch {
-      // Per-item failure silently skipped
-    }
-  }
+      if (!top) return null;
+      const price = parseInt((top.price || '').toString().replace(/[^\d]/g, ''), 10);
+      return { rawName: keyword, price, unit: 'kg', source: 'Tokopedia' };
+    }).catch(() => null),
+  );
+  const results = (await Promise.all(fetches)).filter(Boolean);
   if (results.length > 0) console.log(`[Tokopedia] ${results.length} items scraped.`);
   return results;
 }
@@ -699,30 +697,37 @@ async function scrapeSuperindo() {
  * Priority: hargapangan > infopangan > Tokopedia > Sayurbox > Superindo > curated
  * First occurrence per normalised rawName wins.
  */
+// Wraps a scraper so it always resolves (never rejects) and returns [] if SCRAPER_DEADLINE_MS elapses
+function withDeadline(fn) {
+  return Promise.race([
+    fn(),
+    new Promise(resolve => setTimeout(() => resolve([]), SCRAPER_DEADLINE_MS)),
+  ]);
+}
+
 async function scrapeAllPrices() {
   console.log('Running live scrapers…');
-  const [live1, live2, live3, live4, live5] = await Promise.allSettled([
-    scrapeHargaPangan(),
-    scrapeInfoPanganJakarta(),
-    scrapeTokopedia(),
-    scrapeSayurbox(),
-    scrapeSuperindo(),
+  // Superindo is excluded — its endpoints are consistently returning 404
+  const [live1, live2, live3, live4] = await Promise.allSettled([
+    withDeadline(scrapeHargaPangan),
+    withDeadline(scrapeInfoPanganJakarta),
+    withDeadline(scrapeTokopedia),
+    withDeadline(scrapeSayurbox),
   ]);
 
   const items1 = live1.status === 'fulfilled' ? live1.value : [];
   const items2 = live2.status === 'fulfilled' ? live2.value : [];
   const items3 = live3.status === 'fulfilled' ? live3.value : [];
   const items4 = live4.status === 'fulfilled' ? live4.value : [];
-  const items5 = live5.status === 'fulfilled' ? live5.value : [];
 
   console.log(
-    `  hargapangan.id → ${items1.length} | infopangan → ${items2.length} | Tokopedia → ${items3.length} | Sayurbox → ${items4.length} | Superindo → ${items5.length}`,
+    `  hargapangan.id → ${items1.length} | infopangan → ${items2.length} | Tokopedia → ${items3.length} | Sayurbox → ${items4.length}`,
   );
 
   // Priority merge: gov > marketplace > curated; first occurrence wins.
   const seen   = new Set();
   const merged = [];
-  for (const item of [...items1, ...items2, ...items3, ...items4, ...items5, ...CURATED_FALLBACK]) {
+  for (const item of [...items1, ...items2, ...items3, ...items4, ...CURATED_FALLBACK]) {
     const key = normalizeStr(item.rawName);
     if (!seen.has(key)) {
       seen.add(key);
