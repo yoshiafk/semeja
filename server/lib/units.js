@@ -17,6 +17,8 @@ const WEIGHT_MAP = {
     'kentang': 0.15,
     'wortel': 0.10,
     'telur': 0.06,
+    'kemiri': 0.004,
+    'ikan': 0.15,
   },
   'butir': {
     'default': 0.01,
@@ -84,7 +86,7 @@ function convertToWeight(qty, unit, name = '') {
   // Fuzzy match for common plural/variations
   if (u.includes('siung')) return qty * WEIGHT_MAP['siung'];
   if (u.includes('ruas')) return qty * WEIGHT_MAP['ruas'];
-  if (u.includes('buah') || u.includes('biji')) return convertToWeight(qty, 'buah', name);
+  if (u === 'bh' || u.includes('buah') || u.includes('biji') || u.includes('ekor')) return convertToWeight(qty, 'buah', name);
   if (u.includes('butir')) return convertToWeight(qty, 'butir', name);
   if (u.includes('sdm')) return qty * WEIGHT_MAP['sdm'];
   if (u.includes('sdt')) return qty * WEIGHT_MAP['sdt'];

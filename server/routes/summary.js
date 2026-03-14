@@ -92,7 +92,10 @@ router.get('/member/:memberId', async (req, res) => {
           const qtyPerPerson = parseFloat(ing.quantity_per_person) || 0;
           const totalQty = qtyPerPerson * pCount;
           const pricePerUnit = parseFloat(ing.price_per_unit) || 0;
-          dayCost += totalQty * pricePerUnit;
+          
+          // Fix: Use weight-converted quantity for cost estimation
+          const weightQty = convertToWeight(totalQty, ing.unit || ing.base_unit || 'secukupnya', ing.name);
+          dayCost += weightQty * pricePerUnit;
         });
         
         // Add rice if required
@@ -324,15 +327,16 @@ router.get('/:mealPlanId', async (req, res) => {
       const processIngredient = (ingData, mealType) => {
         const qtyPerPerson = parseFloat(ingData.quantity_per_person) || 0;
         const totalQty = qtyPerPerson * pCount;
+        const displayUnit = ingData.unit || ingData.base_unit || 'secukupnya';
         
-        // Cost estimation: if it's linked to the DB, use DB price. Else fallback to 0.
+        // Cost estimation: Convert to weight before applying price
         const pricePerUnit = parseFloat(ingData.price_per_unit) || 0;
-        const cost = totalQty * pricePerUnit;
+        const weightQty = convertToWeight(totalQty, displayUnit, ingData.name);
+        const cost = weightQty * pricePerUnit;
         dayCost += cost;
 
         const name = ingData.name;
         // mi.unit is the custom unit (e.g. siung), base_unit is from ingredients table (e.g. kg)
-        const displayUnit = ingData.unit || ingData.base_unit || 'secukupnya';
         const expectedStock = parseFloat(ingData.stock_quantity) || 0;
 
         dayIngredients.push({
@@ -347,7 +351,6 @@ router.get('/:mealPlanId', async (req, res) => {
 
         // Add to shopping list aggregate - using Unit Conversion for weight
         const key = ingData.ingredient_id ? `ing_${ingData.ingredient_id}` : `str_${name}_${displayUnit}`;
-        const weightQty = convertToWeight(totalQty, displayUnit, name);
         
         if (!shoppingList[key]) {
           shoppingList[key] = {
