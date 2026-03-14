@@ -76,22 +76,7 @@ router.get('/member/:memberId', async (req, res) => {
         [plan.id]
       );
       
-      // Batch fetch recipe ingredients
-      const allRecipeIds = [...new Set(mealMenuItems.map(it => it.recipe_id).filter(id => id != null))];
-      
-      let allRecipeIngredients = [];
-      if (allRecipeIds.length > 0) {
-        const { rows } = await pool.query(
-          `SELECT ri.*, i.price_per_unit, i.name
-           FROM recipe_ingredients ri
-           LEFT JOIN ingredients i ON ri.ingredient_id = i.id
-           WHERE ri.recipe_id = ANY($1::int[])`,
-          [allRecipeIds]
-        );
-        allRecipeIngredients = rows;
-      }
-      
-      // Calculate cost for each meal the member joined
+      // 4. Calculate cost for each meal the member joined
       const memberMealIds = participations.map(p => p.meal_id);
       
       for (const meal of meals) {
@@ -384,7 +369,8 @@ router.get('/:mealPlanId', async (req, res) => {
       const manualIngredients = manualIngredientRows.filter(ing => ing.meal_id === meal.id);
       manualIngredients.forEach(ing => processIngredient(ing, ing.meal_type));
 
-      // 4. Process Recipe Ingredients - REMOVED (now handled via meal_ingredients only)
+      // 4. Process Recipe Ingredients - now handled via meal_ingredients only
+      const currentMealItems = mealMenuItems.filter(it => it.meal_id === meal.id);
 
       // 6.5 Add Rice (Beras) if required for this meal
       if (meal.requires_rice && riceIngredient) {
