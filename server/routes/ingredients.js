@@ -127,8 +127,15 @@ router.post('/sync-prices', requireAuth, requireAdmin, async (req, res) => {
       const { item, confidence, similarity, fromJaccard } = match;
       sourcesUsed.add(item.source);
 
+      const price = Number(item.price);
+      if (!Number.isFinite(price)) {
+        skipped++;
+        continue;
+      }
+      const roundedPrice = Math.round(price);
+
       const changePct = ing.price_per_unit > 0
-        ? ((item.price - ing.price_per_unit) / ing.price_per_unit) * 100
+        ? ((roundedPrice - ing.price_per_unit) / ing.price_per_unit) * 100
         : null;
 
       if (confidence === 'MEDIUM_JACCARD') {
@@ -137,7 +144,7 @@ router.post('/sync-prices', requireAuth, requireAdmin, async (req, res) => {
           current_name:       ing.name,
           suggested_canonical: item.rawName,
           similarity:         Math.round(similarity * 100) / 100,
-          scraped_price:      item.price,
+          scraped_price:      roundedPrice,
           current_price:      ing.price_per_unit,
           source:             item.source,
         });
@@ -152,14 +159,14 @@ router.post('/sync-prices', requireAuth, requireAdmin, async (req, res) => {
           name:       ing.name,
           unit:       ing.unit,
           old_price:  ing.price_per_unit,
-          new_price:  item.price,
+          new_price:  roundedPrice,
           change_pct: (changePct >= 0 ? '+' : '') + changePct.toFixed(1) + '%',
           source:     item.source,
         });
         continue;
       }
 
-      const updateItem = { id: ing.id, price: item.price };
+      const updateItem = { id: ing.id, price: roundedPrice };
       // Tier 3 HIGH match → auto-register canonical_name if not already set
       if (fromJaccard && !ing.canonical_name) {
         updateItem.canonical_name = item.rawName;
