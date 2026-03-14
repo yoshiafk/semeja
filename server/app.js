@@ -19,6 +19,7 @@ const scraperRouter = require('./routes/scraper');
 const activitiesRouter = require('./routes/activities');
 const giftsRouter = require('./routes/gifts');
 const attachmentsRouter = require('./routes/attachments');
+const ocrRouter = require('./routes/ocr');
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use('/api/scraper', scraperRouter);
 app.use('/api/activities', activitiesRouter);
 app.use('/api/gifts', giftsRouter);
 app.use('/api/attachments', attachmentsRouter);
+app.use('/api/ocr', ocrRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

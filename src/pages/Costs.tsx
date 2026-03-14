@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { exportShoppingListPDF } from "@/lib/pdf-export";
 import { ReceiptUpload } from "@/components/ReceiptUpload";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
+import { OCRReviewDialog } from "@/components/OCRReviewDialog";
 
 interface CostSummary {
   week_total: number;
@@ -71,6 +72,11 @@ export default function Costs() {
   const [selectedIngredient, setSelectedIngredient] = useState<{ id?: number; name: string; qty: number; unit: string } | null>(null);
   const [formData, setFormData] = useState({ supplier_name: "", quantity: "", total_price: "", notes: "", receipt_id: null as number | null });
   const [isSaving, setIsSaving] = useState(false);
+
+  // OCR States
+  const [ocrData, setOcrData] = useState<any>(null);
+  const [isOCRReviewOpen, setIsOCRReviewOpen] = useState(false);
+  const [scannedReceiptId, setScannedReceiptId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -136,6 +142,29 @@ export default function Costs() {
       toast.error("Gagal mencatat: " + (err.error || err.message));
       setIsSaving(false);
     }
+  };
+
+  const handleScanSuccess = (data: any, receiptId: number) => {
+    setOcrData(data);
+    setScannedReceiptId(receiptId);
+    setIsOCRReviewOpen(true);
+  };
+
+  const handleOCRImport = (selectedItems: any[], supplierName: string) => {
+    if (selectedItems.length === 0) return;
+
+    const totalFromSelected = selectedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+    const totalQty = selectedItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+
+    setFormData(prev => ({
+      ...prev,
+      supplier_name: supplierName || prev.supplier_name,
+      total_price: totalFromSelected.toString(),
+      quantity: totalQty.toString(),
+      receipt_id: scannedReceiptId
+    }));
+    
+    toast.success(`${selectedItems.length} item dari struk berhasil di-import!`);
   };
 
   if (loading && !data) {
@@ -571,7 +600,9 @@ export default function Costs() {
 
             <ReceiptUpload 
               label="Lampirkan Struk Belanja (Opsional)"
+              autoScan={true}
               onUploadSuccess={(id) => setFormData(prev => ({ ...prev, receipt_id: id }))}
+              onScanSuccess={handleScanSuccess}
               onClear={() => setFormData(prev => ({ ...prev, receipt_id: null }))}
               initialId={formData.receipt_id}
             />
@@ -583,6 +614,14 @@ export default function Costs() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <OCRReviewDialog 
+        open={isOCRReviewOpen}
+        onOpenChange={setIsOCRReviewOpen}
+        data={ocrData}
+        receiptId={scannedReceiptId}
+        onImport={handleOCRImport}
+      />
     </PageContainer>
   );
 }

@@ -8,18 +8,22 @@ import { cn } from "@/lib/utils";
 
 interface ReceiptUploadProps {
   onUploadSuccess: (id: number) => void;
+  onScanSuccess?: (data: any, receiptId: number) => void;
   onClear: () => void;
   initialId?: number | null;
   label?: string;
   className?: string;
+  autoScan?: boolean;
 }
 
 export const ReceiptUpload: React.FC<ReceiptUploadProps> = ({ 
   onUploadSuccess, 
+  onScanSuccess,
   onClear, 
   initialId,
   label = "Upload Struk",
-  className
+  className,
+  autoScan = false
 }) => {
   const [uploading, setUploading] = useState(false);
   const [currentId, setCurrentId] = useState<number | null>(initialId || null);
@@ -77,7 +81,35 @@ export const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
       const data = await response.json();
       setCurrentId(data.id);
       onUploadSuccess(data.id);
-      toast.success("Struk berhasil diupload");
+      
+      // OCR Scan if enabled
+      if (autoScan && onScanSuccess) {
+        setUploading(true); // Keep loading state for scanning
+        try {
+          const scanFormData = new FormData();
+          scanFormData.append('receipt', fileToUpload);
+          
+          const scanResponse = await fetch('/api/ocr/receipt', {
+            method: 'POST',
+            headers: {
+              'Authorization': token ? `Bearer ${token}` : '',
+              'X-Device-ID': deviceId || '',
+            },
+            body: scanFormData
+          });
+          
+          if (scanResponse.ok) {
+            const scanData = await scanResponse.json();
+            onScanSuccess(scanData, data.id);
+          } else {
+            console.error("OCR Scan failed but file uploaded");
+          }
+        } catch (scanErr) {
+          console.error("OCR Scan error:", scanErr);
+        }
+      }
+      
+      toast.success("Struk berhasil diupload" + (autoScan ? " & di-scan" : ""));
     } catch (err) {
       console.error(err);
       toast.error("Gagal upload: " + (err instanceof Error ? err.message : "Error tidak diketahui"));
