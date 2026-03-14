@@ -135,22 +135,23 @@ async function scrapeCookpad(url) {
     }
   }
   
-  // Also search in recipe description/info area
-  if (!servingsText) {
-    $('.recipe-info, .recipe-meta, .recipe-details').each((_, el) => {
-      const text = $(el).text();
-      if (text.match(/porsi|orang|serving|cups?|gelas|sajian/i)) {
+  // Search in recipe description/info area
+  if (!servingsText || extractServings(servingsText) <= 1) {
+    $('.recipe-info, .recipe-meta, .recipe-details, [class*="servings"], [class*="yield"]').each((_, el) => {
+      const text = $(el).text().trim();
+      if (text && extractServings(text) > 1) {
         servingsText = text;
         return false; // break
       }
     });
   }
   
-  // Search in the full page text as fallback (always run if no valid count yet)
+  // Search in the full page text as fallback
   if (!servingsText || extractServings(servingsText) <= 1) {
-    const bodyText = $('body').text();
-    const servingMatch = bodyText.match(/(?:untuk\s+)?(\d+)\s*(?:porsi|orang|cups?|gelas|sajian|servings?)/i);
-    if (servingMatch && parseInt(servingMatch[1]) > 1) {
+    const bodyText = $('body').text().replace(/\s+/g, ' ');
+    // Try to find the first occurrence of a number followed by yield units
+    const servingMatch = bodyText.match(/(\d+)\s*(?:porsi|orang|cups?|gelas|sajian|servings?|pax|portion)/i);
+    if (servingMatch) {
       servingsText = servingMatch[0];
     }
   }
@@ -225,8 +226,8 @@ async function propagateToMeals(client, recipeId) {
       
       // Copy fresh from recipe_ingredients
       await client.query(
-        `INSERT INTO meal_ingredients (meal_id, ingredient_id, quantity_per_person, meal_type)
-         SELECT $1, ingredient_id, quantity_per_person, $2
+        `INSERT INTO meal_ingredients (meal_id, ingredient_id, quantity_per_person, unit, meal_type)
+         SELECT $1, ingredient_id, quantity_per_person, custom_unit, $2
          FROM recipe_ingredients WHERE recipe_id = $3`,
         [meal.id, mealType, recipeId]
       );
@@ -366,7 +367,9 @@ router.put('/rescrape/:recipeId', requireAuth, requireAdmin, async (req, res) =>
         `INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity_per_person, custom_unit, name)
          VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (recipe_id, ingredient_id)
-         DO UPDATE SET quantity_per_person = recipe_ingredients.quantity_per_person + EXCLUDED.quantity_per_person`,
+         DO UPDATE SET 
+           quantity_per_person = recipe_ingredients.quantity_per_person + EXCLUDED.quantity_per_person,
+           custom_unit = EXCLUDED.custom_unit`,
         [recipeId, ingredient_id, normalizedQty, ing.unit, ing.name]
       );
       

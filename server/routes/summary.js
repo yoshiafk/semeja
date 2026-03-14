@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { convertToWeight } = require('../lib/units');
 
 // GET member-specific cost summary
 router.get('/member/:memberId', async (req, res) => {
@@ -66,9 +67,12 @@ router.get('/member/:memberId', async (req, res) => {
       );
       const riceIngredient = riceRows[0];
       
-      // 3. Get all meal menu items for this plan
-      const { rows: mealMenuItems } = await pool.query(
-        'SELECT * FROM meal_menu_items WHERE meal_id = ANY(SELECT id FROM meals WHERE meal_plan_id = $1)',
+      // 3. Get all meal ingredients for this plan (using as single source of truth)
+      const { rows: allMealIngredients } = await pool.query(
+        `SELECT mi.*, i.price_per_unit, i.name, i.unit as base_unit
+         FROM meal_ingredients mi
+         JOIN ingredients i ON mi.ingredient_id = i.id
+         WHERE mi.meal_id = ANY(SELECT id FROM meals WHERE meal_plan_id = $1)`,
         [plan.id]
       );
       
@@ -96,18 +100,14 @@ router.get('/member/:memberId', async (req, res) => {
         
         let dayCost = 0;
         
-        // Calculate ingredients cost from all items
-        const currentMealItems = mealMenuItems.filter(i => i.meal_id === meal.id);
-        currentMealItems.forEach(item => {
-          if (item.recipe_id) {
-            const ings = allRecipeIngredients.filter(i => i.recipe_id === item.recipe_id && i.name !== 'Beras');
-            ings.forEach(ing => {
-              const qtyPerPerson = parseFloat(ing.quantity_per_person) || parseFloat(ing.amount_per_person) || 0;
-              const totalQty = qtyPerPerson * pCount;
-              const pricePerUnit = parseFloat(ing.price_per_unit) || 0;
-              dayCost += totalQty * pricePerUnit;
-            });
-          }
+        // Calculate ingredients cost from meal_ingredients
+        const currentMealIngs = allMealIngredients.filter(i => i.meal_id === meal.id);
+        currentMealIngs.forEach(ing => {
+          if (ing.name === 'Beras') return;
+          const qtyPerPerson = parseFloat(ing.quantity_per_person) || 0;
+          const totalQty = qtyPerPerson * pCount;
+          const pricePerUnit = parseFloat(ing.price_per_unit) || 0;
+          dayCost += totalQty * pricePerUnit;
         });
         
         // Add rice if required
@@ -278,7 +278,7 @@ router.get('/:mealPlanId', async (req, res) => {
     let mealMenuItems = [];
     if (mealIds.length > 0) {
       const { rows: ingredients } = await pool.query(
-        `SELECT mi.*, i.name, i.unit, i.price_per_unit, i.stock_quantity, i.category
+        `SELECT mi.*, i.name, i.unit as base_unit, i.price_per_unit, i.stock_quantity, i.category
          FROM meal_ingredients mi
          JOIN ingredients i ON mi.ingredient_id = i.id
          WHERE mi.meal_id = ANY($1::int[])`,
@@ -337,7 +337,7 @@ router.get('/:mealPlanId', async (req, res) => {
 
       // Helper function to process an ingredient payload
       const processIngredient = (ingData, mealType) => {
-        const qtyPerPerson = parseFloat(ingData.quantity_per_person) || parseFloat(ingData.amount_per_person) || 0;
+        const qtyPerPerson = parseFloat(ingData.quantity_per_person) || 0;
         const totalQty = qtyPerPerson * pCount;
         
         // Cost estimation: if it's linked to the DB, use DB price. Else fallback to 0.
@@ -346,12 +346,13 @@ router.get('/:mealPlanId', async (req, res) => {
         dayCost += cost;
 
         const name = ingData.name;
-        const unit = ingData.unit || ingData.custom_unit || 'secukupnya';
+        // mi.unit is the custom unit (e.g. siung), base_unit is from ingredients table (e.g. kg)
+        const displayUnit = ingData.unit || ingData.base_unit || 'secukupnya';
         const expectedStock = parseFloat(ingData.stock_quantity) || 0;
 
         dayIngredients.push({
           name,
-          unit,
+          unit: displayUnit,
           quantity_per_person: qtyPerPerson,
           total_quantity: totalQty,
           price_per_unit: pricePerUnit,
@@ -359,15 +360,15 @@ router.get('/:mealPlanId', async (req, res) => {
           meal_type: mealType,
         });
 
-        // Add to shopping list aggregate
-        // For external recipes, they might not have a formal ingredient ID if parsing failed to link one
-        const key = ingData.ingredient_id ? `ing_${ingData.ingredient_id}` : `str_${name}_${unit}`;
+        // Add to shopping list aggregate - using Unit Conversion for weight
+        const key = ingData.ingredient_id ? `ing_${ingData.ingredient_id}` : `str_${name}_${displayUnit}`;
+        const weightQty = convertToWeight(totalQty, displayUnit, name);
         
         if (!shoppingList[key]) {
           shoppingList[key] = {
             ingredient_id: ingData.ingredient_id,
             name,
-            unit,
+            unit: ingData.base_unit || displayUnit, // Shopping list should use base unit (kg/liter)
             total_quantity: 0,
             total_cost: 0,
             price_per_unit: pricePerUnit,
@@ -375,7 +376,7 @@ router.get('/:mealPlanId', async (req, res) => {
             category: ingData.category || 'Lainnya'
           };
         }
-        shoppingList[key].total_quantity += totalQty;
+        shoppingList[key].total_quantity += weightQty;
         shoppingList[key].total_cost += Math.round(cost);
       };
 
@@ -383,17 +384,7 @@ router.get('/:mealPlanId', async (req, res) => {
       const manualIngredients = manualIngredientRows.filter(ing => ing.meal_id === meal.id);
       manualIngredients.forEach(ing => processIngredient(ing, ing.meal_type));
 
-      // 4. Process Recipe Ingredients from all menu items
-      const currentMealItems = mealMenuItems.filter(it => it.meal_id === meal.id);
-      currentMealItems.forEach(item => {
-        if (item.recipe_id) {
-          const recipeIngs = allRecipeIngredients.filter(ing => ing.recipe_id === item.recipe_id);
-          recipeIngs.forEach(ing => {
-            if (ing.name === 'Beras') return;
-            processIngredient(ing, item.category);
-          });
-        }
-      });
+      // 4. Process Recipe Ingredients - REMOVED (now handled via meal_ingredients only)
 
       // 6.5 Add Rice (Beras) if required for this meal
       if (meal.requires_rice && riceIngredient) {

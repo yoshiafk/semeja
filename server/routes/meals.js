@@ -77,11 +77,13 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
       // Map 'main', 'second', 'dessert' or others to the meal_ingredients 'meal_type'
       // Legacy meal_type was 'main', 'second', 'dessert'
       await client.query(
-        `INSERT INTO meal_ingredients (meal_id, ingredient_id, quantity_per_person, meal_type)
-         SELECT $1, ingredient_id, quantity_per_person, $3
+        `INSERT INTO meal_ingredients (meal_id, ingredient_id, quantity_per_person, unit, meal_type)
+         SELECT $1, ingredient_id, quantity_per_person, custom_unit, $3
          FROM recipe_ingredients WHERE recipe_id = $2
          ON CONFLICT (meal_id, ingredient_id, meal_type) 
-         DO UPDATE SET quantity_per_person = meal_ingredients.quantity_per_person + EXCLUDED.quantity_per_person`,
+         DO UPDATE SET 
+           quantity_per_person = meal_ingredients.quantity_per_person + EXCLUDED.quantity_per_person,
+           unit = EXCLUDED.unit`,
         [req.params.id, item.recipe_id, item.category]
       );
     }
