@@ -5,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Search, Filter, Carrot, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Loader2, Plus, Search, Filter, Carrot, RefreshCw, CheckCircle2, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { IngredientCard } from "@/components/IngredientCard";
 import { useMember } from "@/hooks/useMember";
 import { formatRupiah } from "@/lib/utils";
+import { ReceiptUpload } from "@/components/ReceiptUpload";
+import { OCRReviewDialog } from "@/components/OCRReviewDialog";
 
 interface Ingredient {
   id: number;
@@ -99,6 +101,12 @@ export default function Ingredients() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [deletingIds, setDeletingIds] = useState<number[]>([]);
+
+  // OCR States
+  const [isOCRUploadOpen, setIsOCRUploadOpen] = useState(false);
+  const [ocrData, setOcrData] = useState<any>(null);
+  const [isOCRReviewOpen, setIsOCRReviewOpen] = useState(false);
+  const [scannedReceiptId, setScannedReceiptId] = useState<number | null>(null);
 
   // --- Price Sync state ---
   const [isSyncingPrices, setIsSyncingPrices] = useState(false);
@@ -220,6 +228,42 @@ export default function Ingredients() {
     }
   };
 
+  const handleScanSuccess = (data: any, receiptId: number) => {
+    setOcrData(data);
+    setScannedReceiptId(receiptId);
+    setIsOCRUploadOpen(false);
+    setIsOCRReviewOpen(true);
+  };
+
+  const handleBulkImport = async (selectedItems: any[], supplierName: string) => {
+    if (selectedItems.length === 0) return;
+    
+    setIsSaving(true);
+    let successCount = 0;
+    
+    for (const item of selectedItems) {
+      if (!item.matchedIngredientId) continue;
+      
+      try {
+        await api.post("/purchases", {
+          ingredient_id: item.matchedIngredientId,
+          supplier_name: supplierName || "OCR Import",
+          quantity: item.quantity,
+          total_price: item.totalPrice,
+          update_stock: true,
+          receipt_id: scannedReceiptId
+        });
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to import item ${item.name}:`, err);
+      }
+    }
+    
+    setIsSaving(false);
+    toast.success(`${successCount} item berhasil di-restock!`);
+    fetchIngredients(true);
+  };
+
   const syncPrices = async () => {
     try {
       setIsSyncingPrices(true);
@@ -312,6 +356,13 @@ export default function Ingredients() {
                   : <><RefreshCw className="mr-1.5 h-3.5 w-3.5" />Sync Harga</>}
               </Button>
             )}
+            <Button 
+              variant="outline"
+              onClick={() => setIsOCRUploadOpen(true)}
+              className="h-9 px-4 rounded-xl text-xs font-semibold border-border text-muted-foreground hover:text-foreground"
+            >
+              <Receipt className="mr-1.5 h-3.5 w-3.5" /> Restock via OCR
+            </Button>
             <Button onClick={() => {
               setCurrentIng({ name: "", unit: "kg", price_per_unit: 0, category: "Lainnya" });
               setIsDialogOpen(true);
@@ -702,6 +753,41 @@ export default function Ingredients() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* OCR Upload Dialog */}
+      <Dialog open={isOCRUploadOpen} onOpenChange={setIsOCRUploadOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-6 border-border">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-lg font-bold text-foreground">Restock Bahan via OCR</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Upload atau foto struk belanja Anda. Gemini akan mencoba mengenali item dan jumlahnya otomatis.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <ReceiptUpload 
+              label="Klik atau Drop Struk di sini"
+              autoScan={true}
+              onScanSuccess={handleScanSuccess}
+              onUploadSuccess={() => {}}
+              onClear={() => {}}
+            />
+          </div>
+          <DialogFooter className="mt-6 flex gap-2">
+            <Button variant="ghost" className="flex-1 h-10 rounded-xl text-sm font-medium text-muted-foreground" onClick={() => setIsOCRUploadOpen(false)}>
+              Batal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <OCRReviewDialog 
+        open={isOCRReviewOpen}
+        onOpenChange={setIsOCRReviewOpen}
+        data={ocrData}
+        receiptId={scannedReceiptId}
+        ingredients={ingredients.map(ing => ({ id: ing.id, name: ing.name, unit: ing.unit }))}
+        onImport={handleBulkImport}
+      />
     </PageContainer>
   );
 }

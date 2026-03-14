@@ -4,7 +4,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Receipt, TrendingUp, Users, ShoppingCart, Check, Plus, CalendarDays, Download, FileImage } from "lucide-react";
 import { formatRupiah, cn, formatDate } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -77,13 +77,19 @@ export default function Costs() {
   const [ocrData, setOcrData] = useState<any>(null);
   const [isOCRReviewOpen, setIsOCRReviewOpen] = useState(false);
   const [scannedReceiptId, setScannedReceiptId] = useState<number | null>(null);
+  const [isOCRUploadOpen, setIsOCRUploadOpen] = useState(false);
+  const [allIngredients, setAllIngredients] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchPlans = async () => {
       try {
         setLoading(true);
-        const allPlans = await api.get<any[]>("/meal-plans");
+        const [allPlans, ings] = await Promise.all([
+          api.get<any[]>("/meal-plans"),
+          api.get<any[]>("/ingredients")
+        ]);
         setPlans(allPlans);
+        setAllIngredients(ings);
         if (allPlans.length > 0) {
           const active = allPlans.find(p => p.status === 'active') || allPlans[0];
           setActivePlanId(active.id);
@@ -147,12 +153,50 @@ export default function Costs() {
   const handleScanSuccess = (data: any, receiptId: number) => {
     setOcrData(data);
     setScannedReceiptId(receiptId);
+    setIsOCRUploadOpen(false);
     setIsOCRReviewOpen(true);
   };
 
-  const handleOCRImport = (selectedItems: any[], supplierName: string) => {
+  const handleOCRImport = async (selectedItems: any[], supplierName: string) => {
     if (selectedItems.length === 0) return;
 
+    // Check if it's a multi-item import (from bulk scan or shopping list)
+    // or a single item import (from the purchase dialog)
+    if (selectedItems.length > 1 || selectedItems[0].matchedIngredientId) {
+      setIsSaving(true);
+      let successCount = 0;
+      
+      for (const item of selectedItems) {
+        if (!item.matchedIngredientId || !activePlanId) continue;
+        
+        try {
+          await api.post("/purchases", {
+            ingredient_id: item.matchedIngredientId,
+            supplier_name: supplierName || "OCR Import",
+            quantity: item.quantity,
+            total_price: item.totalPrice,
+            update_stock: true,
+            meal_plan_id: activePlanId,
+            receipt_id: scannedReceiptId
+          });
+          successCount++;
+        } catch (err) {
+          console.error(`Failed to import item ${item.name}:`, err);
+        }
+      }
+      
+      setIsSaving(false);
+      toast.success(`${successCount} item berhasil dicatat!`);
+      
+      // Refresh data
+      setLoading(true);
+      const summary = await api.get<CostSummary>(`/summary/${activePlanId}`);
+      setData(summary);
+      setLoading(false);
+      return;
+    }
+
+    // Original single-item logic (legacy, but keeping for compatibility if matchedIngredientId is missing)
     const totalFromSelected = selectedItems.reduce((sum, item) => sum + item.totalPrice, 0);
     const totalQty = selectedItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
@@ -387,10 +431,20 @@ export default function Costs() {
                   <p className="text-xs text-muted-foreground">
                     {data.shopping_list.filter(i => !i.has_enough_stock).length} bahan perlu dibeli
                   </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-3 gap-1.5 text-xs font-medium rounded-lg border-primary/30 text-primary hover:bg-primary/5"
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-3 gap-1.5 text-xs font-medium rounded-lg border-primary/30 text-primary hover:bg-primary/5"
+                      onClick={() => setIsOCRUploadOpen(true)}
+                    >
+                      <Receipt className="h-3.5 w-3.5" />
+                      Upload Struk
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-3 gap-1.5 text-xs font-medium rounded-lg border-primary/30 text-primary hover:bg-primary/5"
                     onClick={() => {
                       const activePlan = plans.find(p => p.id === activePlanId);
                       if (!activePlan) return;
@@ -436,6 +490,7 @@ export default function Costs() {
                     Export PDF
                   </Button>
                 </div>
+              </div>
                 <div className="space-y-2">
                   {data.shopping_list.map((ing, idx) => (
                     <div 
@@ -620,8 +675,35 @@ export default function Costs() {
         onOpenChange={setIsOCRReviewOpen}
         data={ocrData}
         receiptId={scannedReceiptId}
+        ingredients={allIngredients.map(ing => ({ id: ing.id, name: ing.name, unit: ing.unit }))}
         onImport={handleOCRImport}
       />
+
+      {/* OCR Upload Dialog */}
+      <Dialog open={isOCRUploadOpen} onOpenChange={setIsOCRUploadOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-6 border-border">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-lg font-bold text-foreground">Scan Struk Belanja</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Cocokkan item di struk dengan daftar belanja pekan ini.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <ReceiptUpload 
+              label="Klik atau Drop Struk di sini"
+              autoScan={true}
+              onScanSuccess={handleScanSuccess}
+              onUploadSuccess={() => {}}
+              onClear={() => {}}
+            />
+          </div>
+          <DialogFooter className="mt-6 flex gap-2">
+            <Button variant="ghost" className="flex-1 h-10 rounded-xl text-sm font-medium text-muted-foreground" onClick={() => setIsOCRUploadOpen(false)}>
+              Batal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }
