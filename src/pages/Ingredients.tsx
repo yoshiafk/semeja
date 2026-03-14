@@ -584,7 +584,7 @@ export default function Ingredients() {
           <DialogHeader className="mb-4">
             <DialogTitle className="text-lg font-bold text-foreground">Hasil Sinkronisasi Harga</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
-              {syncResult?.sources_used?.join(' · ')}
+              {syncResult?.sources_used?.join(' · ')} · Hanya bahan dengan harga >7 hari atau kosong yang diproses
             </DialogDescription>
           </DialogHeader>
 

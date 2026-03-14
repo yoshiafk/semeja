@@ -25,8 +25,8 @@ const cheerio = require('cheerio');
 // CONSTANTS
 // ---------------------------------------------------------------------------
 
-const HTTP_TIMEOUT_MS = 3_000;   // per-request; keeps each scraper well under Vercel's 10 s limit
-const SCRAPER_DEADLINE_MS = 7_000; // each scraper must resolve within this; falls back to [] on timeout
+const HTTP_TIMEOUT_MS = 5_000;   // per-request; Indonesian networks need more time than 3s
+const SCRAPER_DEADLINE_MS = 6_000; // each scraper must resolve within this; falls back to [] on timeout
 
 const USER_AGENT =
   'Mozilla/5.0 (compatible; semeja-price-bot/1.0; Jakarta ingredient price monitor)';

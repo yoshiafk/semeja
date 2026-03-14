@@ -102,8 +102,13 @@ router.post('/sync-prices', requireAuth, requireAdmin, async (req, res) => {
   const threshold = typeof req.body.threshold === 'number' ? req.body.threshold : 30;
 
   try {
+    // Only process ingredients with stale prices (NULL or >7 days old) to stay under 10s Vercel limit
     const { rows: dbIngredients } = await pool.query(
-      'SELECT id, name, unit, price_per_unit, category, price_last_updated_at, canonical_name FROM ingredients ORDER BY category, name',
+      `SELECT id, name, unit, price_per_unit, category, price_last_updated_at, canonical_name 
+       FROM ingredients 
+       WHERE price_last_updated_at IS NULL OR price_last_updated_at < NOW() - INTERVAL '7 days'
+       ORDER BY category, name
+       LIMIT 150`,
     );
 
     const allPrices = await scraper.scrapeAllPrices();
@@ -163,23 +168,38 @@ router.post('/sync-prices', requireAuth, requireAdmin, async (req, res) => {
       toUpdate.push(updateItem);
     }
 
-    // Apply all updates in a single transaction
+    // Apply all updates in a single batch transaction
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      for (const u of toUpdate) {
-        if (u.canonical_name) {
-          await client.query(
-            'UPDATE ingredients SET price_per_unit=$1, price_last_updated_at=NOW(), canonical_name=$2 WHERE id=$3',
-            [u.price, u.canonical_name, u.id],
-          );
-        } else {
-          await client.query(
-            'UPDATE ingredients SET price_per_unit=$1, price_last_updated_at=NOW() WHERE id=$2',
-            [u.price, u.id],
-          );
-        }
+      
+      if (toUpdate.length > 0) {
+        // Build single UPDATE query with CASE statements for batch update
+        const ids = toUpdate.map(u => u.id);
+        const priceCase = toUpdate.map((u, i) => `WHEN ${u.id} THEN $${i + 1}`).join(' ');
+        const canonicalCase = toUpdate
+          .map((u, i) => u.canonical_name ? `WHEN ${u.id} THEN $${toUpdate.length + i + 1}` : null)
+          .filter(Boolean)
+          .join(' ');
+        const params = [
+          ...toUpdate.map(u => u.price),
+          ...toUpdate.filter(u => u.canonical_name).map(u => u.canonical_name),
+        ];
+        
+        const canonicalUpdate = canonicalCase
+          ? `, canonical_name = CASE id ${canonicalCase} ELSE canonical_name END`
+          : '';
+        
+        await client.query(
+          `UPDATE ingredients 
+           SET price_per_unit = CASE id ${priceCase} END,
+               price_last_updated_at = NOW()
+               ${canonicalUpdate}
+           WHERE id = ANY($${params.length + 1})`,
+          [...params, ids],
+        );
       }
+      
       await client.query('COMMIT');
     } catch (err) {
       await client.query('ROLLBACK');
