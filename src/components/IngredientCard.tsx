@@ -12,6 +12,8 @@ interface Ingredient {
   stock_quantity: number;
   min_stock_threshold: number;
   last_restocked: string | null;
+  price_last_updated_at: string | null;
+  canonical_name: string | null;
 }
 
 interface IngredientCardProps {
@@ -81,6 +83,16 @@ export const IngredientCard = React.memo(({
             <p className="text-sm font-semibold text-foreground">
               {formatRupiah(ingredient.price_per_unit)}<span className="text-xs text-muted-foreground/70 font-normal ml-0.5">/{ingredient.unit}</span>
             </p>
+            {ingredient.price_last_updated_at ? (() => {
+              const days = Math.floor((Date.now() - new Date(ingredient.price_last_updated_at).getTime()) / 86400000);
+              return (
+                <p className={`text-[9px] font-medium mt-0.5 ${days <= 7 ? 'text-emerald-500' : 'text-muted-foreground/50'}`}>
+                  &#8635; {days === 0 ? 'hari ini' : `${days}h lalu`}
+                </p>
+              );
+            })() : ingredient.price_per_unit === 0 && !ingredient.canonical_name ? (
+              <p className="text-[9px] font-medium text-amber-400 mt-0.5">⚠ Harga belum tersedia</p>
+            ) : null}
           </div>
           <div className="text-right">
             <p className="text-[11px] text-muted-foreground/70 font-medium">Stok</p>

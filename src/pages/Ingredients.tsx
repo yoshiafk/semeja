@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Search, Filter, Carrot } from "lucide-react";
+import { Loader2, Plus, Search, Filter, Carrot, RefreshCw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { IngredientCard } from "@/components/IngredientCard";
+import { useMember } from "@/hooks/useMember";
+import { formatRupiah } from "@/lib/utils";
 
 interface Ingredient {
   id: number;
@@ -18,11 +20,45 @@ interface Ingredient {
   stock_quantity: number;
   min_stock_threshold: number;
   last_restocked: string | null;
+  price_last_updated_at: string | null;
+  canonical_name: string | null;
+}
+
+interface FlaggedItem {
+  id: number;
+  name: string;
+  unit: string;
+  old_price: number;
+  new_price: number;
+  change_pct: string;
+  source: string;
+}
+
+interface NormalizationItem {
+  id: number;
+  current_name: string;
+  suggested_canonical: string;
+  similarity: number;
+  scraped_price: number;
+  current_price: number;
+  source: string;
+}
+
+interface SyncResult {
+  updated: number;
+  auto_normalized: number;
+  flagged: FlaggedItem[];
+  normalized: NormalizationItem[];
+  skipped: number;
+  sources_used: string[];
+  threshold_pct: number;
+  total_ingredients: number;
 }
 
 const CATEGORIES = ["Segala", "Pokok", "Protein", "Sayuran", "Bumbu", "Buah", "Lainnya"];
 
 export default function Ingredients() {
+  const { isAdmin } = useMember();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -63,6 +99,14 @@ export default function Ingredients() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [deletingIds, setDeletingIds] = useState<number[]>([]);
+
+  // --- Price Sync state ---
+  const [isSyncingPrices, setIsSyncingPrices] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  const [isSyncResultOpen, setIsSyncResultOpen] = useState(false);
+  const [dismissedNormIds, setDismissedNormIds] = useState<Set<number>>(new Set());
+  const [isApplyingFlagged, setIsApplyingFlagged] = useState(false);
+  const [isApplyingNorm, setIsApplyingNorm] = useState(false);
 
   useEffect(() => {
     fetchIngredients();
@@ -176,6 +220,60 @@ export default function Ingredients() {
     }
   };
 
+  const syncPrices = async () => {
+    try {
+      setIsSyncingPrices(true);
+      setDismissedNormIds(new Set());
+      const result = await api.post<SyncResult>("/ingredients/sync-prices", { threshold: 30 });
+      setSyncResult(result);
+      setIsSyncResultOpen(true);
+      fetchIngredients(true);
+      toast.success(`${result.updated} harga diperbarui!`);
+    } catch (err) {
+      toast.error("Sync gagal: " + err);
+    } finally {
+      setIsSyncingPrices(false);
+    }
+  };
+
+  const applyFlagged = async (items: FlaggedItem[]) => {
+    try {
+      setIsApplyingFlagged(true);
+      const result = await api.post<{ applied: number }>("/ingredients/set-prices", {
+        items: items.map(f => ({ id: f.id, price: f.new_price })),
+      });
+      toast.success(`${result.applied} harga diterapkan!`);
+      setIsSyncResultOpen(false);
+      fetchIngredients(true);
+    } catch (err) {
+      toast.error("Gagal menerapkan harga: " + err);
+    } finally {
+      setIsApplyingFlagged(false);
+    }
+  };
+
+  const applyNormalizations = async (items: NormalizationItem[]) => {
+    const toApply = items.filter(n => !dismissedNormIds.has(n.id));
+    if (!toApply.length) return;
+    try {
+      setIsApplyingNorm(true);
+      const result = await api.post<{ applied: number }>("/ingredients/apply-normalizations", {
+        items: toApply.map(n => ({
+          id: n.id,
+          canonical_name: n.suggested_canonical,
+          price: n.scraped_price,
+        })),
+      });
+      toast.success(`${result.applied} nama dikonfirmasi!`);
+      setIsSyncResultOpen(false);
+      fetchIngredients(true);
+    } catch (err) {
+      toast.error("Gagal konfirmasi nama: " + err);
+    } finally {
+      setIsApplyingNorm(false);
+    }
+  };
+
   const filtered = ingredients.filter(ing => {
     const matchesSearch = ing.name.toLowerCase().includes(deferredSearch.toLowerCase());
     const matchesCat = category === "Segala" || ing.category === category;
@@ -201,12 +299,26 @@ export default function Ingredients() {
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Inventory Bahan</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Atur daftar bahan makanan dan harga pasar terbaru.</p>
           </div>
-          <Button onClick={() => {
-            setCurrentIng({ name: "", unit: "kg", price_per_unit: 0, category: "Lainnya" });
-            setIsDialogOpen(true);
-          }} className="h-9 px-5 rounded-xl text-xs font-semibold">
-            <Plus className="mr-1.5 h-3.5 w-3.5" /> Tambah Bahan
-          </Button>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button
+                variant="outline"
+                onClick={syncPrices}
+                disabled={isSyncingPrices}
+                className="h-9 px-4 rounded-xl text-xs font-semibold border-border text-muted-foreground hover:text-foreground"
+              >
+                {isSyncingPrices
+                  ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Memperbarui...</>
+                  : <><RefreshCw className="mr-1.5 h-3.5 w-3.5" />Sync Harga</>}
+              </Button>
+            )}
+            <Button onClick={() => {
+              setCurrentIng({ name: "", unit: "kg", price_per_unit: 0, category: "Lainnya" });
+              setIsDialogOpen(true);
+            }} className="h-9 px-5 rounded-xl text-xs font-semibold">
+              <Plus className="mr-1.5 h-3.5 w-3.5" /> Tambah Bahan
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -461,6 +573,131 @@ export default function Ingredients() {
             <Button className="flex-1 h-10 rounded-xl text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-white" onClick={saveStockAdjustment} disabled={isSaving}>
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
               Kurangi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sync Result Dialog */}
+      <Dialog open={isSyncResultOpen} onOpenChange={setIsSyncResultOpen}>
+        <DialogContent className="max-w-lg rounded-2xl p-6 border-border">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-lg font-bold text-foreground">Hasil Sinkronisasi Harga</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              {syncResult?.sources_used?.join(' · ')}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Summary badges */}
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="rounded-xl bg-emerald-50 p-3 text-center">
+              <p className="text-2xl font-bold text-emerald-600">{syncResult?.updated ?? 0}</p>
+              <p className="text-[11px] text-emerald-700 mt-0.5 font-medium">Diperbarui</p>
+            </div>
+            <div className="rounded-xl bg-amber-50 p-3 text-center">
+              <p className="text-2xl font-bold text-amber-600">{syncResult?.flagged?.length ?? 0}</p>
+              <p className="text-[11px] text-amber-700 mt-0.5 font-medium">Harga Berubah</p>
+            </div>
+            <div className="rounded-xl bg-indigo-50 p-3 text-center">
+              <p className="text-2xl font-bold text-indigo-600">{syncResult?.normalized?.length ?? 0}</p>
+              <p className="text-[11px] text-indigo-700 mt-0.5 font-medium">Nama Baru</p>
+            </div>
+          </div>
+          {(syncResult?.auto_normalized ?? 0) > 0 && (
+            <div className="mb-3 flex items-center gap-1.5 text-xs text-teal-700 bg-teal-50 rounded-lg px-3 py-2">
+              <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
+              ✨ {syncResult!.auto_normalized} nama dikenali otomatis dan langsung diperbarui
+            </div>
+          )}
+
+          {/* Section 2: Flagged prices */}
+          {(syncResult?.flagged?.length ?? 0) > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold text-amber-700 mb-2">⚠ Harga berubah signifikan (perlu konfirmasi)</p>
+              <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                {syncResult!.flagged.map(f => (
+                  <div key={f.id} className="flex items-center justify-between bg-amber-50 rounded-lg px-3 py-2">
+                    <div>
+                      <p className="text-xs font-medium text-foreground">{f.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{f.source}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs">
+                        <span className="line-through text-muted-foreground">{formatRupiah(f.old_price)}</span>
+                        {' → '}
+                        <span className="font-bold text-amber-600">{formatRupiah(f.new_price)}</span>
+                      </p>
+                      <p className="text-[10px] text-amber-600">{f.change_pct}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button
+                className="mt-2 w-full h-9 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white"
+                onClick={() => applyFlagged(syncResult!.flagged)}
+                disabled={isApplyingFlagged}
+              >
+                {isApplyingFlagged && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+                Terapkan yang Ditandai ({syncResult!.flagged.length})
+              </Button>
+            </div>
+          )}
+
+          {/* Section 3: Normalization queue */}
+          {(() => {
+            const visibleNorm = syncResult?.normalized?.filter(n => !dismissedNormIds.has(n.id)) ?? [];
+            if (visibleNorm.length === 0) return null;
+            const similarityDots = (sim: number) => sim >= 0.65 ? '●●●' : sim >= 0.55 ? '●●' : '●';
+            return (
+              <div>
+                <p className="text-xs font-semibold text-indigo-700 mb-0.5">🔍 Nama Belum Dikenali</p>
+                <p className="text-[10px] text-muted-foreground mb-2">Konfirmasi agar sinkronisasi berikutnya otomatis. Nama tampilan tidak berubah.</p>
+                <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                  {visibleNorm.map(n => (
+                    <div key={n.id} className="bg-indigo-50 rounded-lg px-3 py-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-medium text-foreground">"{n.current_name}"</span>
+                          <span className="text-xs text-muted-foreground mx-1.5">→</span>
+                          <span className="text-xs text-indigo-700 font-medium">{n.suggested_canonical}</span>
+                          <span className="text-[10px] text-indigo-400 ml-1.5">{similarityDots(n.similarity)} {Math.round(n.similarity * 100)}%</span>
+                        </div>
+                        <button
+                          className="text-muted-foreground/40 hover:text-muted-foreground text-xs leading-none mt-0.5 flex-shrink-0"
+                          onClick={() => setDismissedNormIds(prev => { const s = new Set(prev); s.add(n.id); return s; })}
+                        >✕</button>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {formatRupiah(n.current_price)} → {formatRupiah(n.scraped_price)} · {n.source}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    variant="ghost"
+                    className="flex-1 h-8 rounded-xl text-xs font-medium text-muted-foreground"
+                    onClick={() => {
+                      const allIds = syncResult!.normalized.map(n => n.id);
+                      setDismissedNormIds(new Set(allIds));
+                    }}
+                  >Lewati Semua</Button>
+                  <Button
+                    className="flex-1 h-8 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"
+                    onClick={() => applyNormalizations(syncResult!.normalized)}
+                    disabled={isApplyingNorm}
+                  >
+                    {isApplyingNorm && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                    Konfirmasi Semua ({visibleNorm.length})
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+
+          <DialogFooter className="mt-4">
+            <Button variant="ghost" className="w-full h-9 rounded-xl text-sm" onClick={() => setIsSyncResultOpen(false)}>
+              Tutup
             </Button>
           </DialogFooter>
         </DialogContent>

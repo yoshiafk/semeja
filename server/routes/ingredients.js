@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const scraper = require('../lib/ingredient-price-scraper');
 
 // GET all ingredients (optional category filter)
 router.get('/', async (req, res) => {
@@ -93,6 +94,174 @@ router.put('/:id/stock', requireAuth, requireAdmin, async (req, res) => {
     res.json(rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// POST sync prices from all market sources
+router.post('/sync-prices', requireAuth, requireAdmin, async (req, res) => {
+  const threshold = typeof req.body.threshold === 'number' ? req.body.threshold : 30;
+
+  try {
+    const { rows: dbIngredients } = await pool.query(
+      'SELECT id, name, unit, price_per_unit, category, price_last_updated_at, canonical_name FROM ingredients ORDER BY category, name',
+    );
+
+    const allPrices = await scraper.scrapeAllPrices();
+
+    const toUpdate    = [];   // { id, price, canonical_name? }
+    const toFlagged   = [];   // items with large price swings
+    const toNormalized = [];  // MEDIUM_JACCARD — user confirmation needed
+    let skipped       = 0;
+    let auto_normalized = 0;
+    const sourcesUsed = new Set();
+
+    for (const ing of dbIngredients) {
+      const match = scraper.findBestMatch(ing, allPrices);
+      if (!match) { skipped++; continue; }
+
+      const { item, confidence, similarity, fromJaccard } = match;
+      sourcesUsed.add(item.source);
+
+      const changePct = ing.price_per_unit > 0
+        ? ((item.price - ing.price_per_unit) / ing.price_per_unit) * 100
+        : null;
+
+      if (confidence === 'MEDIUM_JACCARD') {
+        toNormalized.push({
+          id:                 ing.id,
+          current_name:       ing.name,
+          suggested_canonical: item.rawName,
+          similarity:         Math.round(similarity * 100) / 100,
+          scraped_price:      item.price,
+          current_price:      ing.price_per_unit,
+          source:             item.source,
+        });
+        continue;
+      }
+
+      // HIGH or MEDIUM: route by price change threshold
+      const absChange = changePct !== null ? Math.abs(changePct) : 0;
+      if (changePct !== null && absChange > threshold) {
+        toFlagged.push({
+          id:         ing.id,
+          name:       ing.name,
+          unit:       ing.unit,
+          old_price:  ing.price_per_unit,
+          new_price:  item.price,
+          change_pct: (changePct >= 0 ? '+' : '') + changePct.toFixed(1) + '%',
+          source:     item.source,
+        });
+        continue;
+      }
+
+      const updateItem = { id: ing.id, price: item.price };
+      // Tier 3 HIGH match → auto-register canonical_name if not already set
+      if (fromJaccard && !ing.canonical_name) {
+        updateItem.canonical_name = item.rawName;
+        auto_normalized++;
+      }
+      toUpdate.push(updateItem);
+    }
+
+    // Apply all updates in a single transaction
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const u of toUpdate) {
+        if (u.canonical_name) {
+          await client.query(
+            'UPDATE ingredients SET price_per_unit=$1, price_last_updated_at=NOW(), canonical_name=$2 WHERE id=$3',
+            [u.price, u.canonical_name, u.id],
+          );
+        } else {
+          await client.query(
+            'UPDATE ingredients SET price_per_unit=$1, price_last_updated_at=NOW() WHERE id=$2',
+            [u.price, u.id],
+          );
+        }
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+
+    res.json({
+      updated:           toUpdate.length,
+      auto_normalized,
+      flagged:           toFlagged,
+      normalized:        toNormalized,
+      skipped,
+      sources_used:      [...sourcesUsed],
+      threshold_pct:     threshold,
+      total_ingredients: dbIngredients.length,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST force-apply a reviewed list of prices (flagged items)
+router.post('/set-prices', requireAuth, requireAdmin, async (req, res) => {
+  const { items } = req.body;
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'items array required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    let applied = 0;
+    for (const { id, price } of items) {
+      const p = parseInt(price, 10);
+      if (!id || isNaN(p) || p < 0) continue;
+      const { rowCount } = await client.query(
+        'UPDATE ingredients SET price_per_unit=$1, price_last_updated_at=NOW() WHERE id=$2',
+        [p, id],
+      );
+      if (rowCount > 0) applied++;
+    }
+    await client.query('COMMIT');
+    res.json({ applied });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// POST confirm user-reviewed name normalizations (MEDIUM_JACCARD matches)
+router.post('/apply-normalizations', requireAuth, requireAdmin, async (req, res) => {
+  const { items } = req.body;
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'items array required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    let applied = 0;
+    for (const { id, canonical_name, price } of items) {
+      const p = parseInt(price, 10);
+      if (!id || !canonical_name || isNaN(p) || p < 0) continue;
+      const { rowCount } = await client.query(
+        `UPDATE ingredients
+            SET canonical_name = $1, price_per_unit = $2, price_last_updated_at = NOW()
+          WHERE id = $3`,
+        [canonical_name, p, id],
+      );
+      if (rowCount > 0) applied++;
+    }
+    await client.query('COMMIT');
+    res.json({ applied });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 

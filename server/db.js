@@ -188,6 +188,8 @@ async function initDB(retries = 3) {
       ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS stock_quantity DECIMAL(10,3) DEFAULT 0;
       ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS min_stock_threshold DECIMAL(10,3) DEFAULT 0;
       ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS last_restocked TIMESTAMP;
+      ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS price_last_updated_at TIMESTAMP;
+      ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS canonical_name VARCHAR(150);
 
       CREATE TABLE IF NOT EXISTS suppliers (
         id SERIAL PRIMARY KEY,

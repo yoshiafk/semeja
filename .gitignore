@@ -18,6 +18,9 @@ dist-ssr
 server/scripts/scraper.js
 server/scripts/normalize_ingredients.js
 
+# Auto-generated ingredient price CSVs (review artifacts — not committed)
+output/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
