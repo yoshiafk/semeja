@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "./ui/checkbox";
+import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { formatRupiah, cn } from "@/lib/utils";
 import { Receipt, ListCheck, ArrowRight, Store, Search, Info } from "lucide-react";
