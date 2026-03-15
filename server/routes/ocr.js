@@ -26,10 +26,10 @@ router.post('/receipt', requireAuth, upload.single('receipt'), async (req, res) 
 
   try {
     const modelsToTry = [
-      'gemini-2.5-flash',
       'gemini-2.5-flash-lite',
-      'gemini-flash-latest',
       'gemini-3.1-flash-lite-preview',
+      'gemini-2.5-flash',
+      'gemini-flash-latest',
       'gemini-2.0-flash'
     ];
 

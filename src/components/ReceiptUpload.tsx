@@ -46,14 +46,19 @@ export const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
     try {
       let fileToUpload = file;
 
-      // Compress if it's a large image
-      if (isImage && file.size > 1024 * 1024) { // > 1MB
+      // Compress if it's an image
+      if (isImage) {
         const options = {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1920,
+          maxSizeMB: 0.2, // 200KB is plenty for Gemini OCR
+          maxWidthOrHeight: 1200,
           useWebWorker: true,
         };
-        fileToUpload = await imageCompression(file, options);
+        try {
+          fileToUpload = await imageCompression(file, options);
+          console.log(`Compressed: ${file.size} -> ${fileToUpload.size}`);
+        } catch (compressErr) {
+          console.warn("Compression failed, using original", compressErr);
+        }
       } else if (isPDF && file.size > 4 * 1024 * 1024) {
         toast.error("File PDF terlalu besar (Maks 4MB)");
         setUploading(false);
