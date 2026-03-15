@@ -233,7 +233,7 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                 </div>
               </div>
 
-              <ScrollArea className="flex-1 p-4 overflow-visible">
+              <ScrollArea className="flex-1 p-4">
                 <div className="space-y-3 pb-32">
 
                   {loading ? (
