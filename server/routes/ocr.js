@@ -25,7 +25,11 @@ router.post('/receipt', requireAuth, upload.single('receipt'), async (req, res) 
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Explicitly use v1 to avoid 404 error in v1beta for gemini-1.5-flash
+    const model = genAI.getGenerativeModel(
+      { model: 'gemini-1.5-flash' },
+      { apiVersion: 'v1' }
+    );
 
     // Prepare the image for Gemini
     const imagePart = {
