@@ -1,18 +1,20 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
 import { Button } from "@/components/ui/button";
-import { 
-  LogOut, 
-  Home, 
-  UtensilsCrossed, 
-  Users, 
+import {
+  LogOut,
+  Home,
+  UtensilsCrossed,
+  Users,
   Wallet,
   Activity,
   ChevronDown,
   ClipboardList,
   Utensils,
   Carrot,
-  Store
+  Store,
+  FlaskConical,
+  ScanEye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -23,24 +25,26 @@ export function Header() {
 
   const navItems = [
     { to: "/", icon: Home, label: "Beranda" },
-    { 
+    {
       label: "Makan",
       icon: UtensilsCrossed,
       children: [
-        { to: "/meals", icon: UtensilsCrossed, label: "Jadwal Makan" },
-        { to: "/meals/plan", icon: ClipboardList, label: "Atur Jadwal", adminOnly: true },
-        { to: "/meals/menus", icon: Utensils, label: "Daftar Resep", adminOnly: true },
-      ]
+        { to: "/meals",          icon: UtensilsCrossed, label: "Jadwal Makan" },
+        { to: "/meals/plan",     icon: ClipboardList,   label: "Atur Jadwal",       adminOnly: true },
+        { to: "/meals/menus",    icon: Utensils,        label: "Daftar Resep",       adminOnly: true },
+        { to: "/meals/preview",  icon: ScanEye,         label: "Review Belanja",     adminOnly: true },
+        { to: "/meals/actuals",  icon: FlaskConical,    label: "Kalibrasi Bahan",    adminOnly: true },
+      ],
     },
     { to: "/community/members", icon: Users, label: "Warga" },
-    { 
+    {
       label: "Keuangan",
       icon: Wallet,
       children: [
-        { to: "/finance/costs", icon: Wallet, label: "Ringkasan Biaya" },
-        { to: "/finance/ingredients", icon: Carrot, label: "Stok Bahan", adminOnly: true },
-        { to: "/finance/suppliers", icon: Store, label: "Supplier" },
-      ]
+        { to: "/finance/costs",       icon: Wallet, label: "Ringkasan Biaya" },
+        { to: "/finance/ingredients", icon: Carrot, label: "Stok Bahan",  adminOnly: true },
+        { to: "/finance/suppliers",   icon: Store,  label: "Supplier" },
+      ],
     },
     { to: "/activities", icon: Activity, label: "Aktivitas" },
   ];
@@ -58,12 +62,12 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-0.5">
-          {navItems.map((item, idx) => (
+          {navItems.map((item, idx) =>
             item.children ? (
-              <DropdownNav 
-                key={idx} 
-                item={item} 
-                isAdmin={isAdmin} 
+              <DropdownNav
+                key={idx}
+                item={item}
+                isAdmin={isAdmin}
                 currentPath={location.pathname}
               />
             ) : (
@@ -83,7 +87,7 @@ export function Header() {
                 <span>{item.label}</span>
               </NavLink>
             )
-          ))}
+          )}
         </nav>
       </div>
 
@@ -94,97 +98,101 @@ export function Header() {
             {isSuperadmin ? (
               <span className="text-[10px] font-bold text-amber-600 leading-tight">Superadmin</span>
             ) : isAdmin ? (
-              <span className="text-[10px] font-bold text-primary leading-tight">Admin</span>
+              <span className="text-[10px] font-semibold text-muted-foreground leading-tight">Admin</span>
             ) : null}
           </NavLink>
-          <div className="flex items-center gap-1">
-            <NavLink 
-              to="/profile"
-              className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold hover:bg-primary/20 transition-colors"
-            >
-              {member.name.substring(0, 2).toUpperCase()}
-            </NavLink>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={logout}
-              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={logout}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
       )}
     </header>
   );
 }
 
-// Dropdown Navigation Component
-function DropdownNav({ 
-  item, 
+// ── Dropdown nav component ────────────────────────────────────────────────
+
+interface NavChild {
+  to: string;
+  icon: any;
+  label: string;
+  adminOnly?: boolean;
+}
+
+interface NavGroup {
+  label: string;
+  icon: any;
+  children: NavChild[];
+}
+
+function DropdownNav({
+  item,
   isAdmin,
-  currentPath 
-}: { 
-  item: any; 
+  currentPath,
+}: {
+  item: NavGroup;
   isAdmin: boolean;
   currentPath: string;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-  // Filter children based on admin status
-  const visibleChildren = item.children.filter((child: any) => !child.adminOnly || isAdmin);
-  
-  // Check if any child is active
-  const isChildActive = visibleChildren.some((child: any) => currentPath.startsWith(child.to));
+  const visibleChildren = item.children.filter(c => !c.adminOnly || isAdmin);
+  const isGroupActive = visibleChildren.some(c => currentPath.startsWith(c.to) && c.to !== "/");
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div ref={ref} className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setOpen(o => !o)}
         className={cn(
           "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all duration-200",
-          isChildActive
+          isGroupActive || open
             ? "text-primary bg-primary/10"
             : "text-muted-foreground hover:text-foreground hover:bg-muted"
         )}
       >
         <item.icon className="h-3.5 w-3.5" />
         <span>{item.label}</span>
-        <ChevronDown className={cn(
-          "h-3 w-3 transition-transform duration-200",
-          isOpen && "rotate-180"
-        )} />
+        <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", open && "rotate-180")} />
       </button>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-1 py-1 w-48 bg-card border border-border rounded-xl shadow-lg z-50">
-          {visibleChildren.map((child: any) => (
+      {open && (
+        <div className="absolute top-full left-0 mt-1.5 w-52 bg-white border border-border/60 rounded-xl shadow-lg overflow-hidden z-50 py-1">
+          {visibleChildren.map(child => (
             <NavLink
               key={child.to}
               to={child.to}
-              onClick={() => setIsOpen(false)}
+              onClick={() => setOpen(false)}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-2 px-3 py-2 text-[13px] font-medium transition-colors",
+                  "flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] font-medium transition-colors",
                   isActive
-                    ? "text-primary bg-primary/5"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "text-primary bg-primary/8"
+                    : "text-foreground hover:bg-muted"
                 )
               }
             >
-              <child.icon className="h-4 w-4" />
+              <child.icon className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
               <span>{child.label}</span>
+              {/* New pill for admin-only tools */}
+              {child.adminOnly && (
+                <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-primary/60 bg-primary/8 px-1.5 py-0.5 rounded-full">
+                  Admin
+                </span>
+              )}
             </NavLink>
           ))}
         </div>

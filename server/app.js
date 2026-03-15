@@ -20,6 +20,8 @@ const activitiesRouter = require('./routes/activities');
 const giftsRouter = require('./routes/gifts');
 const attachmentsRouter = require('./routes/attachments');
 const ocrRouter = require('./routes/ocr');
+const mealActualsRouter = require('./routes/meal-actuals');
+const mealPreviewRouter = require('./routes/meal-preview');
 
 const app = express();
 
@@ -58,6 +60,8 @@ app.use('/api/recipes', recipesRouter);
 app.use('/api/recipe-search', recipeSearchRouter);
 app.use('/api/meal-plans', mealPlansRouter);
 app.use('/api/meals', mealsRouter);
+app.use('/api/meal-actuals', mealActualsRouter);
+app.use('/api/meal-preview', mealPreviewRouter);
 app.use('/api/participations', participationsRouter);
 app.use('/api/summary', summaryRouter);
 app.use('/api/auth', authRouter);

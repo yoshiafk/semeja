@@ -15,25 +15,27 @@ import { Toaster } from "sonner";
 const HomeHub = lazy(() => import("@/pages/HomeHub"));
 
 // Meals Module
-const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const MealPlan = lazy(() => import("@/pages/MealPlan"));
-const Menus = lazy(() => import("@/pages/Menus"));
+const Dashboard   = lazy(() => import("@/pages/Dashboard"));
+const MealPlan    = lazy(() => import("@/pages/MealPlan"));
+const Menus       = lazy(() => import("@/pages/Menus"));
+const MealActuals = lazy(() => import("@/pages/MealActuals"));   // #1 calibration
+const MealPreview = lazy(() => import("@/pages/MealPreview"));   // #3 pre-meal review
 
 // Activities Module
-const ActivitiesList = lazy(() => import("@/pages/activities"));
-const NewActivity = lazy(() => import("@/pages/activities/new"));
-const ActivityDetail = lazy(() => import("@/pages/activities/detail"));
+const ActivitiesList  = lazy(() => import("@/pages/activities"));
+const NewActivity     = lazy(() => import("@/pages/activities/new"));
+const ActivityDetail  = lazy(() => import("@/pages/activities/detail"));
 
 // Community Module
-const Members = lazy(() => import("@/pages/Members"));
-const GiftsList = lazy(() => import("@/pages/gifts/index.tsx"));
-const NewGift = lazy(() => import("@/pages/gifts/new.tsx"));
+const Members    = lazy(() => import("@/pages/Members"));
+const GiftsList  = lazy(() => import("@/pages/gifts/index.tsx"));
+const NewGift    = lazy(() => import("@/pages/gifts/new.tsx"));
 const GiftDetail = lazy(() => import("@/pages/gifts/detail.tsx"));
 
 // Finance Module
-const Costs = lazy(() => import("@/pages/Costs"));
+const Costs       = lazy(() => import("@/pages/Costs"));
 const Ingredients = lazy(() => import("@/pages/Ingredients"));
-const Suppliers = lazy(() => import("@/pages/Suppliers"));
+const Suppliers   = lazy(() => import("@/pages/Suppliers"));
 
 // Profile
 const Profile = lazy(() => import("@/pages/Profile"));
@@ -45,7 +47,10 @@ const PageLoader = () => (
 );
 
 function App() {
-  const { member, loading, isAdmin, hasHouseKey, needsPasswordSetup, confirmHouseKey, clearPasswordSetup } = useMember();
+  const {
+    member, loading, isAdmin, hasHouseKey,
+    needsPasswordSetup, confirmHouseKey, clearPasswordSetup,
+  } = useMember();
 
   if (loading) {
     return (
@@ -55,17 +60,9 @@ function App() {
     );
   }
 
-  if (!hasHouseKey) {
-    return <Gatekeeper onSuccess={confirmHouseKey} />;
-  }
-
-  if (!member) {
-    return <NameEntry />;
-  }
-
-  if (needsPasswordSetup) {
-    return <PasswordSetup onComplete={clearPasswordSetup} />;
-  }
+  if (!hasHouseKey)      return <Gatekeeper onSuccess={confirmHouseKey} />;
+  if (!member)           return <NameEntry />;
+  if (needsPasswordSetup) return <PasswordSetup onComplete={clearPasswordSetup} />;
 
   return (
     <Router>
@@ -80,54 +77,64 @@ function App() {
           }}
         />
         <Header />
-        
+
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Home Hub */}
             <Route path="/" element={<HomeHub />} />
-            
-            {/* Meals Module */}
+
+            {/* ── Meals Module ───────────────────────────── */}
             <Route path="/meals" element={<Dashboard />} />
-            <Route 
-              path="/meals/plan" 
-              element={isAdmin ? <MealPlan /> : <Navigate to="/meals" />} 
+            <Route
+              path="/meals/plan"
+              element={isAdmin ? <MealPlan /> : <Navigate to="/meals" />}
             />
-            <Route 
-              path="/meals/menus" 
-              element={isAdmin ? <Menus /> : <Navigate to="/meals" />} 
+            <Route
+              path="/meals/menus"
+              element={isAdmin ? <Menus /> : <Navigate to="/meals" />}
             />
-            
-            {/* Activities Module */}
-            <Route path="/activities" element={<ActivitiesList />} />
-            <Route path="/activities/new" element={isAdmin ? <NewActivity /> : <Navigate to="/activities" />} />
-            <Route path="/activities/:id" element={<ActivityDetail />} />
-            
-            {/* Community Module */}
-            <Route path="/community/members" element={<Members />} />
-            <Route path="/community/gifts" element={<GiftsList />} />
-            <Route path="/community/gifts/new" element={<NewGift />} />
-            <Route path="/community/gifts/:id" element={<GiftDetail />} />
-            
-            {/* Finance Module */}
-            <Route path="/finance/costs" element={<Costs />} />
-            <Route 
-              path="/finance/ingredients" 
-              element={isAdmin ? <Ingredients /> : <Navigate to="/finance/costs" />} 
+            {/* #3  Pre-meal ingredient review (admin) */}
+            <Route
+              path="/meals/preview"
+              element={isAdmin ? <MealPreview /> : <Navigate to="/meals" />}
             />
-            <Route path="/finance/suppliers" element={<Suppliers />} />
-            
+            {/* #1  Post-meal calibration (admin) */}
+            <Route
+              path="/meals/actuals"
+              element={isAdmin ? <MealActuals /> : <Navigate to="/meals" />}
+            />
+
+            {/* ── Activities Module ──────────────────────── */}
+            <Route path="/activities"      element={<ActivitiesList />} />
+            <Route path="/activities/new"  element={isAdmin ? <NewActivity />   : <Navigate to="/activities" />} />
+            <Route path="/activities/:id"  element={<ActivityDetail />} />
+
+            {/* ── Community Module ───────────────────────── */}
+            <Route path="/community/members"    element={<Members />} />
+            <Route path="/community/gifts"      element={<GiftsList />} />
+            <Route path="/community/gifts/new"  element={<NewGift />} />
+            <Route path="/community/gifts/:id"  element={<GiftDetail />} />
+
+            {/* ── Finance Module ─────────────────────────── */}
+            <Route path="/finance/costs"        element={<Costs />} />
+            <Route
+              path="/finance/ingredients"
+              element={isAdmin ? <Ingredients /> : <Navigate to="/finance/costs" />}
+            />
+            <Route path="/finance/suppliers"    element={<Suppliers />} />
+
             {/* Profile */}
             <Route path="/profile" element={<Profile />} />
-            
-            {/* Legacy routes - redirect to new paths */}
-            <Route path="/members" element={<Navigate to="/community/members" />} />
-            <Route path="/costs" element={<Navigate to="/finance/costs" />} />
-            <Route path="/suppliers" element={<Navigate to="/finance/suppliers" />} />
-            <Route path="/menus" element={<Navigate to="/meals/menus" />} />
-            <Route path="/meal-plan" element={<Navigate to="/meals/plan" />} />
-            <Route path="/ingredients" element={<Navigate to="/finance/ingredients" />} />
-            <Route path="/gifts" element={<Navigate to="/community/gifts" />} />
-            
+
+            {/* Legacy redirects */}
+            <Route path="/members"      element={<Navigate to="/community/members" />} />
+            <Route path="/costs"        element={<Navigate to="/finance/costs" />} />
+            <Route path="/suppliers"    element={<Navigate to="/finance/suppliers" />} />
+            <Route path="/menus"        element={<Navigate to="/meals/menus" />} />
+            <Route path="/meal-plan"    element={<Navigate to="/meals/plan" />} />
+            <Route path="/ingredients"  element={<Navigate to="/finance/ingredients" />} />
+            <Route path="/gifts"        element={<Navigate to="/community/gifts" />} />
+
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

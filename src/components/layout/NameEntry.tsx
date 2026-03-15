@@ -16,6 +16,13 @@ export function NameEntry() {
     e.preventDefault();
     if (!name.trim()) return;
 
+    // Client-side validation
+    const nameRegex = /^[a-zA-Z0-0\s.\-]{2,50}$/;
+    if (!nameRegex.test(name.trim())) {
+      setError("Nama hanya boleh berisi huruf, angka, spasi, titik, atau tanda hubung (min. 2 karakter)");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       await loadMember(name.trim(), password.trim() || undefined);
