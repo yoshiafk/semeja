@@ -90,6 +90,8 @@ export default function Costs() {
   const [scannedReceiptId, setScannedReceiptId] = useState<number | null>(null);
   const [isOCRUploadOpen, setIsOCRUploadOpen] = useState(false);
   const [allIngredients, setAllIngredients] = useState<any[]>([]);
+  // Tracks which specific meal (day) purchases are being tagged to
+  const [selectedMealId, setSelectedMealId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -149,6 +151,7 @@ export default function Costs() {
         total_price: parseInt(formData.total_price),
         update_stock: true,
         meal_plan_id: activePlanId,
+        meal_id: selectedMealId,   // tag to specific day if set
         receipt_id: formData.receipt_id
       });
       setIsPurchaseOpen(false);
@@ -192,6 +195,7 @@ export default function Costs() {
             total_price: item.totalPrice,
             update_stock: true,
             meal_plan_id: activePlanId,
+            meal_id: selectedMealId,   // tag to specific day if set
             receipt_id: scannedReceiptId
           });
           successCount++;
@@ -479,7 +483,14 @@ export default function Costs() {
               {/* NEW: Daily tab – per-day actuals */}
               <TabsContent value="daily" className="mt-0 space-y-3">
                 {data.daily_breakdown.map(day => (
-                  <DailyRecapCard key={day.meal_id} day={day as any} />
+                  <DailyRecapCard
+                    key={day.meal_id}
+                    day={day as any}
+                    onRecord={(mealId) => {
+                      setSelectedMealId(mealId);
+                      setIsOCRUploadOpen(true);
+                    }}
+                  />
                 ))}
               </TabsContent>
 
@@ -738,12 +749,24 @@ export default function Costs() {
       />
 
       {/* OCR Upload Dialog */}
-      <Dialog open={isOCRUploadOpen} onOpenChange={setIsOCRUploadOpen}>
+      <Dialog
+        open={isOCRUploadOpen}
+        onOpenChange={(open) => {
+          setIsOCRUploadOpen(open);
+          if (!open) setSelectedMealId(null); // clear day context on close
+        }}
+      >
         <DialogContent className="max-w-md rounded-2xl p-6 border-border">
           <DialogHeader className="mb-4">
-            <DialogTitle className="text-lg font-bold text-foreground">Scan Struk Belanja</DialogTitle>
+            <DialogTitle className="text-lg font-bold text-foreground">
+              {selectedMealId
+                ? `Catat Belanja — ${data?.daily_breakdown.find(d => d.meal_id === selectedMealId)?.day_name ?? 'Hari Ini'}`
+                : 'Scan Struk Belanja'}
+            </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
-              Cocokkan item di struk dengan daftar belanja pekan ini.
+              {selectedMealId
+                ? 'Scan struk dan cocokkan item untuk mencatat belanja hari ini.'
+                : 'Cocokkan item di struk dengan daftar belanja pekan ini.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

@@ -3,9 +3,13 @@ import { formatRupiah } from '@/lib/utils';
 import { formatDailyRecap } from '@/lib/whatsapp';
 import { WhatsAppShareButton } from './WhatsAppShareButton';
 import { type DailyBreakdown } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { ScanLine, ShoppingCart } from 'lucide-react';
 
 interface DailyRecapCardProps {
   day: DailyBreakdown;
+  /** When provided, shows a "Catat Belanja" button pre-tagged to this meal */
+  onRecord?: (mealId: number) => void;
 }
 
 const statusColors = {
@@ -20,7 +24,7 @@ const statusLabels = {
   done: 'Selesai',
 };
 
-export function DailyRecapCard({ day }: DailyRecapCardProps) {
+export function DailyRecapCard({ day, onRecord }: DailyRecapCardProps) {
   const shopping_status = day.shopping_status ?? 'pending';
   const costPerPerson = day.cost_per_person ?? 0;
   const actualCost = day.actual_cost ?? 0;
@@ -113,16 +117,43 @@ export function DailyRecapCard({ day }: DailyRecapCardProps) {
         </div>
       )}
 
-      {/* Share recap button — only when done */}
-      {shopping_status === 'done' && (
-        <div className="border-t border-border/30 px-4 py-2.5">
+      {/* Action footer */}
+      <div className="border-t border-border/30 px-3 py-2 flex items-center gap-2">
+        {/* OCR record button — visible when onRecord is provided */}
+        {onRecord && day.meal_id && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'h-8 px-3 text-xs font-medium rounded-lg gap-1.5 flex-1',
+              shopping_status === 'done'
+                ? 'text-teal-700 hover:bg-teal-50'
+                : 'text-primary hover:bg-primary/5'
+            )}
+            onClick={() => onRecord(day.meal_id!)}
+          >
+            <ScanLine className="h-3.5 w-3.5" />
+            {shopping_status === 'done' ? 'Tambah / Koreksi' : 'Catat Belanja'}
+          </Button>
+        )}
+
+        {/* Share recap — only when there are actuals */}
+        {actualCost > 0 && (
           <WhatsAppShareButton
             message={waMessage}
-            label="Share rekap ke WA"
-            className="w-full justify-center"
+            label="Share rekap"
+            className={cn('h-8 px-3 text-xs', onRecord && day.meal_id ? '' : 'flex-1 justify-center')}
           />
-        </div>
-      )}
+        )}
+
+        {/* Placeholder when no record handler and no actuals */}
+        {!onRecord && actualCost === 0 && (
+          <div className="flex-1 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/50 py-1">
+            <ShoppingCart className="h-3.5 w-3.5" />
+            Belum ada catatan belanja
+          </div>
+        )}
+      </div>
     </div>
   );
 }
