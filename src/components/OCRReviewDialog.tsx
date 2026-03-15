@@ -118,7 +118,7 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl">
+      <DialogContent className="max-w-7xl w-[95vw] h-[90vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
         <DialogHeader className="p-6 border-b bg-secondary/20">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
