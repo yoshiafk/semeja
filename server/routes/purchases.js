@@ -8,10 +8,11 @@ router.get('/', async (req, res) => {
   try {
     const { ingredient_id } = req.query;
     let query = `
-      SELECT p.*, s.name as supplier_name, i.name as ingredient_name, i.unit
+      SELECT p.*, s.name as supplier_name, i.name as ingredient_name, i.unit, m.name as member_name
       FROM purchases p
       LEFT JOIN suppliers s ON p.supplier_id = s.id
       JOIN ingredients i ON p.ingredient_id = i.id
+      LEFT JOIN members m ON p.member_id = m.id
     `;
     let params = [];
 
@@ -33,10 +34,11 @@ router.get('/', async (req, res) => {
 router.get('/recent', async (req, res) => {
   try {
     const { rows } = await pool.query(`
-      SELECT p.*, s.name as supplier_name, i.name as ingredient_name, i.unit
+      SELECT p.*, s.name as supplier_name, i.name as ingredient_name, i.unit, m.name as member_name
       FROM purchases p
       LEFT JOIN suppliers s ON p.supplier_id = s.id
       JOIN ingredients i ON p.ingredient_id = i.id
+      LEFT JOIN members m ON p.member_id = m.id
       ORDER BY p.purchased_at DESC, p.created_at DESC
       LIMIT 20
     `);
@@ -89,7 +91,8 @@ router.get('/ingredient/:id', async (req, res) => {
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
   const {
     ingredient_id, supplier_name, quantity, total_price,
-    purchased_at, notes, update_stock, meal_plan_id, receipt_id, meal_id
+    purchased_at, notes, update_stock, meal_plan_id, receipt_id, meal_id,
+    member_id
   } = req.body;
 
   if (!ingredient_id || !supplier_name || !quantity || !total_price) {
@@ -124,12 +127,13 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
     // 3. Insert purchase record
     const { rows: purchaseRows } = await client.query(
       `INSERT INTO purchases 
-        (ingredient_id, supplier_id, quantity, total_price, price_per_unit, purchased_at, notes, meal_plan_id, receipt_id, meal_id) 
+        (ingredient_id, supplier_id, quantity, total_price, purchased_at, notes, meal_plan_id, receipt_id, meal_id, member_id) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
        RETURNING *`,
       [
-        ingredient_id, supplier_id, quantity, total_price, price_per_unit,
-        purchaseDate, notes || '', meal_plan_id || null, receipt_id || null, meal_id || null
+        ingredient_id, supplier_id, quantity, total_price,
+        purchaseDate, notes || '', meal_plan_id || null, receipt_id || null, meal_id || null,
+        member_id || null
       ]
     );
     const newPurchase = purchaseRows[0];
@@ -184,10 +188,11 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
 
     // Return the complete record with joined names
     const { rows: resultRows } = await pool.query(`
-      SELECT p.*, s.name as supplier_name, i.name as ingredient_name, i.price_per_unit as updated_unit_price
+      SELECT p.*, s.name as supplier_name, i.name as ingredient_name, i.price_per_unit as updated_unit_price, m.name as member_name
       FROM purchases p
       LEFT JOIN suppliers s ON p.supplier_id = s.id
       JOIN ingredients i ON p.ingredient_id = i.id
+      LEFT JOIN members m ON p.member_id = m.id
       WHERE p.id = $1
     `, [newPurchase.id]);
 

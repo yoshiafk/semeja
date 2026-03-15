@@ -5,7 +5,7 @@ import { Checkbox } from "./ui/checkbox";
 import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { formatRupiah, cn } from "@/lib/utils";
-import { Receipt, ListCheck, ArrowRight, Store, Search, Info, Loader2 } from "lucide-react";
+import { Receipt, ListCheck, ArrowRight, Store, Search, Info, Loader2, Users, Plus } from "lucide-react";
 
 interface OCRItem {
   name: string;
@@ -29,13 +29,19 @@ interface Ingredient {
   unit: string;
 }
 
+interface Member {
+  id: number;
+  name: string;
+}
+
 interface OCRReviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: OCRData | null;
   receiptId: number | null;
   ingredients: Ingredient[];
-  onImport: (selectedItems: OCRItem[], supplierName: string) => void;
+  members: Member[];
+  onImport: (selectedItems: (OCRItem & { isNewIngredient?: boolean })[], supplierName: string, memberId?: number) => void;
   loading?: boolean;
 }
 
@@ -45,17 +51,19 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
   data,
   receiptId,
   ingredients,
+  members,
   onImport,
   loading = false
 }) => {
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
-  const [matches, setMatches] = useState<{ [key: number]: number }>({});
+  const [matches, setMatches] = useState<{ [key: number]: number | 'NEW' }>({});
+  const [selectedMemberId, setSelectedMemberId] = useState<number | undefined>(undefined);
 
   // Auto-match items when data changes
   useEffect(() => {
     if (!data || ingredients.length === 0) return;
 
-    const newMatches: { [key: number]: number } = {};
+    const newMatches: { [key: number]: number | 'NEW' } = {};
     const newSelected: number[] = [];
 
     data.items.forEach((item, idx) => {
@@ -68,6 +76,12 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
       if (match) {
         newMatches[idx] = match.id;
         newSelected.push(idx);
+      } else {
+        // Default to NEW if no match found for items that have price
+        if (item.totalPrice > 0) {
+          newMatches[idx] = 'NEW';
+          newSelected.push(idx);
+        }
       }
     });
 
@@ -87,6 +101,14 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
   };
 
   const handleMatchChange = (index: number, ingredientName: string) => {
+    if (ingredientName === "ADD_NEW") {
+      setMatches(prev => ({ ...prev, [index]: 'NEW' }));
+      if (!selectedIndices.includes(index)) {
+        setSelectedIndices(prev => [...prev, index]);
+      }
+      return;
+    }
+
     const ingredient = ingredients.find(ing => ing.name === ingredientName);
     if (ingredient) {
       setMatches(prev => ({ ...prev, [index]: ingredient.id }));
@@ -109,11 +131,12 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
       .map((item, idx) => {
         return {
           ...item,
-          matchedIngredientId: matches[idx]
+          matchedIngredientId: matches[idx] === 'NEW' ? undefined : (matches[idx] as number),
+          isNewIngredient: matches[idx] === 'NEW'
         };
       });
 
-    onImport(selected, data.supplierName);
+    onImport(selected, data.supplierName, selectedMemberId);
     onOpenChange(false);
   };
 
@@ -176,15 +199,38 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                     {data?.supplierName || 'Merchant Tidak Terdeteksi'}
                   </span>
                 </div>
-                <div className="flex items-end justify-between">
+                <div className="flex items-end justify-between mb-4">
                   <span className="text-sm text-muted-foreground">Total di Struk:</span>
                   <span className="text-2xl font-black text-primary">{formatRupiah(data?.totalAmount || 0)}</span>
+                </div>
+
+                <div className="space-y-1.5 pt-3 border-t">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                    <Users className="h-3 w-3" /> Siapa yang bayar?
+                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    {members.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => setSelectedMemberId(m.id)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border",
+                          selectedMemberId === m.id
+                            ? "bg-primary text-white border-primary shadow-md shadow-primary/20 scale-105"
+                            : "bg-white text-muted-foreground border-border hover:border-primary/30"
+                        )}
+                      >
+                        {m.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-3">
                   <datalist id={datalistId}>
+                    <option value="ADD_NEW">Tambah sebagai bahan baru...</option>
                     {ingredients.map(ing => (
                       <option key={ing.id} value={ing.name} />
                     ))}
@@ -252,12 +298,13 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/60" />
                               <Input
                                 placeholder="Cari bahan yang cocok..."
-                                defaultValue={matchedIng?.name || ""}
-                                onChange={(e) => handleMatchChange(idx, e.target.value)}
+                                defaultValue={matchedIngId === 'NEW' ? "Tambah sebagai bahan baru..." : (matchedIng?.name || "")}
+                                onBlur={(e) => handleMatchChange(idx, e.target.value)}
                                 list={datalistId}
                                 className={cn(
                                   "h-10 pl-8 text-sm rounded-lg bg-white",
-                                  !matchedIngId && "border-amber-200 bg-amber-50/30"
+                                  !matchedIngId && "border-amber-200 bg-amber-50/30",
+                                  matchedIngId === 'NEW' && "border-green-200 bg-green-50/30 text-green-700 font-medium"
                                 )}
                               />
                             </div>
@@ -265,6 +312,12 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                               <p className="text-[10px] text-amber-600 flex items-center gap-1 font-medium pl-1">
                                 <Info className="h-2.5 w-2.5" />
                                 Wajib dipilih untuk proses otomatis
+                              </p>
+                            )}
+                            {matchedIngId === 'NEW' && (
+                              <p className="text-[10px] text-green-600 flex items-center gap-1 font-medium pl-1">
+                                <Plus className="h-2.5 w-2.5" />
+                                Akan ditambahkan otomatis ke database
                               </p>
                             )}
                           </div>

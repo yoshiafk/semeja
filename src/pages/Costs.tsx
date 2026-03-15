@@ -81,7 +81,15 @@ export default function Costs() {
   
   const [isPurchaseOpen, setIsPurchaseOpen] = useState(false);
   const [selectedIngredient, setSelectedIngredient] = useState<{ id?: number; name: string; qty: number; unit: string } | null>(null);
-  const [formData, setFormData] = useState({ supplier_name: "", quantity: "", total_price: "", notes: "", receipt_id: null as number | null });
+  const [formData, setFormData] = useState({ 
+    supplier_name: "", 
+    quantity: "", 
+    total_price: "", 
+    notes: "", 
+    receipt_id: null as number | null,
+    member_id: null as number | null,
+    ingredient_id: null as number | null
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   // OCR States
@@ -91,19 +99,26 @@ export default function Costs() {
   const [isOCRUploadOpen, setIsOCRUploadOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [allIngredients, setAllIngredients] = useState<any[]>([]);
+  const [allMembers, setAllMembers] = useState<any[]>([]);
   // Tracks which specific meal (day) purchases are being tagged to
   const [selectedMealId, setSelectedMealId] = useState<number | null>(null);
+
+  const [isManualEntry, setIsManualEntry] = useState(false);
+  const [newIngredient, setNewIngredient] = useState({ name: "", unit: "pcs" });
+  const [isAddingNewIngredient, setIsAddingNewIngredient] = useState(false);
 
   useEffect(() => {
     const fetchPlans = async () => {
       try {
         setLoading(true);
-        const [allPlans, ings] = await Promise.all([
+        const [allPlans, ings, membersList] = await Promise.all([
           api.get<any[]>("/meal-plans"),
-          api.get<any[]>("/ingredients")
+          api.get<any[]>("/ingredients"),
+          api.get<any[]>("/members")
         ]);
         setPlans(allPlans);
         setAllIngredients(ings);
+        setAllMembers(membersList);
         if (allPlans.length > 0) {
           const active = allPlans.find(p => p.status === 'active') || allPlans[0];
           setActivePlanId(active.id);
@@ -141,28 +156,61 @@ export default function Costs() {
 
   const recordPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedIngredient?.id || !activePlanId) return;
+    if (!activePlanId) return;
+
+    let ingredientId = selectedIngredient?.id || formData.ingredient_id;
     
     try {
       setIsSaving(true);
+
+      // Create new ingredient if needed
+      if (isAddingNewIngredient) {
+        const newIng = await api.post<any>("/ingredients", {
+          name: newIngredient.name,
+          unit: newIngredient.unit,
+          price_per_unit: Math.round(parseInt(formData.total_price) / parseFloat(formData.quantity)) || 0,
+          category: "Lainnya"
+        });
+        ingredientId = newIng.id;
+        // Update local ingredients list
+        setAllIngredients(prev => [...prev, newIng]);
+      }
+
+      if (!ingredientId) {
+        toast.error("Pilih bahan terlebih dahulu");
+        setIsSaving(false);
+        return;
+      }
+
       await api.post("/purchases", {
-        ingredient_id: selectedIngredient.id,
+        ingredient_id: ingredientId,
         supplier_name: formData.supplier_name,
         quantity: parseFloat(formData.quantity),
         total_price: parseInt(formData.total_price),
         update_stock: true,
         meal_plan_id: activePlanId,
         meal_id: selectedMealId,   // tag to specific day if set
-        receipt_id: formData.receipt_id
+        receipt_id: formData.receipt_id,
+        member_id: formData.member_id
       });
+
       setIsPurchaseOpen(false);
-      setFormData({ supplier_name: "", quantity: "", total_price: "", notes: "", receipt_id: null });
-      toast.success("Pembelian berhasil dicatat dan ditagihkan!");
+      setIsManualEntry(false);
+      setIsAddingNewIngredient(false);
+      setFormData({ 
+        supplier_name: "", 
+        quantity: "", 
+        total_price: "", 
+        notes: "", 
+        receipt_id: null,
+        member_id: null,
+        ingredient_id: null 
+      });
+      toast.success("Pembelian berhasil dicatat!");
       
-      setLoading(true);
       const summary = await api.get<CostSummary>(`/summary/${activePlanId}`);
       setData(summary);
-      setLoading(false);
+      setIsSaving(false);
     } catch (err: any) {
       toast.error("Gagal mencatat: " + (err.error || err.message));
       setIsSaving(false);
@@ -177,28 +225,46 @@ export default function Costs() {
     setIsOCRReviewOpen(true);
   };
 
-  const handleOCRImport = async (selectedItems: any[], supplierName: string) => {
+  const handleOCRImport = async (selectedItems: any[], supplierName: string, memberId?: number) => {
     if (selectedItems.length === 0) return;
 
-    // Check if it's a multi-item import (from bulk scan or shopping list)
-    // or a single item import (from the purchase dialog)
-    if (selectedItems.length > 1 || selectedItems[0].matchedIngredientId) {
-      setIsSaving(true);
-      let successCount = 0;
-      
+    setIsSaving(true);
+    let successCount = 0;
+    
+    try {
       for (const item of selectedItems) {
-        if (!item.matchedIngredientId || !activePlanId) continue;
+        let ingredientId = item.matchedIngredientId;
+        
+        // Handle new ingredient creation from OCR
+        if (item.isNewIngredient) {
+          try {
+            const newIng = await api.post<any>("/ingredients", {
+              name: item.name,
+              unit: item.unit || "pcs",
+              price_per_unit: item.unitPrice || (item.totalPrice / (item.quantity || 1)),
+              category: "Lainnya"
+            });
+            ingredientId = newIng.id;
+            setAllIngredients(prev => [...prev, newIng]);
+          } catch (err) {
+            console.error(`Failed to create new ingredient ${item.name}:`, err);
+            continue;
+          }
+        }
+
+        if (!ingredientId || !activePlanId) continue;
         
         try {
           await api.post("/purchases", {
-            ingredient_id: item.matchedIngredientId,
+            ingredient_id: ingredientId,
             supplier_name: supplierName || "OCR Import",
             quantity: item.quantity,
             total_price: item.totalPrice,
             update_stock: true,
             meal_plan_id: activePlanId,
             meal_id: selectedMealId,   // tag to specific day if set
-            receipt_id: scannedReceiptId
+            receipt_id: scannedReceiptId,
+            member_id: memberId
           });
           successCount++;
         } catch (err) {
@@ -206,30 +272,15 @@ export default function Costs() {
         }
       }
       
-      setIsSaving(false);
       toast.success(`${successCount} item berhasil dicatat!`);
-      
-      // Refresh data
-      setLoading(true);
       const summary = await api.get<CostSummary>(`/summary/${activePlanId}`);
       setData(summary);
-      setLoading(false);
-      return;
+    } catch (err) {
+      console.error("Import error:", err);
+    } finally {
+      setIsSaving(false);
+      setIsOCRReviewOpen(false);
     }
-
-    // Original single-item logic (legacy, but keeping for compatibility if matchedIngredientId is missing)
-    const totalFromSelected = selectedItems.reduce((sum, item) => sum + item.totalPrice, 0);
-    const totalQty = selectedItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
-
-    setFormData(prev => ({
-      ...prev,
-      supplier_name: supplierName || prev.supplier_name,
-      total_price: totalFromSelected.toString(),
-      quantity: totalQty.toString(),
-      receipt_id: scannedReceiptId
-    }));
-    
-    toast.success(`${selectedItems.length} item dari struk berhasil di-import!`);
   };
 
   if (loading && !data) {
@@ -753,7 +804,8 @@ export default function Costs() {
         data={ocrData}
         receiptId={scannedReceiptId}
         ingredients={allIngredients.map(ing => ({ id: ing.id, name: ing.name, unit: ing.unit }))}
-        onImport={handleOCRImport}
+        members={allMembers}
+        onImport={(items, supplier, memberId) => handleOCRImport(items, supplier, memberId)}
       />
 
       {/* OCR Upload Dialog */}
@@ -778,21 +830,157 @@ export default function Costs() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <ReceiptUpload 
-              label="Klik atau Drop Struk di sini"
-              autoScan={true}
-              isScanning={isScanning}
-              onScanStart={() => {
-                setIsScanning(true);
-              }}
-              onScanSuccess={handleScanSuccess}
-              onUploadSuccess={() => {}}
-              onClear={() => {}}
-            />
+            <div className="flex bg-secondary/50 p-1 rounded-xl mb-4">
+              <button 
+                className={cn("flex-1 py-2 text-xs font-bold rounded-lg transition-all", !isManualEntry ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
+                onClick={() => setIsManualEntry(false)}
+              >
+                Scan Struk
+              </button>
+              <button 
+                className={cn("flex-1 py-2 text-xs font-bold rounded-lg transition-all", isManualEntry ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
+                onClick={() => setIsManualEntry(true)}
+              >
+                Input Manual
+              </button>
+            </div>
+
+            {!isManualEntry ? (
+              <ReceiptUpload 
+                label="Klik atau Drop Struk di sini"
+                autoScan={true}
+                isScanning={isScanning}
+                onScanStart={() => {
+                  setIsScanning(true);
+                }}
+                onScanSuccess={handleScanSuccess}
+                onUploadSuccess={() => {}}
+                onClear={() => {}}
+              />
+            ) : (
+              <form onSubmit={recordPurchase} className="space-y-4">
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Item / Bahan</label>
+                    {!isAddingNewIngredient ? (
+                      <Select 
+                        value={formData.ingredient_id?.toString() || ""} 
+                        onValueChange={(val) => {
+                          if (val === "ADD_NEW") {
+                            setIsAddingNewIngredient(true);
+                          } else {
+                            setFormData({ ...formData, ingredient_id: parseInt(val) });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-10 rounded-xl bg-secondary/80 border-border text-sm">
+                          <SelectValue placeholder="Pilih Bahan..." />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-border">
+                          <SelectItem value="ADD_NEW" className="text-emerald-600 font-bold border-b">
+                            + Tambah Bahan Baru
+                          </SelectItem>
+                          {allIngredients.map(ing => (
+                            <SelectItem key={ing.id} value={ing.id.toString()}>
+                              {ing.name} ({ing.unit})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Nama Bahan Baru" 
+                          value={newIngredient.name} 
+                          onChange={e => setNewIngredient({ ...newIngredient, name: e.target.value })} 
+                          className="h-10 rounded-xl bg-secondary/80 border-border text-sm"
+                        />
+                        <Input 
+                          placeholder="Satuan" 
+                          value={newIngredient.unit} 
+                          onChange={e => setNewIngredient({ ...newIngredient, unit: e.target.value })}
+                          className="h-10 w-24 rounded-xl bg-secondary/80 border-border text-sm"
+                        />
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => setIsAddingNewIngredient(false)}
+                          className="h-10 w-10 rounded-xl text-red-500"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Toko / Supplier</label>
+                    <Input 
+                      required 
+                      value={formData.supplier_name} 
+                      onChange={e => setFormData({ ...formData, supplier_name: e.target.value })} 
+                      placeholder="Cth: Pasar Palmerah" 
+                      className="h-10 rounded-xl bg-secondary/80 border-border text-sm" 
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase">Kuantitas</label>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        required 
+                        value={formData.quantity} 
+                        onChange={e => setFormData({ ...formData, quantity: e.target.value })} 
+                        className="h-10 rounded-xl bg-secondary/80 border-border text-sm" 
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase">Total Harga (Rp)</label>
+                      <Input 
+                        type="number" 
+                        required 
+                        value={formData.total_price} 
+                        onChange={e => setFormData({ ...formData, total_price: e.target.value })} 
+                        className="h-10 rounded-xl bg-secondary/80 border-border text-sm" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 pt-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Warga yang Bayar</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {allMembers.map(m => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, member_id: m.id })}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border",
+                            formData.member_id === m.id
+                              ? "bg-primary text-white border-primary shadow-sm"
+                              : "bg-white text-muted-foreground border-border hover:border-primary/30"
+                          )}
+                        >
+                          {m.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={isSaving} className="w-full h-11 rounded-xl text-sm font-bold mt-4 shadow-lg shadow-primary/20">
+                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Catat Pembelian Manual
+                </Button>
+              </form>
+            )}
           </div>
-          <DialogFooter className="mt-6 flex gap-2">
-            <Button variant="ghost" className="flex-1 h-10 rounded-xl text-sm font-medium text-muted-foreground" onClick={() => setIsOCRUploadOpen(false)}>
-              Batal
+          <DialogFooter className="mt-4 pt-4 border-t">
+            <Button variant="ghost" className="w-full h-10 rounded-xl text-sm font-medium text-muted-foreground" onClick={() => setIsOCRUploadOpen(false)}>
+              Tutup
             </Button>
           </DialogFooter>
         </DialogContent>

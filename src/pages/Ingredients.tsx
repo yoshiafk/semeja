@@ -107,6 +107,7 @@ export default function Ingredients() {
   const [ocrData, setOcrData] = useState<any>(null);
   const [isOCRReviewOpen, setIsOCRReviewOpen] = useState(false);
   const [scannedReceiptId, setScannedReceiptId] = useState<number | null>(null);
+  const [allMembers, setAllMembers] = useState<any[]>([]);
 
   // --- Price Sync state ---
   const [isSyncingPrices, setIsSyncingPrices] = useState(false);
@@ -123,12 +124,14 @@ export default function Ingredients() {
   const fetchIngredients = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
-      const [ingRes, supRes] = await Promise.all([
+      const [ingRes, supRes, memRes] = await Promise.all([
         api.get<Ingredient[]>("/ingredients"),
-        api.get<{id: number, name: string}[]>("/suppliers")
+        api.get<{id: number, name: string}[]>("/suppliers"),
+        api.get<any[]>("/members")
       ]);
       setIngredients(ingRes);
       setSuppliers(supRes);
+      setAllMembers(memRes);
     } catch (err) {
       console.error(err);
     } finally {
@@ -235,23 +238,43 @@ export default function Ingredients() {
     setIsOCRReviewOpen(true);
   };
 
-  const handleBulkImport = async (selectedItems: any[], supplierName: string) => {
+  const handleBulkImport = async (selectedItems: any[], supplierName: string, memberId?: number) => {
     if (selectedItems.length === 0) return;
     
     setIsSaving(true);
     let successCount = 0;
     
     for (const item of selectedItems) {
-      if (!item.matchedIngredientId) continue;
+      let ingredientId = item.matchedIngredientId;
+
+      // Handle new ingredient creation from OCR
+      if (item.isNewIngredient) {
+        try {
+          const newIng = await api.post<any>("/ingredients", {
+            name: item.name,
+            unit: item.unit || "pcs",
+            price_per_unit: item.unitPrice || (item.totalPrice / (item.quantity || 1)),
+            category: "Lainnya"
+          });
+          ingredientId = newIng.id;
+          setIngredients(prev => [...prev, newIng]);
+        } catch (err) {
+          console.error(`Failed to create new ingredient ${item.name}:`, err);
+          continue;
+        }
+      }
+
+      if (!ingredientId) continue;
       
       try {
         await api.post("/purchases", {
-          ingredient_id: item.matchedIngredientId,
+          ingredient_id: ingredientId,
           supplier_name: supplierName || "OCR Import",
           quantity: item.quantity,
           total_price: item.totalPrice,
           update_stock: true,
-          receipt_id: scannedReceiptId
+          receipt_id: scannedReceiptId,
+          member_id: memberId
         });
         successCount++;
       } catch (err) {
@@ -781,11 +804,12 @@ export default function Ingredients() {
       </Dialog>
 
       <OCRReviewDialog 
-        open={isOCRReviewOpen}
+        open={isOCRReviewOpen || isSaving}
         onOpenChange={setIsOCRReviewOpen}
         data={ocrData}
         receiptId={scannedReceiptId}
         ingredients={ingredients.map(ing => ({ id: ing.id, name: ing.name, unit: ing.unit }))}
+        members={allMembers}
         onImport={handleBulkImport}
       />
     </PageContainer>
