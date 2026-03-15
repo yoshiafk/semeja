@@ -111,7 +111,10 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
       setSearchQueries(prev => ({ ...prev, [index]: ingredient.name }));
     } else if (ingredientName === "ADD_NEW") {
       setMatches(prev => ({ ...prev, [index]: 'NEW' }));
-      setSearchQueries(prev => ({ ...prev, [index]: "Bahan Baru" }));
+      // Preserve existing search query if it exists, don't overwrite with "Bahan Baru"
+      if (!searchQueries[index]) {
+        setSearchQueries(prev => ({ ...prev, [index]: "Bahan Baru" }));
+      }
     } else {
       setMatches(prev => {
         const next = { ...prev };
@@ -125,11 +128,17 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
     if (!data) return;
     const selected = data.items
       .filter((_, idx) => selectedIndices.includes(idx))
-      .map((item, idx) => {
+      .map((item) => {
+        // Find the ORIGINAL index of this item in data.items
+        const originalIdx = data.items.indexOf(item);
+        const matchValue = matches[originalIdx];
+        const isNew = matchValue === 'NEW';
+        
         return {
           ...item,
-          matchedIngredientId: matches[idx] === 'NEW' ? undefined : (matches[idx] as number),
-          isNewIngredient: matches[idx] === 'NEW'
+          name: isNew ? (searchQueries[originalIdx] || item.name) : item.name,
+          matchedIngredientId: isNew ? undefined : (matchValue as number),
+          isNewIngredient: isNew
         };
       });
 
@@ -224,8 +233,8 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                 </div>
               </div>
 
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-3">
+              <ScrollArea className="flex-1 p-4 overflow-visible">
+                <div className="space-y-3 pb-32">
 
                   {loading ? (
                     // Skeleton Loaders
