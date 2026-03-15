@@ -170,7 +170,7 @@ export default function Costs() {
         const newIng = await api.post<any>("/ingredients", {
           name: newIngredient.name,
           unit: newIngredient.unit,
-          price_per_unit: Math.round(parseInt(formData.total_price) / parseFloat(formData.quantity)) || 0,
+          price_per_unit: Math.round(parseInt(formData.total_price) / (parseFloat(formData.quantity) || 1)),
           category: "Lainnya"
         });
         ingredientId = newIng.id;
@@ -244,7 +244,7 @@ export default function Costs() {
             const newIng = await api.post<any>("/ingredients", {
               name: item.name,
               unit: item.unit || "pcs",
-              price_per_unit: item.unitPrice || (item.totalPrice / (item.quantity || 1)),
+              price_per_unit: Math.round(item.unitPrice || (item.totalPrice / (item.quantity || 1))),
               category: "Lainnya"
             });
             ingredientId = newIng.id;
@@ -800,6 +800,7 @@ export default function Costs() {
       <OCRReviewDialog 
         open={isOCRReviewOpen || isScanning}
         loading={isScanning}
+        isSaving={isSaving}
         onOpenChange={(open) => {
           setIsOCRReviewOpen(open);
           if (!open) setIsScanning(false);

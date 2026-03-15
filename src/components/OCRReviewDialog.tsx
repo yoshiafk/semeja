@@ -43,6 +43,7 @@ interface OCRReviewDialogProps {
   members: Member[];
   onImport: (selectedItems: (OCRItem & { isNewIngredient?: boolean })[], supplierName: string, memberId?: number) => void;
   loading?: boolean;
+  isSaving?: boolean;
 }
 
 export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
@@ -53,7 +54,8 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
   ingredients,
   members,
   onImport,
-  loading = false
+  loading = false,
+  isSaving = false
 }) => {
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [matches, setMatches] = useState<{ [key: number]: number | 'NEW' }>({});
@@ -419,10 +421,15 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
           </Button>
           <Button 
             onClick={handleImport}
-            disabled={loading || selectedIndices.length === 0}
+            disabled={loading || isSaving || selectedIndices.length === 0}
             className="rounded-xl h-11 px-8 gap-2 font-bold shadow-lg shadow-primary/20"
           >
-            {loading ? (
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : loading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Menganalisa...
