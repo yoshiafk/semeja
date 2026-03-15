@@ -118,7 +118,7 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl w-[95vw] h-[90vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
+      <DialogContent className="sm:max-w-none w-[98vw] h-[98vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
         <DialogHeader className="p-6 border-b bg-secondary/20">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
@@ -157,14 +157,14 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
             <div className="flex flex-col bg-white overflow-hidden">
               <div className="p-4 border-b bg-primary/5">
                 <div className="flex items-center gap-2 mb-1">
-                  <Store className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-bold text-foreground">
+                  <Store className="h-5 w-5 text-primary" />
+                  <span className="text-base font-bold text-foreground">
                     {data.supplierName || 'Merchant Tidak Terdeteksi'}
                   </span>
                 </div>
                 <div className="flex items-end justify-between">
-                  <span className="text-xs text-muted-foreground">Total di Struk:</span>
-                  <span className="text-lg font-black text-primary">{formatRupiah(data.totalAmount)}</span>
+                  <span className="text-sm text-muted-foreground">Total di Struk:</span>
+                  <span className="text-2xl font-black text-primary">{formatRupiah(data.totalAmount)}</span>
                 </div>
               </div>
 
@@ -197,22 +197,22 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                             className="mt-1"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-foreground leading-tight truncate">
+                            <p className="text-base font-bold text-foreground leading-tight truncate">
                               {item.name}
                             </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[11px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-md font-medium">
                                 {item.quantity} {item.unit || 'pcs'}
                               </span>
                               {item.unitPrice && (
-                                <span className="text-[11px] text-muted-foreground">
+                                <span className="text-xs text-muted-foreground">
                                   @{formatRupiah(item.unitPrice)}
                                 </span>
                               )}
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-bold text-primary">{formatRupiah(item.totalPrice)}</p>
+                            <p className="text-lg font-black text-primary">{formatRupiah(item.totalPrice)}</p>
                           </div>
                         </div>
 
@@ -226,7 +226,7 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                               onChange={(e) => handleMatchChange(idx, e.target.value)}
                               list={datalistId}
                               className={cn(
-                                "h-8 pl-8 text-[11px] rounded-lg bg-white",
+                                "h-10 pl-8 text-sm rounded-lg bg-white",
                                 !matchedIngId && "border-amber-200 bg-amber-50/30"
                               )}
                             />
