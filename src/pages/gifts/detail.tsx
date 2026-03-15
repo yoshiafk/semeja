@@ -389,6 +389,7 @@ export default function GiftDetail() {
                         await updateGiftItem(parseInt(id!), item.id, { receipt_id: null });
                         fetchDetail();
                       }}
+                      onScanSuccess={() => {}}
                     />
                   )}
 

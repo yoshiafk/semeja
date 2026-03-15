@@ -38,12 +38,7 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const encodeData = (data: string) => data; // No longer encoding for simplicity and bug prevention
 
   const decodeData = (data: string) => {
-    try {
-      // Transition: Try to decode if looks like base64, else return as is
-      return decodeURIComponent(atob(data));
-    } catch {
-      return data;
-    }
+    return data;
   };
 
   const loadMember = useCallback(async (name: string, password?: string) => {

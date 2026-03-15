@@ -17,7 +17,7 @@ export function NameEntry() {
     if (!name.trim()) return;
 
     // Client-side validation
-    const nameRegex = /^[a-zA-Z0-0\s.\-]{2,50}$/;
+    const nameRegex = /^[a-zA-Z0-9\s.\-]{2,50}$/;
     if (!nameRegex.test(name.trim())) {
       setError("Nama hanya boleh berisi huruf, angka, spasi, titik, atau tanda hubung (min. 2 karakter)");
       return;

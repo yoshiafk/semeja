@@ -72,7 +72,7 @@ router.post('/', loginLimiter, async (req, res) => {
   }
 
   // Name validation: Alphanumeric, spaces, dots, hyphens, min 2 chars
-  const nameRegex = /^[a-zA-Z0-0\s.\-]{2,50}$/;
+  const nameRegex = /^[a-zA-Z0-9\s.\-]{2,50}$/;
   if (!nameRegex.test(name.trim())) {
     return res.status(400).json({ 
       error: 'Nama hanya boleh berisi huruf, angka, spasi, titik, atau tanda hubung (min. 2 karakter)' 

@@ -216,6 +216,7 @@ export default function ActivityDetail() {
                       await updateActivity(activity.id, { receipt_id: null });
                       await loadActivity(true);
                     }}
+                    onScanSuccess={() => {}}
                     label=""
                   />
                 )}

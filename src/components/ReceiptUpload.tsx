@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload, CheckCircle2, X } from "lucide-react";
 import browserImageCompression from 'browser-image-compression';
@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 interface ReceiptUploadProps {
   onUploadSuccess: (id: number) => void;
-  onScanSuccess: (data: any) => void;
+  onScanSuccess?: (data: any, receiptId: number) => void;
   onScanStart?: () => void;
   onClear?: () => void;
   initialId?: number | null;
@@ -83,10 +83,13 @@ export const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
           body: JSON.stringify({ attachmentId: uploadData.id })
         });
 
-        if (!scanRes.ok) throw new Error('OCR Scan failed');
-        
-        const scanData = await scanRes.json();
-        onScanSuccess(scanData);
+        if (scanRes.ok) {
+          const scanData = await scanRes.json();
+          if (onScanSuccess) onScanSuccess(scanData, uploadData.id);
+        } else {
+          console.error('OCR Scan failed');
+          // Don't throw here so we don't break the successful upload
+        }
       }
       
       toast.success("Struk berhasil diupload");
