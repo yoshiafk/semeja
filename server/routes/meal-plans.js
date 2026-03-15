@@ -3,6 +3,22 @@ const router = express.Router();
 const { pool } = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { convertToWeight } = require('../lib/units');
+const { createShoppingListSnapshot } = require('../lib/snapshot');
+
+// ── Status lifecycle validator ────────────────────────────────
+const VALID_TRANSITIONS = {
+  draft:    ['proposed', 'archived'],
+  proposed: ['active', 'draft'],
+  active:   ['shopping', 'archived'],
+  shopping: ['closed', 'active'],
+  closed:   ['archived'],
+  archived: [],  // terminal
+};
+
+function canTransition(from, to) {
+  const current = from || 'active'; // treat legacy null statuses as active
+  return VALID_TRANSITIONS[current]?.includes(to) ?? false;
+}
 
 // GET all meal plans (batch query instead of N+1)
 router.get('/', async (req, res) => {
@@ -35,11 +51,13 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET active meal plans
+// GET active (or currently live) meal plans
 router.get('/active', async (req, res) => {
   try {
     const { rows: plans } = await pool.query(
-      "SELECT * FROM meal_plans WHERE status = 'active' ORDER BY week_start ASC"
+      `SELECT * FROM meal_plans
+       WHERE status IN ('active', 'shopping', 'proposed', 'draft')
+       ORDER BY week_start ASC`
     );
     const planIds = plans.map(p => p.id);
     let allMeals = [];
@@ -111,33 +129,69 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-// PUT update meal plan status
-// IMPROVEMENT #5: When archiving, compute actual vs estimated cost per member
-// and write final settlements to plan_member_settlements so billing is locked in.
+// PUT update meal plan status / lifecycle
 router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
-  const { status } = req.body;
+  const { status, rsvp_deadline } = req.body;
   const planId = parseInt(req.params.id);
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    const { rows } = await client.query(
-      'UPDATE meal_plans SET status = $1 WHERE id = $2 RETURNING *',
-      [status, planId]
+    // Get current plan
+    const { rows: current } = await client.query(
+      'SELECT * FROM meal_plans WHERE id = $1', [planId]
     );
-    if (!rows.length) {
+    if (!current.length) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Not found' });
     }
+    const currentPlan = current[0];
+
+    // Validate transition if status is being changed
+    if (status && status !== currentPlan.status && !canTransition(currentPlan.status, status)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: `Cannot transition from '${currentPlan.status}' to '${status}'`
+      });
+    }
+
+    // Build update fields dynamically
+    const updates = {};
+    if (status) updates.status = status;
+
+    if (status === 'proposed') {
+      updates.proposed_at = new Date().toISOString();
+      if (rsvp_deadline) updates.rsvp_deadline = rsvp_deadline;
+    }
+    if (status === 'shopping') {
+      updates.locked_at = new Date().toISOString();
+    }
+
+    const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 2}`).join(', ');
+    const values = [planId, ...Object.values(updates)];
+
+    const { rows } = await client.query(
+      `UPDATE meal_plans SET ${setClauses} WHERE id = $1 RETURNING *`,
+      values
+    );
     const plan = rows[0];
 
-    // ── IMPROVEMENT #5: Cost reconciliation on archive ─────────
+    // Trigger shopping list snapshot when moving to 'shopping'
+    if (status === 'shopping') {
+      try {
+        await createShoppingListSnapshot(pool, planId);
+      } catch (snapErr) {
+        console.warn('[snapshot] Failed to create snapshot:', snapErr.message);
+        // Non-fatal — don't block the transition
+      }
+    }
+
+    // Existing cost reconciliation on archive
     if (status === 'archived') {
       try {
         await reconcilePlanCosts(client, planId);
       } catch (reconcileErr) {
-        // Non-fatal — log but still complete the archive
         console.warn('[reconcile] Failed to settle costs:', reconcileErr.message);
       }
     }
@@ -176,6 +230,83 @@ router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
     res.json({ deleted: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /:id/react — member RSVP reaction on a proposed plan
+router.post('/:id/react', requireAuth, async (req, res) => {
+  const { meal_id, reaction, member_id } = req.body;
+  if (!meal_id || !reaction || !member_id) {
+    return res.status(400).json({ error: 'meal_id, reaction, and member_id are required' });
+  }
+  if (!['join', 'skip', 'unsure'].includes(reaction)) {
+    return res.status(400).json({ error: 'reaction must be join, skip, or unsure' });
+  }
+  try {
+    await pool.query(
+      `INSERT INTO plan_reactions (plan_id, meal_id, member_id, reaction)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (meal_id, member_id)
+       DO UPDATE SET reaction = EXCLUDED.reaction`,
+      [req.params.id, meal_id, member_id, reaction]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /:id/reactions — get all reactions for a plan
+router.get('/:id/reactions', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT pr.*, m.name as member_name, ml.day_name, ml.date
+       FROM plan_reactions pr
+       JOIN members m ON pr.member_id = m.id
+       JOIN meals ml ON pr.meal_id = ml.id
+       WHERE pr.plan_id = $1
+       ORDER BY ml.date, m.name`,
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /:id/lock — convert 'join' reactions into participations, then move to 'active'
+router.post('/:id/lock', requireAuth, requireAdmin, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows: joinReactions } = await client.query(
+      `SELECT * FROM plan_reactions
+       WHERE plan_id = $1 AND reaction = 'join'`,
+      [req.params.id]
+    );
+
+    for (const reaction of joinReactions) {
+      await client.query(
+        `INSERT INTO participations (meal_id, member_id)
+         VALUES ($1, $2)
+         ON CONFLICT (meal_id, member_id) DO NOTHING`,
+        [reaction.meal_id, reaction.member_id]
+      );
+    }
+
+    await client.query(
+      `UPDATE meal_plans SET status = 'active' WHERE id = $1`,
+      [req.params.id]
+    );
+
+    await client.query('COMMIT');
+    res.json({ success: true, participations_created: joinReactions.length });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 

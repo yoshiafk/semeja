@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { useNavigate } from "react-router-dom";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { useMember } from "@/hooks/useMember";
 import { cn, formatDate, formatDayName, formatShortDate } from "@/lib/utils";
 import { Loader2, Plus, Check, CalendarDays } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { PlanStatusBadge } from "@/components/PlanStatusBadge";
+import { RSVPCountdown } from "@/components/RSVPCountdown";
+import { DailyBriefingCard } from "@/components/DailyBriefingCard";
 
 interface MealMenuItem {
   id: number;
@@ -28,11 +33,13 @@ interface MealPlan {
   week_start: string;
   week_end: string;
   status: string;
+  rsvp_deadline?: string | null;
   meals: Meal[];
 }
 
 export default function Dashboard() {
   const { member } = useMember();
+  const navigate = useNavigate();
   const [plans, setPlans] = useState<MealPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [plan, setPlan] = useState<MealPlan | null>(null);
@@ -99,14 +106,25 @@ export default function Dashboard() {
       if (plan) {
         setPlan({
           ...plan,
-          meals: plan.meals.map(m => 
-            m.id === mealId 
+          meals: plan.meals.map(m =>
+            m.id === mealId
               ? { ...m, participant_count: parseInt(m.participant_count as any) + (isJoined ? -1 : 1) }
               : m
           )
         });
       }
-    } catch (err) {
+    } catch (err: any) {
+      const code = err?.data?.code;
+      if (code === 'RSVP_LOCKED') {
+        toast.error('Pendaftaran sudah ditutup', { description: 'Hubungi admin untuk perubahan' });
+      } else if (code === 'DEADLINE_PASSED') {
+        const dl = err?.data?.deadline
+          ? new Date(err.data.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+          : '';
+        toast.error('Batas waktu RSVP sudah lewat', { description: `Deadline: ${dl}` });
+      } else {
+        toast.error('Gagal mengubah keikutsertaan');
+      }
       console.error("Failed to toggle participation:", err);
     } finally {
       setTogglingMeals(prev => prev.filter(id => id !== mealId));
@@ -177,9 +195,10 @@ export default function Dashboard() {
               <Check className="h-3.5 w-3.5 stroke-[2.5px]" />
               <span className="text-xs font-semibold">{joinedCount}/{totalMeals} hari ikut</span>
             </div>
-            <div className="flex-shrink-0 flex items-center gap-1.5 bg-muted text-muted-foreground px-3 py-1.5 rounded-lg">
-              <span className="text-[10px] uppercase font-semibold tracking-wide">{plan.status}</span>
-            </div>
+            <PlanStatusBadge status={plan.status} className="flex-shrink-0" />
+            {plan.rsvp_deadline && ['proposed', 'active'].includes(plan.status) && (
+              <RSVPCountdown deadline={plan.rsvp_deadline} />
+            )}
           </div>
         </div>
 
@@ -312,6 +331,14 @@ export default function Dashboard() {
             );
           })}
         </div>
+
+        {/* Daily Briefing — only for active/shopping plans */}
+        {['active', 'shopping'].includes(plan.status) && (
+          <DailyBriefingCard
+            meals={plan.meals}
+            onStartLogging={(mealId) => navigate(`/finance/costs?meal=${mealId}`)}
+          />
+        )}
       </div>
     </PageContainer>
   );

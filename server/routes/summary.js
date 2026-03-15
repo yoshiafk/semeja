@@ -104,7 +104,14 @@ router.get('/member/:memberId', async (req, res) => {
           dayCost += riceQty * (parseFloat(riceIngredient.price_per_unit) || 0);
         }
         
-        const costPerPerson = Math.round(dayCost / pCount);
+        // NEW: Prefer actual purchases tagged to this meal over estimate
+        const { rows: actualMealRows } = await pool.query(
+          `SELECT COALESCE(SUM(total_price), 0) as actual FROM purchases WHERE meal_id = $1`,
+          [meal.id]
+        );
+        const actualCostForDay = parseInt(actualMealRows[0].actual) || 0;
+        const resolvedCost = actualCostForDay > 0 ? actualCostForDay : Math.round(dayCost);
+        const costPerPerson = pCount > 0 ? Math.round(resolvedCost / pCount) : 0;
         
         // Only add to breakdown if member participated
         if (memberMealIds.includes(meal.id)) {
@@ -383,10 +390,31 @@ router.get('/:mealPlanId', async (req, res) => {
         }, 'rice');
       }
 
-      const costPerPerson = pCount > 0 ? Math.round(dayCost / pCount) : 0;
-      weekTotal += dayCost;
+      // Get actual purchases tagged to this specific meal
+      const { rows: mealActualPurchaseRows } = await pool.query(
+        `SELECT p.id, p.total_price, p.quantity, p.purchased_at, p.created_at,
+                i.name as ingredient_name, s.name as supplier_name
+         FROM purchases p
+         JOIN ingredients i ON p.ingredient_id = i.id
+         LEFT JOIN suppliers s ON p.supplier_id = s.id
+         WHERE p.meal_id = $1
+         ORDER BY p.created_at`,
+        [meal.id]
+      );
+      const actualCostForDay = mealActualPurchaseRows.reduce((sum, p) => sum + (parseInt(p.total_price) || 0), 0);
+      const resolvedDayCost = actualCostForDay > 0 ? actualCostForDay : Math.round(dayCost);
+      const costPerPerson = pCount > 0 ? Math.round(resolvedDayCost / pCount) : 0;
 
-      // Assign cost to each participant
+      // Determine shopping status
+      let shoppingStatus = 'pending';
+      if (actualCostForDay > 0) {
+        const expectedItems = dayIngredients.filter(i => i.price_per_unit > 0).length;
+        shoppingStatus = mealActualPurchaseRows.length >= Math.max(1, expectedItems) ? 'done' : 'partial';
+      }
+
+      weekTotal += resolvedDayCost;
+
+      // Assign RESOLVED cost to each participant
       const dayParticipants = participations.filter(p => p.meal_id === meal.id);
       for (const p of dayParticipants) {
         if (!memberTotals[p.member_id]) {
@@ -406,27 +434,28 @@ router.get('/:mealPlanId', async (req, res) => {
         dessert_menu: currentMealItems.filter(i => i.category === 'dessert').map(i => i.custom_name || 'Resep').join(', '),
         participant_count: pCount,
         total_cost: Math.round(dayCost),
+        estimated_cost: Math.round(dayCost),
+        actual_cost: actualCostForDay,
+        resolved_cost: resolvedDayCost,
         cost_per_person: costPerPerson,
+        uses_actual: actualCostForDay > 0,
+        shopping_status: shoppingStatus,
+        purchases: mealActualPurchaseRows,
         ingredients: dayIngredients,
       });
     }
 
-    // 7. Calculate Actual Costs based on Purchases
+    // 7. Calculate total actual cost from purchases
     const { rows: purchaseSumObj } = await pool.query(
       `SELECT SUM(total_price) as actual_shopping_cost FROM purchases WHERE meal_plan_id = $1`,
       [planId]
     );
     const totalActualCost = parseInt(purchaseSumObj[0]?.actual_shopping_cost) || 0;
-    
-    // Distribute actual cost fairly based on portions
-    let totalSystemPortions = 0;
-    Object.values(memberTotals).forEach(m => totalSystemPortions += m.days_joined);
 
-    const actualCostPerPortion = totalSystemPortions > 0 ? (totalActualCost / totalSystemPortions) : 0;
-    
+    // member_totals already uses resolved (actual-preferred) costs from the loop above.
+    // Initialize activity_total for each member.
     Object.keys(memberTotals).forEach(member_id => {
-      memberTotals[member_id].actual_total = Math.round(memberTotals[member_id].days_joined * actualCostPerPortion);
-      memberTotals[member_id].activity_total = 0; // Initialize activity total
+      memberTotals[member_id].activity_total = 0;
     });
 
     // 7.5 Add Activity Costs for the week

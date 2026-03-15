@@ -173,3 +173,90 @@ export const updateGiftItem = (giftId: number, itemId: number, data: Partial<Gif
 export const deleteGiftItem = (giftId: number, itemId: number) => api.delete<{ message: string }>(`/gifts/${giftId}/items/${itemId}`);
 export const joinGift = (giftId: number, data: { member_id: number; contribution_amount?: number }) => api.post<GiftParticipant>(`/gifts/${giftId}/join`, data);
 export const leaveGift = (giftId: number, data: { member_id: number }) => api.post<{ message: string }>(`/gifts/${giftId}/leave`, data);
+
+// ─── New types for majot improvement ──────────────────────────
+
+export interface Purchase {
+  id: number;
+  ingredient_id: number;
+  ingredient_name: string;
+  supplier_name?: string;
+  quantity: number;
+  total_price: number;
+  meal_id?: number | null;
+  purchased_at: string;
+  created_at: string;
+}
+
+export interface PaymentRecord {
+  id: number;
+  meal_plan_id: number;
+  member_id: number;
+  member_name?: string;
+  amount: number;
+  paid_at: string | null;
+  confirmed_by: number | null;
+  notes?: string;
+}
+
+export interface BuyListItem {
+  ingredient_id: number;
+  name: string;
+  unit: string;
+  total_quantity: number;
+  shortage_quantity: number;
+  estimated_cost: number;
+  cost_to_buy: number;
+  stock_quantity: number;
+  has_enough_stock: boolean;
+  category: string;
+  cheapest_supplier: string | null;
+  is_untracked: boolean;
+}
+
+export interface DailyBuyList {
+  meal_id: number;
+  date: string;
+  day_name: string;
+  participant_count: number;
+  items: BuyListItem[];
+  total_estimated_cost: number;
+  actual_spent: number;
+  purchases: Purchase[];
+  shopping_status: 'pending' | 'partial' | 'done';
+}
+
+export interface DailyBreakdown {
+  meal_id: number;
+  date: string;
+  day_name: string;
+  participant_count: number;
+  // Costs
+  total_cost: number;
+  estimated_cost: number;
+  actual_cost: number;
+  resolved_cost: number;
+  cost_per_person: number;
+  uses_actual: boolean;
+  // Shopping
+  shopping_status: 'pending' | 'partial' | 'done';
+  purchases: Purchase[];
+  // Menu
+  items: any[];
+  main_course_menu: string;
+  second_course_menu: string;
+  dessert_menu: string;
+  ingredients: any[];
+}
+
+// Extend MealPlan with new lifecycle fields
+export interface MealPlanLifecycle {
+  id: number;
+  week_start: string;
+  week_end: string;
+  status: 'draft' | 'proposed' | 'active' | 'shopping' | 'closed' | 'archived';
+  rsvp_deadline?: string | null;
+  proposed_at?: string | null;
+  locked_at?: string | null;
+  meals: any[];
+}

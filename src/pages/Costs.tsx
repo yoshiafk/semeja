@@ -15,6 +15,12 @@ import { exportShoppingListPDF } from "@/lib/pdf-export";
 import { ReceiptUpload } from "@/components/ReceiptUpload";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { OCRReviewDialog } from "@/components/OCRReviewDialog";
+import { DailyRecapCard } from "@/components/DailyRecapCard";
+import { PaymentStatusRow } from "@/components/PaymentStatusRow";
+import { WhatsAppPreviewDialog } from "@/components/WhatsAppPreviewDialog";
+import { formatWeeklySettlement } from "@/lib/whatsapp";
+import { useMember } from "@/hooks/useMember";
+import type { PaymentRecord } from "@/lib/api";
 
 interface CostSummary {
   week_total: number;
@@ -63,10 +69,15 @@ interface CostSummary {
 }
 
 export default function Costs() {
+  const { member, isAdmin } = useMember();
   const [data, setData] = useState<CostSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<any[]>([]);
   const [activePlanId, setActivePlanId] = useState<number | null>(null);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [isWASettlementOpen, setIsWASettlementOpen] = useState(false);
+  const [waSettlementMsg, setWaSettlementMsg] = useState('');
+
   
   const [isPurchaseOpen, setIsPurchaseOpen] = useState(false);
   const [selectedIngredient, setSelectedIngredient] = useState<{ id?: number; name: string; qty: number; unit: string } | null>(null);
@@ -110,8 +121,12 @@ export default function Costs() {
     const fetchSummary = async () => {
       try {
         setLoading(true);
-        const summary = await api.get<CostSummary>(`/summary/${activePlanId}`);
+        const [summary, paymentData] = await Promise.all([
+          api.get<CostSummary>(`/summary/${activePlanId}`),
+          api.get<PaymentRecord[]>(`/payments/${activePlanId}`).catch(() => []),
+        ]);
         setData(summary);
+        setPayments(paymentData);
       } catch (err) {
         console.error(err);
       } finally {
@@ -339,90 +354,133 @@ export default function Costs() {
             <Tabs defaultValue="split" className="w-full">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
                 <h2 className="text-lg font-bold text-foreground">Rincian Perhitungan</h2>
-                <TabsList className="grid w-full md:w-auto grid-cols-2 bg-muted p-1 h-9 rounded-lg">
-                  <TabsTrigger value="split" className="rounded-md text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Tagihan Warga</TabsTrigger>
+                <TabsList className="grid w-full md:w-auto grid-cols-3 bg-muted p-1 h-9 rounded-lg">
+                  <TabsTrigger value="split" className="rounded-md text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Tagihan</TabsTrigger>
+                  <TabsTrigger value="daily" className="rounded-md text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Harian</TabsTrigger>
                   <TabsTrigger value="shopping" className="rounded-md text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Daftar Belanja</TabsTrigger>
                 </TabsList>
               </div>
 
               <TabsContent value="split" className="mt-0 space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Member Totals */}
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-semibold text-muted-foreground/70 flex items-center gap-1.5">
-                      <Users className="h-3.5 w-3.5" /> Distribusi Biaya
-                    </h3>
-                    <div className="space-y-2">
-                      {data.member_totals.length === 0 ? (
-                        <div className="text-center py-10 text-muted-foreground/70 text-sm">Belum ada warga yang bergabung</div>
-                      ) : (
-                        data.member_totals
-                          .sort((a,b) => b.total - a.total)
-                          .map(member => (
-                            <div key={member.member_id} className="rounded-xl border border-border/50 bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-bold text-sm">
-                                  {member.days_joined}
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-foreground text-sm">{member.name}</p>
-                                  <p className="text-[11px] text-muted-foreground/70">{member.days_joined} hari bergabung</p>
-                                </div>
+                {/* Member Totals */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-semibold text-muted-foreground/70 flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5" /> Distribusi Biaya
+                  </h3>
+                  <div className="space-y-2">
+                    {data.member_totals.length === 0 ? (
+                      <div className="text-center py-10 text-muted-foreground/70 text-sm">Belum ada warga yang bergabung</div>
+                    ) : (
+                      data.member_totals
+                        .sort((a,b) => b.total - a.total)
+                        .map(member => (
+                          <div key={member.member_id} className="rounded-xl border border-border/50 bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-bold text-sm">
+                                {member.days_joined}
                               </div>
-                              <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
-                                <div className="text-left md:text-right">
-                                  <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Belanja</div>
-                                  {member.actual_total && member.actual_total > 0 ? (
-                                    <>
-                                      <div className="text-sm font-bold text-rose-600">{formatRupiah(member.actual_total)}</div>
-                                      <div className="text-[10px] text-muted-foreground/70 line-through">Est: {formatRupiah(member.total)}</div>
-                                    </>
-                                  ) : (
-                                    <div className="text-sm font-bold text-rose-600">{formatRupiah(member.total)}</div>
-                                  )}
-                                </div>
-
-                                {(member.activity_total || 0) > 0 && (
-                                  <div className="text-left md:text-right">
-                                    <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Aktifitas</div>
-                                    <div className="text-sm font-bold text-blue-600">+{formatRupiah(member.activity_total || 0)}</div>
-                                  </div>
+                              <div>
+                                <p className="font-semibold text-foreground text-sm">{member.name}</p>
+                                <p className="text-[11px] text-muted-foreground/70">{member.days_joined} hari bergabung</p>
+                              </div>
+                            </div>
+                            <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+                              <div className="text-left md:text-right">
+                                <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Belanja</div>
+                                {(member as any).actual_total && (member as any).actual_total > 0 ? (
+                                  <>
+                                    <div className="text-sm font-bold text-rose-600">{formatRupiah((member as any).actual_total)}</div>
+                                    <div className="text-[10px] text-muted-foreground/70 line-through">Est: {formatRupiah(member.total)}</div>
+                                  </>
+                                ) : (
+                                  <div className="text-sm font-bold text-rose-600">{formatRupiah(member.total)}</div>
                                 )}
+                              </div>
 
-                                <div className="text-left md:text-right pt-2 border-t border-border/50 md:border-0 md:pt-0">
-                                  <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Grand Total</div>
-                                  <div className="text-base font-black text-primary">
-                                    {formatRupiah((member.actual_total && member.actual_total > 0 ? member.actual_total : member.total) + (member.activity_total || 0))}
-                                  </div>
+                              {((member as any).activity_total || 0) > 0 && (
+                                <div className="text-left md:text-right">
+                                  <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Aktifitas</div>
+                                  <div className="text-sm font-bold text-blue-600">+{formatRupiah((member as any).activity_total || 0)}</div>
+                                </div>
+                              )}
+
+                              <div className="text-left md:text-right pt-2 border-t border-border/50 md:border-0 md:pt-0">
+                                <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Grand Total</div>
+                                <div className="text-base font-black text-primary">
+                                  {formatRupiah(((member as any).actual_total && (member as any).actual_total > 0 ? (member as any).actual_total : member.total) + ((member as any).activity_total || 0))}
                                 </div>
                               </div>
                             </div>
-                          ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Daily Breakdown */}
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-semibold text-muted-foreground/70 flex items-center gap-1.5">
-                      <Receipt className="h-3.5 w-3.5" /> Rincian Harian
-                    </h3>
-                    <div className="rounded-xl border border-border/50 overflow-hidden bg-white">
-                      {data.daily_breakdown.map(day => (
-                        <div key={day.meal_id} className="flex items-center justify-between px-4 py-3 hover:bg-secondary/50 transition-colors border-b border-border/30 last:border-0">
-                          <div>
-                            <span className="font-medium text-foreground text-sm">{day.day_name}</span>
-                            <span className="block text-[11px] text-muted-foreground/70">{day.participant_count} orang</span>
                           </div>
-                          <div className="text-right">
-                            <div className="font-semibold text-foreground text-sm">{formatRupiah(day.total_cost)}</div>
-                            <span className="text-[11px] text-primary font-medium">@{formatRupiah(day.cost_per_person)}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))
+                    )}
                   </div>
                 </div>
+
+                {/* Settlement section */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-semibold text-muted-foreground/70 flex items-center gap-1.5">
+                      <Receipt className="h-3.5 w-3.5" /> Status Pembayaran
+                    </h3>
+                    {isAdmin && data.member_totals.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-3 gap-1.5 text-xs font-medium rounded-lg border-green-300 text-green-700 hover:bg-green-50"
+                        onClick={() => {
+                          const currentPlan = plans.find(p => p.id === activePlanId);
+                          const wl = currentPlan
+                            ? `${format(new Date(currentPlan.week_start), 'd MMM', { locale: id })} – ${format(new Date(currentPlan.week_end), 'd MMM yyyy', { locale: id })}`
+                            : 'Minggu ini';
+                          setWaSettlementMsg(formatWeeklySettlement({
+                            weekLabel: wl,
+                            totalActualCost: data.total_actual_cost,
+                            members: data.member_totals.map(m => ({ name: m.name, days_joined: m.days_joined, total: (m as any).actual_total ?? m.total })),
+                            adminName: member?.name,
+                          }));
+                          setIsWASettlementOpen(true);
+                        }}
+                      >
+                        Share Tagihan WA
+                      </Button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {data.member_totals
+                      .sort((a, b) => b.total - a.total)
+                      .map(memberData => (
+                        <PaymentStatusRow
+                          key={memberData.member_id}
+                          member={memberData}
+                          payment={payments.find(p => p.member_id === memberData.member_id)}
+                          isAdmin={isAdmin || false}
+                          onToggle={async (m, isPaid) => {
+                            if (isPaid) {
+                              await api.delete(`/payments/${activePlanId}/${m.member_id}`);
+                              setPayments(prev => prev.filter(p => p.member_id !== m.member_id));
+                            } else {
+                              const result = await api.post<PaymentRecord>('/payments', {
+                                meal_plan_id: activePlanId,
+                                member_id: m.member_id,
+                                amount: (m as any).actual_total ?? m.total,
+                              });
+                              setPayments(prev => [...prev.filter(p => p.member_id !== m.member_id), result]);
+                            }
+                          }}
+                        />
+                      ))
+                    }
+                  </div>
+                </div>
+              </TabsContent>
+
+
+              {/* NEW: Daily tab – per-day actuals */}
+              <TabsContent value="daily" className="mt-0 space-y-3">
+                {data.daily_breakdown.map(day => (
+                  <DailyRecapCard key={day.meal_id} day={day as any} />
+                ))}
               </TabsContent>
 
               <TabsContent value="shopping" className="mt-0">
@@ -704,6 +762,13 @@ export default function Costs() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <WhatsAppPreviewDialog
+        open={isWASettlementOpen}
+        onClose={() => setIsWASettlementOpen(false)}
+        message={waSettlementMsg}
+        title="Share Tagihan Mingguan"
+      />
     </PageContainer>
   );
 }

@@ -89,7 +89,7 @@ router.get('/ingredient/:id', async (req, res) => {
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
   const {
     ingredient_id, supplier_name, quantity, total_price,
-    purchased_at, notes, update_stock, meal_plan_id, receipt_id
+    purchased_at, notes, update_stock, meal_plan_id, receipt_id, meal_id
   } = req.body;
 
   if (!ingredient_id || !supplier_name || !quantity || !total_price) {
@@ -124,12 +124,12 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
     // 3. Insert purchase record
     const { rows: purchaseRows } = await client.query(
       `INSERT INTO purchases 
-        (ingredient_id, supplier_id, quantity, total_price, price_per_unit, purchased_at, notes, meal_plan_id, receipt_id) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+        (ingredient_id, supplier_id, quantity, total_price, price_per_unit, purchased_at, notes, meal_plan_id, receipt_id, meal_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
        RETURNING *`,
       [
         ingredient_id, supplier_id, quantity, total_price, price_per_unit,
-        purchaseDate, notes || '', meal_plan_id || null, receipt_id || null
+        purchaseDate, notes || '', meal_plan_id || null, receipt_id || null, meal_id || null
       ]
     );
     const newPurchase = purchaseRows[0];

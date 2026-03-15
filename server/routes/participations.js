@@ -38,6 +38,48 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Cannot join a meal that has no menu items yet' });
     }
 
+    // RSVP deadline & plan lock enforcement
+    const { rows: planRows } = await pool.query(
+      `SELECT mp.rsvp_deadline, mp.status
+       FROM meals m
+       JOIN meal_plans mp ON m.meal_plan_id = mp.id
+       WHERE m.id = $1`,
+      [meal_id]
+    );
+
+    if (planRows.length) {
+      const plan = planRows[0];
+
+      // Check if plan is locked (shopping/closed/archived)
+      if (['shopping', 'closed', 'archived'].includes(plan.status)) {
+        const { rows: memberRows } = await pool.query(
+          'SELECT role FROM members WHERE id = $1', [member_id]
+        );
+        const role = memberRows[0]?.role;
+        if (role !== 'superadmin' && role !== 'admin') {
+          return res.status(403).json({
+            error: 'Pendaftaran sudah ditutup untuk minggu ini',
+            code: 'RSVP_LOCKED'
+          });
+        }
+      }
+
+      // Check if RSVP deadline has passed
+      if (plan.rsvp_deadline && new Date() > new Date(plan.rsvp_deadline)) {
+        const { rows: memberRows } = await pool.query(
+          'SELECT role FROM members WHERE id = $1', [member_id]
+        );
+        const role = memberRows[0]?.role;
+        if (role !== 'superadmin' && role !== 'admin') {
+          return res.status(403).json({
+            error: 'Batas waktu pendaftaran sudah lewat',
+            code: 'DEADLINE_PASSED',
+            deadline: plan.rsvp_deadline
+          });
+        }
+      }
+    }
+
     const { rows } = await pool.query(
       `INSERT INTO participations (meal_id, member_id) VALUES ($1, $2)
        ON CONFLICT (meal_id, member_id) DO NOTHING

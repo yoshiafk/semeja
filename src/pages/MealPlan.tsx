@@ -3,12 +3,15 @@ import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Archive, Trash2, LayoutGrid } from "lucide-react";
+import { Loader2, Plus, Archive, Trash2, LayoutGrid, MessageCircle, Send } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { formatDate, formatDayName, formatShortDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { MealCard } from "@/components/MealCard";
+import { PlanStatusBadge } from "@/components/PlanStatusBadge";
+import { WhatsAppPreviewDialog } from "@/components/WhatsAppPreviewDialog";
+import { formatMenuProposal } from "@/lib/whatsapp";
 
 interface Recipe {
   id: number;
@@ -37,6 +40,7 @@ interface MealPlan {
   week_start: string;
   week_end: string;
   status: string;
+  rsvp_deadline?: string | null;
   meals: Meal[];
 }
 
@@ -49,6 +53,17 @@ export default function MealPlanPage() {
   const [isCreatingPlan, setIsCreatingPlan] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isProposeDialogOpen, setIsProposeDialogOpen] = useState(false);
+  const [isWAPreviewOpen, setIsWAPreviewOpen] = useState(false);
+  const [waMessage, setWaMessage] = useState('');
+  // Default RSVP: 2 days from now at 20:00 WIB
+  const defaultDeadline = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 2);
+    d.setHours(20, 0, 0, 0);
+    return d.toISOString().slice(0, 16); // for datetime-local input
+  };
+  const [rsvpDeadline, setRsvpDeadline] = useState(defaultDeadline);
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newPlanStartDate, setNewPlanStartDate] = useState(() => {
@@ -72,7 +87,11 @@ export default function MealPlanPage() {
       setPlans(plansData);
       setRecipes(recipesData);
       
-      const active = plansData.find(p => p.status === 'active') || plansData[0] || null;
+      // Select first non-archived plan, or first plan
+      const active = plansData.find(p => ['active', 'shopping', 'proposed', 'draft'].includes(p.status))
+        || plansData.find(p => p.status === 'active')
+        || plansData[0]
+        || null;
       setActivePlan(active);
     } catch (err) {
       console.error(err);
@@ -137,8 +156,54 @@ export default function MealPlanPage() {
       await api.put(`/meal-plans/${activePlan.id}`, { status: 'archived' });
       toast.success("Pekan berhasil diarsipkan!");
       fetchData();
-    } catch (err) {
-      toast.error("Gagal mengarsipkan: " + err);
+    } catch (err: any) {
+      toast.error("Gagal mengarsipkan: " + (err?.message || err));
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const proposePlan = async () => {
+    if (!activePlan) return;
+    try {
+      setIsUpdatingStatus(true);
+      await api.put(`/meal-plans/${activePlan.id}`, {
+        status: 'proposed',
+        rsvp_deadline: new Date(rsvpDeadline).toISOString(),
+      });
+      setIsProposeDialogOpen(false);
+      toast.success("Rencana berhasil diusulkan!");
+      // Compose WA message for menu proposal
+      const msg = formatMenuProposal(
+        `${formatDate(activePlan.week_start)} – ${formatDate(activePlan.week_end)}`,
+        activePlan.meals,
+        rsvpDeadline
+      );
+      setWaMessage(msg);
+      setIsWAPreviewOpen(true);
+      fetchData();
+    } catch (err: any) {
+      toast.error("Gagal mengusulkan: " + (err?.message || err));
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const transitionPlan = async (status: string) => {
+    if (!activePlan) return;
+    try {
+      setIsUpdatingStatus(true);
+      await api.put(`/meal-plans/${activePlan.id}`, { status });
+      const labels: Record<string, string> = {
+        active: 'Aktif',
+        shopping: 'Belanja dimulai',
+        closed: 'Pekan selesai',
+        archived: 'Diarsipkan',
+      };
+      toast.success(`Status diubah ke: ${labels[status] ?? status}`);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.message || "Gagal mengubah status");
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -191,11 +256,82 @@ export default function MealPlanPage() {
                 ))}
               </SelectContent>
             </Select>
-             
-            {activePlan && activePlan.status === 'active' && (
-              <Button 
-                variant="outline" 
+
+            {/* Plan status badge and lifecycle action */}
+            {activePlan && <PlanStatusBadge status={activePlan.status} />}
+
+            {/* Propose — from draft/active */}
+            {activePlan && ['draft', 'active'].includes(activePlan.status) && (
+              <Button
+                  variant="outline"
+                  size="sm"
+                onClick={() => { setRsvpDeadline(defaultDeadline()); setIsProposeDialogOpen(true); }}
+                disabled={isUpdatingStatus}
+                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-amber-600 hover:bg-amber-50 gap-1.5"
+              >
+                <Send className="h-3 w-3" />
+                Usulkan
+              </Button>
+            )}
+
+            {/* Re-share WA when already proposed */}
+            {activePlan?.status === 'proposed' && (() => {
+              const msg = formatMenuProposal(
+                `${formatDate(activePlan.week_start)} – ${formatDate(activePlan.week_end)}`,
+                activePlan.meals,
+                activePlan.rsvp_deadline || new Date().toISOString()
+              );
+              return (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setWaMessage(msg); setIsWAPreviewOpen(true); }}
+                  className="h-9 px-3 rounded-lg text-xs font-medium border-green-300 text-green-700 hover:bg-green-50 gap-1.5"
+                >
+                  <MessageCircle className="h-3 w-3" />
+                  Kirim WA Lagi
+                </Button>
+              );
+            })()}
+
+            {/* Lifecycle step buttons */}
+            {activePlan && activePlan.status === 'proposed' && (
+              <Button
+                variant="outline"
                 size="sm"
+                onClick={() => transitionPlan('active')}
+                disabled={isUpdatingStatus}
+                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-green-600 hover:bg-green-50 gap-1.5"
+              >
+                Kunci Menu
+              </Button>
+            )}
+            {activePlan && activePlan.status === 'active' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => transitionPlan('shopping')}
+                disabled={isUpdatingStatus}
+                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-blue-600 hover:bg-blue-50 gap-1.5"
+              >
+                Mulai Belanja
+              </Button>
+            )}
+            {activePlan && activePlan.status === 'shopping' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => transitionPlan('closed')}
+                disabled={isUpdatingStatus}
+                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-purple-600 hover:bg-purple-50 gap-1.5"
+              >
+                Selesai Belanja
+              </Button>
+            )}
+            {activePlan && activePlan.status === 'closed' && (
+              <Button
+                  variant="outline"
+                  size="sm"
                 onClick={archivePlan}
                 disabled={isUpdatingStatus}
                 className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-amber-600 hover:bg-amber-50 gap-1.5"
@@ -206,8 +342,8 @@ export default function MealPlanPage() {
             )}
 
             {activePlan && (
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="icon"
                 onClick={() => setIsDeleteDialogOpen(true)}
                 className="h-9 w-9 rounded-lg text-muted-foreground/50 hover:text-rose-500 hover:bg-rose-50"
@@ -246,7 +382,45 @@ export default function MealPlanPage() {
         )}
       </div>
       
-      {/* Dialogs... */}
+      {/* Propose Dialog */}
+      <Dialog open={isProposeDialogOpen} onOpenChange={setIsProposeDialogOpen}>
+        <DialogContent className="w-[95vw] max-w-md rounded-2xl p-6 border-border/50">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-foreground">Usulkan Rencana Makan</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground/70">
+              Kirimkan ke anggota untuk dikonfirmasi keikutsertaannya
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Batas Waktu RSVP</label>
+              <Input
+                type="datetime-local"
+                value={rsvpDeadline}
+                onChange={e => setRsvpDeadline(e.target.value)}
+                className="h-11 bg-secondary border-border rounded-xl"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button variant="ghost" className="flex-1 h-11 rounded-xl text-muted-foreground/70" onClick={() => setIsProposeDialogOpen(false)}>
+              Batal
+            </Button>
+            <Button disabled={isUpdatingStatus} className="flex-1 h-11 rounded-xl font-semibold shadow-none" onClick={proposePlan}>
+              {isUpdatingStatus ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Mengusulkan...</> : "Usulkan & Bagikan WA"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* WA Preview Dialog (after propose) */}
+      <WhatsAppPreviewDialog
+        open={isWAPreviewOpen}
+        onClose={() => setIsWAPreviewOpen(false)}
+        message={waMessage}
+        title="Bagikan ke WhatsApp"
+      />
+
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="w-[95vw] max-w-md rounded-2xl p-6 border-border/50">
           <DialogHeader>
