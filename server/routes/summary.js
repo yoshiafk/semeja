@@ -105,11 +105,15 @@ router.get('/member/:memberId', async (req, res) => {
         }
         
         // NEW: Prefer actual purchases tagged to this meal over estimate
-        const { rows: actualMealRows } = await pool.query(
-          `SELECT COALESCE(SUM(total_price), 0) as actual FROM purchases WHERE meal_id = $1`,
-          [meal.id]
-        );
-        const actualCostForDay = parseInt(actualMealRows[0].actual) || 0;
+        // Falls back to 0 if meal_id column not yet migrated in production
+        let actualCostForDay = 0;
+        try {
+          const { rows: actualMealRows } = await pool.query(
+            `SELECT COALESCE(SUM(total_price), 0) as actual FROM purchases WHERE meal_id = $1`,
+            [meal.id]
+          );
+          actualCostForDay = parseInt(actualMealRows[0].actual) || 0;
+        } catch (_e) { /* column not yet available */ }
         const resolvedCost = actualCostForDay > 0 ? actualCostForDay : Math.round(dayCost);
         const costPerPerson = pCount > 0 ? Math.round(resolvedCost / pCount) : 0;
         
@@ -391,16 +395,21 @@ router.get('/:mealPlanId', async (req, res) => {
       }
 
       // Get actual purchases tagged to this specific meal
-      const { rows: mealActualPurchaseRows } = await pool.query(
-        `SELECT p.id, p.total_price, p.quantity, p.purchased_at, p.created_at,
-                i.name as ingredient_name, s.name as supplier_name
-         FROM purchases p
-         JOIN ingredients i ON p.ingredient_id = i.id
-         LEFT JOIN suppliers s ON p.supplier_id = s.id
-         WHERE p.meal_id = $1
-         ORDER BY p.created_at`,
-        [meal.id]
-      );
+      // Falls back to empty array if meal_id column not yet migrated in production
+      let mealActualPurchaseRows = [];
+      try {
+        const { rows: _mealPurchases } = await pool.query(
+          `SELECT p.id, p.total_price, p.quantity, p.purchased_at, p.created_at,
+                  i.name as ingredient_name, s.name as supplier_name
+           FROM purchases p
+           JOIN ingredients i ON p.ingredient_id = i.id
+           LEFT JOIN suppliers s ON p.supplier_id = s.id
+           WHERE p.meal_id = $1
+           ORDER BY p.created_at`,
+          [meal.id]
+        );
+        mealActualPurchaseRows = _mealPurchases;
+      } catch (_e) { /* column not yet available */ }
       const actualCostForDay = mealActualPurchaseRows.reduce((sum, p) => sum + (parseInt(p.total_price) || 0), 0);
       const resolvedDayCost = actualCostForDay > 0 ? actualCostForDay : Math.round(dayCost);
       const costPerPerson = pCount > 0 ? Math.round(resolvedDayCost / pCount) : 0;
