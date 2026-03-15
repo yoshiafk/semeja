@@ -54,7 +54,7 @@ export const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
       const token = localStorage.getItem('semeja_auth_token');
       const deviceId = localStorage.getItem('semeja_device_id');
       
-      const uploadRes = await fetch('/api/attachments/upload', {
+      const uploadRes = await fetch('/api/attachments', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

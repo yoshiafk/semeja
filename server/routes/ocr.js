@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { pool } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 
 // Configure multer for memory storage
@@ -20,8 +21,26 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
  * Extract grocery items from a receipt image using Gemini 1.5 Flash.
  */
 router.post('/receipt', requireAuth, upload.single('receipt'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No receipt image uploaded' });
+  let fileBuffer;
+  let mimeType;
+
+  if (req.file) {
+    fileBuffer = req.file.buffer;
+    mimeType = req.file.mimetype;
+  } else if (req.body.attachmentId) {
+    try {
+      const { rows } = await pool.query('SELECT data, content_type FROM attachments WHERE id = $1', [req.body.attachmentId]);
+      if (rows.length === 0) {
+        return res.status(404).json({ error: 'Attachment not found' });
+      }
+      fileBuffer = rows[0].data;
+      mimeType = rows[0].content_type;
+    } catch (dbErr) {
+      console.error('DB Fetch error for OCR:', dbErr);
+      return res.status(500).json({ error: 'Failed to fetch attachment from database' });
+    }
+  } else {
+    return res.status(400).json({ error: 'No receipt image or attachment ID provided' });
   }
 
   try {
@@ -36,8 +55,8 @@ router.post('/receipt', requireAuth, upload.single('receipt'), async (req, res) 
     // Prepare the image for Gemini (once for all models)
     const imagePart = {
       inlineData: {
-        data: req.file.buffer.toString('base64'),
-        mimeType: req.file.mimetype,
+        data: fileBuffer.toString('base64'),
+        mimeType: mimeType,
       },
     };
 
