@@ -3,7 +3,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 const pool = new Pool({
-  connectionString: "postgresql://neondb_owner:npg_gIlw9tQGra2k@ep-twilight-band-a1ha377k-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Receipt, TrendingUp, Users, ShoppingCart, Check, Plus, CalendarDays, Download, FileImage } from "lucide-react";
+import { Loader2, Receipt, TrendingUp, Users, ShoppingCart, Check, Plus, CalendarDays, Download, FileImage, Search } from "lucide-react";
 import { formatRupiah, cn, formatDate } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -106,6 +106,8 @@ export default function Costs() {
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [newIngredient, setNewIngredient] = useState({ name: "", unit: "pcs" });
   const [isAddingNewIngredient, setIsAddingNewIngredient] = useState(false);
+  const [manualSearchQuery, setManualSearchQuery] = useState("");
+  const [isManualSearchOpen, setIsManualSearchOpen] = useState(false);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -206,6 +208,7 @@ export default function Costs() {
         member_id: null,
         ingredient_id: null 
       });
+      setManualSearchQuery("");
       toast.success("Pembelian berhasil dicatat!");
       
       const summary = await api.get<CostSummary>(`/summary/${activePlanId}`);
@@ -862,31 +865,72 @@ export default function Costs() {
                 <div className="space-y-3">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-muted-foreground uppercase">Item / Bahan</label>
-                    {!isAddingNewIngredient ? (
-                      <Select 
-                        value={formData.ingredient_id?.toString() || ""} 
-                        onValueChange={(val) => {
-                          if (val === "ADD_NEW") {
-                            setIsAddingNewIngredient(true);
-                          } else {
-                            setFormData({ ...formData, ingredient_id: parseInt(val) });
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="h-10 rounded-xl bg-secondary/80 border-border text-sm">
-                          <SelectValue placeholder="Pilih Bahan..." />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl border-border">
-                          <SelectItem value="ADD_NEW" className="text-emerald-600 font-bold border-b">
-                            + Tambah Bahan Baru
-                          </SelectItem>
-                          {allIngredients.map(ing => (
-                            <SelectItem key={ing.id} value={ing.id.toString()}>
-                              {ing.name} ({ing.unit})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                     {!isAddingNewIngredient ? (
+                      <div className="relative">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                          <Input 
+                            placeholder="Cari Bahan..." 
+                            value={manualSearchQuery}
+                            onChange={(e) => {
+                              setManualSearchQuery(e.target.value);
+                              setIsManualSearchOpen(true);
+                            }}
+                            onFocus={() => setIsManualSearchOpen(true)}
+                            className="h-10 pl-9 rounded-xl bg-secondary/80 border-border text-sm"
+                          />
+                        </div>
+
+                        {isManualSearchOpen && (
+                          <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-border rounded-xl shadow-xl max-h-48 overflow-y-auto py-1">
+                            {(() => {
+                              const query = manualSearchQuery.toLowerCase();
+                              const filtered = allIngredients.filter(ing => 
+                                ing.name.toLowerCase().includes(query)
+                              ).slice(0, 10);
+
+                              return (
+                                <>
+                                  {filtered.map(ing => (
+                                    <button
+                                      key={ing.id}
+                                      type="button"
+                                      className="w-full text-left px-3 py-2 text-xs hover:bg-primary/5 transition-colors flex items-center justify-between"
+                                      onClick={() => {
+                                        setFormData({ ...formData, ingredient_id: ing.id });
+                                        setManualSearchQuery(ing.name);
+                                        setIsManualSearchOpen(false);
+                                      }}
+                                    >
+                                      <span className="font-medium">{ing.name}</span>
+                                      <span className="text-[10px] text-muted-foreground">{ing.unit}</span>
+                                    </button>
+                                  ))}
+                                  
+                                  {(filtered.length === 0 || query.length > 2) && (
+                                    <button
+                                      type="button"
+                                      className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 text-emerald-600 font-bold transition-colors flex items-center gap-2 border-t mt-1"
+                                      onClick={() => {
+                                        setIsAddingNewIngredient(true);
+                                        setNewIngredient({ ...newIngredient, name: manualSearchQuery });
+                                        setIsManualSearchOpen(false);
+                                      }}
+                                    >
+                                      <Plus className="h-3.3 w-3.5" />
+                                      {manualSearchQuery ? `Tambah: "${manualSearchQuery}"` : "Tambah Bahan Baru"}
+                                    </button>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
+                        {/* Backdrop to close */}
+                        {isManualSearchOpen && (
+                          <div className="fixed inset-0 z-40" onClick={() => setIsManualSearchOpen(false)} />
+                        )}
+                      </div>
                     ) : (
                       <div className="flex gap-2">
                         <Input 

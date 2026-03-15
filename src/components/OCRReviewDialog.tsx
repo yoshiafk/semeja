@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "./ui/checkbox";
@@ -58,6 +58,8 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [matches, setMatches] = useState<{ [key: number]: number | 'NEW' }>({});
   const [selectedMemberId, setSelectedMemberId] = useState<number | undefined>(undefined);
+  const [searchQueries, setSearchQueries] = useState<Record<number, string>>({});
+  const [activeSearchIdx, setActiveSearchIdx] = useState<number | null>(null);
 
   // Auto-match items when data changes
   useEffect(() => {
@@ -65,6 +67,7 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
 
     const newMatches: { [key: number]: number | 'NEW' } = {};
     const newSelected: number[] = [];
+    const newSearchQueries: Record<number, string> = {};
 
     data.items.forEach((item, idx) => {
       // Simple name matching
@@ -76,7 +79,9 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
       if (match) {
         newMatches[idx] = match.id;
         newSelected.push(idx);
+        newSearchQueries[idx] = match.name;
       } else {
+        newSearchQueries[idx] = item.name;
         // Default to NEW if no match found for items that have price
         if (item.totalPrice > 0) {
           newMatches[idx] = 'NEW';
@@ -87,10 +92,9 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
 
     setMatches(newMatches);
     setSelectedIndices(newSelected);
+    setSearchQueries(newSearchQueries);
   }, [data, ingredients]);
 
-  // Create a datalist for ingredients
-  const datalistId = useMemo(() => `ingredients-list-${Math.random().toString(36).substr(2, 9)}`, []);
 
   if (!data && !loading) return null;
 
@@ -101,20 +105,13 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
   };
 
   const handleMatchChange = (index: number, ingredientName: string) => {
-    if (ingredientName === "ADD_NEW") {
-      setMatches(prev => ({ ...prev, [index]: 'NEW' }));
-      if (!selectedIndices.includes(index)) {
-        setSelectedIndices(prev => [...prev, index]);
-      }
-      return;
-    }
-
     const ingredient = ingredients.find(ing => ing.name === ingredientName);
     if (ingredient) {
       setMatches(prev => ({ ...prev, [index]: ingredient.id }));
-      if (!selectedIndices.includes(index)) {
-        setSelectedIndices(prev => [...prev, index]);
-      }
+      setSearchQueries(prev => ({ ...prev, [index]: ingredient.name }));
+    } else if (ingredientName === "ADD_NEW") {
+      setMatches(prev => ({ ...prev, [index]: 'NEW' }));
+      setSearchQueries(prev => ({ ...prev, [index]: "Bahan Baru" }));
     } else {
       setMatches(prev => {
         const next = { ...prev };
@@ -229,12 +226,6 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
 
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-3">
-                  <datalist id={datalistId}>
-                    <option value="ADD_NEW">Tambah sebagai bahan baru...</option>
-                    {ingredients.map(ing => (
-                      <option key={ing.id} value={ing.name} />
-                    ))}
-                  </datalist>
 
                   {loading ? (
                     // Skeleton Loaders
@@ -254,7 +245,6 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                   ) : (
                     data?.items.map((item, idx) => {
                       const matchedIngId = matches[idx];
-                      const matchedIng = ingredients.find(ing => ing.id === matchedIngId);
                       
                       return (
                         <div 
@@ -293,21 +283,80 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                           </div>
 
                           {/* Matching Search */}
-                          <div className="pl-7 space-y-1.5">
+                          <div className="pl-7 space-y-1.5 relative">
                             <div className="relative">
                               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/60" />
                               <Input
                                 placeholder="Cari bahan yang cocok..."
-                                defaultValue={matchedIngId === 'NEW' ? "Tambah sebagai bahan baru..." : (matchedIng?.name || "")}
-                                onBlur={(e) => handleMatchChange(idx, e.target.value)}
-                                list={datalistId}
+                                value={searchQueries[idx] || ""}
+                                onChange={(e) => {
+                                  setSearchQueries(prev => ({ ...prev, [idx]: e.target.value }));
+                                  setActiveSearchIdx(idx);
+                                }}
+                                onFocus={() => setActiveSearchIdx(idx)}
                                 className={cn(
                                   "h-10 pl-8 text-sm rounded-lg bg-white",
                                   !matchedIngId && "border-amber-200 bg-amber-50/30",
                                   matchedIngId === 'NEW' && "border-green-200 bg-green-50/30 text-green-700 font-medium"
                                 )}
                               />
+                              
+                              {activeSearchIdx === idx && (
+                                <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-border rounded-xl shadow-xl max-h-48 overflow-y-auto py-1">
+                                  {(() => {
+                                    const query = searchQueries[idx]?.toLowerCase() || "";
+                                    const filtered = ingredients.filter(ing => 
+                                      ing.name.toLowerCase().includes(query)
+                                    ).slice(0, 5);
+
+                                    return (
+                                      <>
+                                        {filtered.map(ing => (
+                                          <button
+                                            key={ing.id}
+                                            className="w-full text-left px-3 py-2 text-xs hover:bg-primary/5 transition-colors flex items-center justify-between"
+                                            onClick={() => {
+                                              handleMatchChange(idx, ing.name);
+                                              setActiveSearchIdx(null);
+                                            }}
+                                          >
+                                            <span className="font-medium">{ing.name}</span>
+                                            <span className="text-[10px] text-muted-foreground">{ing.unit}</span>
+                                          </button>
+                                        ))}
+                                        
+                                        {(filtered.length === 0 || query.length > 2) && (
+                                          <button
+                                            className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 text-emerald-600 font-bold transition-colors flex items-center gap-2 border-t mt-1"
+                                            onClick={() => {
+                                              handleMatchChange(idx, "ADD_NEW");
+                                              setActiveSearchIdx(null);
+                                            }}
+                                          >
+                                            <Plus className="h-3 w-3" />
+                                            Tambah: "{searchQueries[idx]}" Sebagai Bahan Baru
+                                          </button>
+                                        )}
+                                        
+                                        {filtered.length === 0 && query.length <= 2 && (
+                                          <div className="px-3 py-2 text-[10px] text-muted-foreground italic text-center">
+                                            Ketik minimal 3 huruf untuk cari...
+                                          </div>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              )}
                             </div>
+                            
+                            {/* Hidden backdrop to close suggestions */}
+                            {activeSearchIdx === idx && (
+                              <div 
+                                className="fixed inset-0 z-40" 
+                                onClick={() => setActiveSearchIdx(null)}
+                              />
+                            )}
                             {!matchedIngId && (
                               <p className="text-[10px] text-amber-600 flex items-center gap-1 font-medium pl-1">
                                 <Info className="h-2.5 w-2.5" />
