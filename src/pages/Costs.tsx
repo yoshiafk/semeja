@@ -89,6 +89,7 @@ export default function Costs() {
   const [isOCRReviewOpen, setIsOCRReviewOpen] = useState(false);
   const [scannedReceiptId, setScannedReceiptId] = useState<number | null>(null);
   const [isOCRUploadOpen, setIsOCRUploadOpen] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [allIngredients, setAllIngredients] = useState<any[]>([]);
   // Tracks which specific meal (day) purchases are being tagged to
   const [selectedMealId, setSelectedMealId] = useState<number | null>(null);
@@ -171,6 +172,7 @@ export default function Costs() {
   const handleScanSuccess = (data: any, receiptId: number) => {
     setOcrData(data);
     setScannedReceiptId(receiptId);
+    setIsScanning(false);
     setIsOCRUploadOpen(false);
     setIsOCRReviewOpen(true);
   };
@@ -725,8 +727,10 @@ export default function Costs() {
             <ReceiptUpload 
               label="Lampirkan Struk Belanja (Opsional)"
               autoScan={true}
-              onUploadSuccess={(id) => setFormData(prev => ({ ...prev, receipt_id: id }))}
+              isScanning={isScanning}
+              onScanStart={() => setIsScanning(true)}
               onScanSuccess={handleScanSuccess}
+              onUploadSuccess={(id) => setFormData(prev => ({ ...prev, receipt_id: id }))}
               onClear={() => setFormData(prev => ({ ...prev, receipt_id: null }))}
               initialId={formData.receipt_id}
             />
@@ -740,8 +744,12 @@ export default function Costs() {
       </Dialog>
 
       <OCRReviewDialog 
-        open={isOCRReviewOpen}
-        onOpenChange={setIsOCRReviewOpen}
+        open={isOCRReviewOpen || isScanning}
+        loading={isScanning}
+        onOpenChange={(open) => {
+          setIsOCRReviewOpen(open);
+          if (!open) setIsScanning(false);
+        }}
         data={ocrData}
         receiptId={scannedReceiptId}
         ingredients={allIngredients.map(ing => ({ id: ing.id, name: ing.name, unit: ing.unit }))}
@@ -773,6 +781,10 @@ export default function Costs() {
             <ReceiptUpload 
               label="Klik atau Drop Struk di sini"
               autoScan={true}
+              isScanning={isScanning}
+              onScanStart={() => {
+                setIsScanning(true);
+              }}
               onScanSuccess={handleScanSuccess}
               onUploadSuccess={() => {}}
               onClear={() => {}}
