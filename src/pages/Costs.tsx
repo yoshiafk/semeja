@@ -80,6 +80,7 @@ export default function Costs() {
 
   
   const [isPurchaseOpen, setIsPurchaseOpen] = useState(false);
+  const [editingPurchaseId, setEditingPurchaseId] = useState<number | null>(null);
   const [selectedIngredient, setSelectedIngredient] = useState<{ id?: number; name: string; qty: number; unit: string } | null>(null);
   const [formData, setFormData] = useState({ 
     supplier_name: "", 
@@ -184,19 +185,36 @@ export default function Costs() {
         return;
       }
 
-      await api.post("/purchases", {
-        ingredient_id: ingredientId,
-        supplier_name: formData.supplier_name,
-        quantity: parseFloat(formData.quantity),
-        total_price: parseInt(formData.total_price),
-        update_stock: true,
-        meal_plan_id: activePlanId,
-        meal_id: selectedMealId,   // tag to specific day if set
-        receipt_id: formData.receipt_id,
-        member_id: formData.member_id
-      });
+      if (editingPurchaseId) {
+        await api.put(`/purchases/${editingPurchaseId}`, {
+          ingredient_id: ingredientId,
+          supplier_name: formData.supplier_name,
+          quantity: parseFloat(formData.quantity),
+          total_price: parseInt(formData.total_price),
+          meal_plan_id: activePlanId,
+          meal_id: selectedMealId,
+          receipt_id: formData.receipt_id,
+          member_id: formData.member_id,
+          notes: formData.notes
+        });
+        toast.success("Pembelian berhasil diperbarui!");
+      } else {
+        await api.post("/purchases", {
+          ingredient_id: ingredientId,
+          supplier_name: formData.supplier_name,
+          quantity: parseFloat(formData.quantity),
+          total_price: parseInt(formData.total_price),
+          update_stock: true,
+          meal_plan_id: activePlanId,
+          meal_id: selectedMealId,   // tag to specific day if set
+          receipt_id: formData.receipt_id,
+          member_id: formData.member_id
+        });
+        toast.success("Pembelian berhasil dicatat!");
+      }
 
       setIsPurchaseOpen(false);
+      setEditingPurchaseId(null);
       setIsManualEntry(false);
       setIsAddingNewIngredient(false);
       setFormData({ 
@@ -209,7 +227,6 @@ export default function Costs() {
         ingredient_id: null 
       });
       setManualSearchQuery("");
-      toast.success("Pembelian berhasil dicatat!");
       
       const summary = await api.get<CostSummary>(`/summary/${activePlanId}`);
       setData(summary);
@@ -285,6 +302,45 @@ export default function Costs() {
       setIsOCRReviewOpen(false);
     }
   };
+  
+  const handleEditPurchase = (p: any) => {
+    setEditingPurchaseId(p.id);
+    setSelectedIngredient({
+      id: p.ingredient_id,
+      name: p.ingredient_name,
+      qty: p.quantity,
+      unit: p.unit || "unit"
+    });
+    setFormData({
+      supplier_name: p.supplier_name,
+      quantity: p.quantity.toString(),
+      total_price: p.total_price.toString(),
+      notes: p.notes || "",
+      receipt_id: p.receipt_id,
+      member_id: p.member_id,
+      ingredient_id: p.ingredient_id
+    });
+    setSelectedMealId(p.meal_id);
+    setIsPurchaseOpen(true);
+  };
+
+  const handleDeletePurchase = async (id: number) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus catatan belanja ini?")) return;
+    
+    try {
+      setIsSaving(true);
+      await api.delete(`/purchases/${id}`);
+      toast.success("Catatan belanja berhasil dihapus");
+      if (activePlanId) {
+        const summary = await api.get<CostSummary>(`/summary/${activePlanId}`);
+        setData(summary);
+      }
+    } catch (err: any) {
+      toast.error("Gagal menghapus: " + (err.error || err.message));
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (loading && !data) {
     return (
@@ -347,7 +403,7 @@ export default function Costs() {
           <>
             {/* Summary Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative">
-              {loading && (
+              {(loading || isSaving) && (
                 <div className="absolute inset-0 z-10 bg-white/50 backdrop-blur-[2px] rounded-2xl flex items-center justify-center">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
@@ -713,33 +769,57 @@ export default function Costs() {
                               </p>
                             </div>
                           </div>
-                          <div className="text-right flex items-center gap-3">
+                          <div className="text-right flex items-center gap-1.5 sm:gap-3">
                             <div>
                               <p className="text-sm font-black text-primary">{formatRupiah(p.total_price)}</p>
                               <p className="text-[10px] text-muted-foreground/70">{p.quantity} unit</p>
                             </div>
-                            <ReceiptPreview 
-                              receiptId={p.receipt_id}
-                              digitalData={{
-                                title: p.ingredient_name,
-                                amount: p.total_price,
-                                date: p.purchased_at,
-                                location: p.supplier_name,
-                                notes: `Pembelian ${p.quantity} unit ${p.ingredient_name}`
-                              }}
-                              trigger={
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className={cn(
-                                    "h-8 w-8 rounded-lg",
-                                    p.receipt_id ? "text-emerald-600 bg-emerald-50" : "text-muted-foreground/40 bg-secondary/50"
-                                  )}
-                                >
-                                  <FileImage className="h-4 w-4" />
-                                </Button>
-                              }
-                            />
+                            
+                            <div className="flex items-center gap-1">
+                              {isAdmin && (
+                                <>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5"
+                                    onClick={() => handleEditPurchase(p)}
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                                    onClick={() => handleDeletePurchase(p.id)}
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                                  </Button>
+                                </>
+                              )}
+                              
+                              <ReceiptPreview 
+                                receiptId={p.receipt_id}
+                                digitalData={{
+                                  title: p.ingredient_name,
+                                  amount: p.total_price,
+                                  date: p.purchased_at,
+                                  location: p.supplier_name,
+                                  notes: `Pembelian ${p.quantity} unit ${p.ingredient_name}`
+                                }}
+                                trigger={
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className={cn(
+                                      "h-8 w-8 rounded-lg",
+                                      p.receipt_id ? "text-emerald-600 bg-emerald-50" : "text-muted-foreground/40 bg-secondary/50"
+                                    )}
+                                  >
+                                    <FileImage className="h-4 w-4" />
+                                  </Button>
+                                }
+                              />
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -753,10 +833,15 @@ export default function Costs() {
       </div>
 
       {/* Purchase Dialog */}
-      <Dialog open={isPurchaseOpen} onOpenChange={setIsPurchaseOpen}>
+      <Dialog open={isPurchaseOpen} onOpenChange={(open) => {
+        setIsPurchaseOpen(open);
+        if (!open) setEditingPurchaseId(null);
+      }}>
         <DialogContent className="w-[95vw] max-w-lg rounded-2xl p-6 border-border">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Catat Pembelian: {selectedIngredient?.name}</DialogTitle>
+            <DialogTitle className="text-lg font-bold">
+              {editingPurchaseId ? "Edit Catatan" : "Catat Pembelian"}: {selectedIngredient?.name}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={recordPurchase} className="space-y-4 pt-3">
             <div className="space-y-1.5">

@@ -464,6 +464,7 @@ router.get('/:mealPlanId', async (req, res) => {
     // member_totals already uses resolved (actual-preferred) costs from the loop above.
     // Initialize activity_total for each member.
     Object.keys(memberTotals).forEach(member_id => {
+      memberTotals[member_id].actual_total = memberTotals[member_id].total; // Use the sum of daily costs
       memberTotals[member_id].activity_total = 0;
     });
 

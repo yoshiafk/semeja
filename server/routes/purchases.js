@@ -215,4 +215,112 @@ router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// PUT update purchase
+router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
+  const {
+    ingredient_id, supplier_name, quantity, total_price,
+    purchased_at, notes, meal_plan_id, receipt_id, meal_id,
+    member_id
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Find or create supplier
+    let supplier_id = null;
+    if (supplier_name) {
+      const supplierRes = await client.query(
+        'SELECT id FROM suppliers WHERE name = $1', [supplier_name.trim()]
+      );
+      if (supplierRes.rows.length > 0) {
+        supplier_id = supplierRes.rows[0].id;
+      } else {
+        const newSupplierRes = await client.query(
+          'INSERT INTO suppliers (name) VALUES ($1) RETURNING id',
+          [supplier_name.trim()]
+        );
+        supplier_id = newSupplierRes.rows[0].id;
+      }
+    }
+
+    // 2. Update purchase record
+    const { rows: purchaseRows } = await client.query(
+      `UPDATE purchases SET 
+        ingredient_id = COALESCE($1, ingredient_id),
+        supplier_id = COALESCE($2, supplier_id),
+        quantity = COALESCE($3, quantity),
+        total_price = COALESCE($4, total_price),
+        purchased_at = COALESCE($5, purchased_at),
+        notes = COALESCE($6, notes),
+        meal_plan_id = COALESCE($7, meal_plan_id),
+        receipt_id = COALESCE($8, receipt_id),
+        meal_id = $9,
+        member_id = $10
+       WHERE id = $11
+       RETURNING *`,
+      [
+        ingredient_id, supplier_id, quantity, total_price,
+        purchased_at, notes || '', meal_plan_id || null, receipt_id || null, 
+        meal_id || null, member_id || null, req.params.id
+      ]
+    );
+
+    if (purchaseRows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Purchase not found' });
+    }
+
+    const updatedPurchase = purchaseRows[0];
+
+    // 3. Re-sync price_per_unit for the ingredient
+    try {
+      const { rows: recentPrices } = await client.query(
+        `SELECT price_per_unit
+         FROM purchases
+         WHERE ingredient_id = $1
+           AND price_per_unit IS NOT NULL
+           AND price_per_unit > 0
+         ORDER BY purchased_at DESC, created_at DESC
+         LIMIT 4`,
+        [updatedPurchase.ingredient_id]
+      );
+
+      if (recentPrices.length > 0) {
+        const avg = recentPrices.reduce((sum, r) => sum + parseFloat(r.price_per_unit), 0)
+          / recentPrices.length;
+
+        await client.query(
+          `UPDATE ingredients
+           SET price_per_unit = $1,
+               price_last_updated = NOW()
+           WHERE id = $2`,
+          [Math.round(avg), updatedPurchase.ingredient_id]
+        );
+      }
+    } catch (syncErr) {
+      console.warn('[price-sync] Failed to update price_per_unit during update:', syncErr.message);
+    }
+
+    await client.query('COMMIT');
+
+    // Return the complete record with joined names
+    const { rows: resultRows } = await pool.query(`
+      SELECT p.*, s.name as supplier_name, i.name as ingredient_name, i.price_per_unit as updated_unit_price, m.name as member_name
+      FROM purchases p
+      LEFT JOIN suppliers s ON p.supplier_id = s.id
+      JOIN ingredients i ON p.ingredient_id = i.id
+      LEFT JOIN members m ON p.member_id = m.id
+      WHERE p.id = $1
+    `, [updatedPurchase.id]);
+
+    res.json(resultRows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;

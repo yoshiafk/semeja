@@ -41,7 +41,7 @@ interface OCRReviewDialogProps {
   receiptId: number | null;
   ingredients: Ingredient[];
   members: Member[];
-  onImport: (selectedItems: (OCRItem & { isNewIngredient?: boolean })[], supplierName: string, memberId?: number) => void;
+  onImport: (selectedItems: (OCRItem & { isNewIngredient?: boolean })[], supplierName: string, memberId?: number) => Promise<void> | void;
   loading?: boolean;
   isSaving?: boolean;
 }
@@ -126,7 +126,7 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
     }
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (!data) return;
     const selected = data.items
       .filter((_, idx) => selectedIndices.includes(idx))
@@ -144,7 +144,7 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
         };
       });
 
-    onImport(selected, data.supplierName, selectedMemberId);
+    await onImport(selected, data.supplierName, selectedMemberId);
     onOpenChange(false);
   };
 
