@@ -347,11 +347,40 @@ router.get('/:mealPlanId', async (req, res) => {
       let dayCost = 0;
       const dayIngredients = [];
 
-      // Skip aggregating ingredients if this day has no menus at all
+      // NEW: Move actual purchase fetching EARLIER to allow days with purchases but no recipe to show up
+      let mealActualPurchaseRows = [];
+      try {
+        const { rows: _mealPurchases } = await pool.query(
+          `SELECT p.id, p.total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
+                  i.name as ingredient_name, s.name as supplier_name,
+                  FALSE as is_assignment
+           FROM purchases p
+           JOIN ingredients i ON p.ingredient_id = i.id
+           LEFT JOIN suppliers s ON p.supplier_id = s.id
+           WHERE p.meal_id = $1
+           UNION ALL
+           SELECT p.id, pa.amount as total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
+                  i.name as ingredient_name, s.name as supplier_name,
+                  TRUE as is_assignment
+           FROM purchase_assignments pa
+           JOIN purchases p ON pa.purchase_id = p.id
+           JOIN ingredients i ON p.ingredient_id = i.id
+           LEFT JOIN suppliers s ON p.supplier_id = s.id
+           WHERE pa.meal_id = $1
+           ORDER BY created_at`,
+          [meal.id]
+        );
+        mealActualPurchaseRows = _mealPurchases;
+      } catch (_e) { /* column not yet available */ }
+      const actualCostForDay = mealActualPurchaseRows.reduce((sum, p) => sum + (parseInt(p.total_price) || 0), 0);
+
+      // Skip aggregating ingredients if this day has no menus AND no actual purchases
+      const currentMealItems = mealMenuItems.filter(it => it.meal_id === meal.id);
       const hasAnyMenu = meal.main_course_recipe_id || meal.second_course_recipe_id || meal.dessert_recipe_id || 
-                          manualIngredientRows.some(ing => ing.meal_id === meal.id);
+                          manualIngredientRows.some(ing => ing.meal_id === meal.id) ||
+                          currentMealItems.length > 0;
       
-      if (!hasAnyMenu) {
+      if (!hasAnyMenu && actualCostForDay === 0) {
         // Still add to daily breakdown but with zero costs
         dailyBreakdown.push({
           meal_id: meal.id,
@@ -417,8 +446,7 @@ router.get('/:mealPlanId', async (req, res) => {
       const manualIngredients = manualIngredientRows.filter(ing => ing.meal_id === meal.id);
       manualIngredients.forEach(ing => processIngredient(ing, ing.meal_type));
 
-      // 4. Process Recipe Ingredients - now handled via meal_ingredients only
-      const currentMealItems = mealMenuItems.filter(it => it.meal_id === meal.id);
+      // 4. Process Recipe Items
 
       // 6.5 Add Rice (Beras) if required for this meal
       if (meal.requires_rice && riceIngredient) {
@@ -428,33 +456,7 @@ router.get('/:mealPlanId', async (req, res) => {
         }, 'rice');
       }
 
-      // Get actual purchases tagged to this specific meal
-      // Falls back to empty array if meal_id column not yet migrated in production
-      let mealActualPurchaseRows = [];
-      try {
-        const { rows: _mealPurchases } = await pool.query(
-          `SELECT p.id, p.total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
-                  i.name as ingredient_name, s.name as supplier_name,
-                  FALSE as is_assignment
-           FROM purchases p
-           JOIN ingredients i ON p.ingredient_id = i.id
-           LEFT JOIN suppliers s ON p.supplier_id = s.id
-           WHERE p.meal_id = $1
-           UNION ALL
-           SELECT p.id, pa.amount as total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
-                  i.name as ingredient_name, s.name as supplier_name,
-                  TRUE as is_assignment
-           FROM purchase_assignments pa
-           JOIN purchases p ON pa.purchase_id = p.id
-           JOIN ingredients i ON p.ingredient_id = i.id
-           LEFT JOIN suppliers s ON p.supplier_id = s.id
-           WHERE pa.meal_id = $1
-           ORDER BY created_at`,
-          [meal.id]
-        );
-        mealActualPurchaseRows = _mealPurchases;
-      } catch (_e) { /* column not yet available */ }
-      const actualCostForDay = mealActualPurchaseRows.reduce((sum, p) => sum + (parseInt(p.total_price) || 0), 0);
+      // Moved earlier in the loop
       const resolvedDayCost = actualCostForDay > 0 ? actualCostForDay : Math.round(dayCost);
       const costPerPerson = pCount > 0 ? Math.round(resolvedDayCost / pCount) : 0;
 
