@@ -10,6 +10,9 @@ interface DailyRecapCardProps {
   day: DailyBreakdown;
   /** When provided, shows a "Catat Belanja" button pre-tagged to this meal */
   onRecord?: (mealId: number) => void;
+  onEdit?: (purchase: any) => void;
+  onDelete?: (id: number) => void;
+  isAdmin?: boolean;
 }
 
 const statusColors = {
@@ -24,7 +27,7 @@ const statusLabels = {
   done: 'Selesai',
 };
 
-export function DailyRecapCard({ day, onRecord }: DailyRecapCardProps) {
+export function DailyRecapCard({ day, onRecord, onEdit, onDelete, isAdmin }: DailyRecapCardProps) {
   const shopping_status = day.shopping_status ?? 'pending';
   const costPerPerson = day.cost_per_person ?? 0;
   const actualCost = day.actual_cost ?? 0;
@@ -40,18 +43,18 @@ export function DailyRecapCard({ day, onRecord }: DailyRecapCardProps) {
   });
 
   return (
-    <div className="rounded-xl border border-border/50 overflow-hidden">
+    <div className="rounded-xl border border-border/50 overflow-hidden bg-white">
       {/* Day header */}
       <div className="px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <span className="text-xs font-bold text-primary">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+            <span className="text-xs font-bold">
               {day.day_name.substring(0, 2)}
             </span>
           </div>
           <div>
             <p className="text-sm font-semibold">{day.day_name}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               {new Date(day.date).toLocaleDateString('id-ID', {
                 day: 'numeric',
                 month: 'short',
@@ -63,7 +66,7 @@ export function DailyRecapCard({ day, onRecord }: DailyRecapCardProps) {
         </div>
         <span
           className={cn(
-            'text-[11px] font-semibold px-2 py-1 rounded-full',
+            'text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-tight',
             statusColors[shopping_status]
           )}
         >
@@ -72,28 +75,24 @@ export function DailyRecapCard({ day, onRecord }: DailyRecapCardProps) {
       </div>
 
       {/* Cost comparison */}
-      <div className="px-4 pb-3 grid grid-cols-3 gap-2 text-center">
+      <div className="px-4 pb-3 grid grid-cols-3 gap-2 text-center border-b border-border/20">
         <div>
-          <p className="text-[11px] text-muted-foreground">Estimasi</p>
-          <p className="text-sm font-semibold">{formatRupiah(estimatedCost)}</p>
+          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Estimasi</p>
+          <p className="text-sm font-bold">{formatRupiah(estimatedCost)}</p>
         </div>
         <div>
-          <p className="text-[11px] text-muted-foreground">Aktual</p>
-          <p className={cn('text-sm font-semibold', actualCost > 0 ? 'text-foreground' : 'text-muted-foreground')}>
-            {actualCost > 0 ? formatRupiah(actualCost) : '—'}
+          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Aktual</p>
+          <p className={cn('text-sm font-bold', actualCost > 0 ? 'text-primary' : 'text-muted-foreground/40')}>
+            {actualCost > 0 ? formatRupiah(actualCost) : 'Rp 0'}
           </p>
         </div>
         <div>
-          <p className="text-[11px] text-muted-foreground">/orang</p>
+          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">/orang</p>
           <div className="flex items-center justify-center gap-1">
-            <p className="text-sm font-semibold text-primary">{formatRupiah(costPerPerson)}</p>
-            {day.uses_actual ? (
-              <span className="text-[9px] bg-teal-100 text-teal-700 px-1 py-0.5 rounded font-medium">
+            <p className="text-sm font-bold text-emerald-600">{formatRupiah(costPerPerson)}</p>
+            {day.uses_actual && (
+              <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded font-bold uppercase">
                 Aktual
-              </span>
-            ) : (
-              <span className="text-[9px] bg-gray-100 text-gray-500 px-1 py-0.5 rounded font-medium">
-                Est
               </span>
             )}
           </div>
@@ -102,14 +101,41 @@ export function DailyRecapCard({ day, onRecord }: DailyRecapCardProps) {
 
       {/* Purchase log */}
       {(day.purchases ?? []).length > 0 && (
-        <div className="border-t border-border/30 px-4 py-2 space-y-1">
+        <div className="px-4 py-3 space-y-2.5">
           {day.purchases.map((p) => (
-            <div key={p.id} className="flex items-center justify-between text-xs">
-              <span className="text-foreground">{p.ingredient_name}</span>
-              <div className="text-right">
-                <span className="font-medium">{formatRupiah(p.total_price)}</span>
-                {p.supplier_name && (
-                  <span className="text-muted-foreground ml-1">· {p.supplier_name}</span>
+            <div key={p.id} className="flex items-center justify-between gap-3 group">
+              <span className="text-xs text-foreground/80 font-medium truncate">{p.ingredient_name}</span>
+              <div className="flex items-center gap-2 ml-auto shrink-0">
+                <div className="text-right">
+                  <span className="text-xs font-bold text-foreground">{formatRupiah(p.total_price)}</span>
+                  {p.supplier_name && (
+                    <span className="text-[10px] text-muted-foreground/60 uppercase font-medium ml-1.5 shrink-0">· {p.supplier_name}</span>
+                  )}
+                </div>
+                
+                {isAdmin && (onEdit || onDelete) && (
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {onEdit && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/5"
+                        onClick={() => onEdit(p)}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                      </Button>
+                    )}
+                    {onDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                        onClick={() => onDelete(p.id)}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

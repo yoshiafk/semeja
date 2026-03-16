@@ -598,6 +598,9 @@ export default function Costs() {
                   <DailyRecapCard
                     key={day.meal_id}
                     day={day as any}
+                    isAdmin={isAdmin || false}
+                    onEdit={handleEditPurchase}
+                    onDelete={handleDeletePurchase}
                     onRecord={(mealId) => {
                       setSelectedMealId(mealId);
                       setIsOCRUploadOpen(true);
