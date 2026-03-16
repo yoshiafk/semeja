@@ -418,7 +418,7 @@ router.get('/:mealPlanId', async (req, res) => {
       let mealActualPurchaseRows = [];
       try {
         const { rows: _mealPurchases } = await pool.query(
-          `SELECT p.id, p.total_price, p.quantity, p.purchased_at, p.created_at,
+          `SELECT p.id, p.total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
                   i.name as ingredient_name, s.name as supplier_name
            FROM purchases p
            JOIN ingredients i ON p.ingredient_id = i.id

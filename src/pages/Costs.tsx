@@ -840,12 +840,23 @@ export default function Costs() {
         setIsPurchaseOpen(open);
         if (!open) setEditingPurchaseId(null);
       }}>
-        <DialogContent className="w-[95vw] max-w-lg rounded-2xl p-6 border-border">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold">
-              {editingPurchaseId ? "Edit Catatan" : "Catat Pembelian"}: {selectedIngredient?.name}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent className="w-[95vw] max-w-lg rounded-2xl p-0 border-border overflow-hidden bg-card flex flex-col max-h-[90vh]">
+          <div className="p-6 overflow-y-auto w-full space-y-4">
+            <DialogHeader className="mb-2">
+              <DialogTitle className="text-lg font-bold">
+                {editingPurchaseId ? "Edit Catatan" : "Catat Pembelian"}
+              </DialogTitle>
+              {selectedIngredient && (
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
+                    {selectedIngredient.name}
+                  </div>
+                  {selectedIngredient.unit && (
+                    <span className="text-[10px] text-muted-foreground uppercase opacity-60">Satuan: {selectedIngredient.unit}</span>
+                  )}
+                </div>
+              )}
+            </DialogHeader>
           <form onSubmit={recordPurchase} className="space-y-4 pt-3">
             {/* Day Selector */}
             <div className="space-y-1.5">
@@ -855,10 +866,10 @@ export default function Costs() {
                   type="button"
                   onClick={() => setSelectedMealId(null)}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap border transition-all shrink-0",
+                    "px-4 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap border transition-all shrink-0",
                     selectedMealId === null
                       ? "bg-primary text-white border-primary shadow-sm"
-                      : "bg-white text-muted-foreground border-border hover:bg-secondary/50"
+                      : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"
                   )}
                 >
                   Pekan Ini (General)
@@ -869,10 +880,10 @@ export default function Costs() {
                     type="button"
                     onClick={() => setSelectedMealId(day.meal_id)}
                     className={cn(
-                      "px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap border transition-all shrink-0",
+                      "px-4 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap border transition-all shrink-0",
                       selectedMealId === day.meal_id
                         ? "bg-primary text-white border-primary shadow-sm"
-                        : "bg-white text-muted-foreground border-border hover:bg-secondary/50"
+                        : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"
                     )}
                   >
                     {day.day_name}
@@ -911,11 +922,12 @@ export default function Costs() {
               initialId={formData.receipt_id}
             />
 
-            <Button type="submit" disabled={isSaving} className="w-full h-10 rounded-xl text-sm font-semibold">
+            <Button type="submit" disabled={isSaving} className="w-full h-11 rounded-xl text-sm font-bold shadow-sm">
               {isSaving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-              Simpan Tagihan Aktual
+              {editingPurchaseId ? "Perbarui Catatan" : "Simpan Tagihan Aktual"}
             </Button>
           </form>
+          </div>
         </DialogContent>
       </Dialog>
 
