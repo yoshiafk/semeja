@@ -9,12 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { getMemberSummary, api } from "@/lib/api";
 import type { MemberSummary } from "@/lib/api";
-import { 
-  User, 
-  Calendar, 
-  Wallet, 
-  TrendingUp, 
-  LogOut, 
+import {
+  User,
+  Calendar,
+  Wallet,
+  TrendingUp,
+  LogOut,
   ChevronRight,
   Loader2,
   Receipt,
@@ -115,8 +115,8 @@ export default function Profile() {
                 <StatCard
                   label="Total Tagihan"
                   value={formatCurrency(
-                    (summary.currentWeek.actualCost || summary.currentWeek.estimatedCost) + 
-                    (summary.currentWeek.activityCost || 0) + 
+                    (summary.currentWeek.actualCost || summary.currentWeek.estimatedCost) +
+                    (summary.currentWeek.activityCost || 0) +
                     (summary.currentWeek.giftCost || 0)
                   )}
                   subValue="Estimasi total tagihan"
@@ -147,25 +147,25 @@ export default function Profile() {
                     <TrendingUp className="h-3 w-3" /> Rincian Jenis Biaya
                   </h3>
                   <div className="grid grid-cols-1 gap-2.5">
-                    <BreakdownRow 
-                      label="Urusan Dapur" 
-                      amount={summary.currentWeek.breakdown.meals} 
-                      icon={Utensils} 
+                    <BreakdownRow
+                      label="Patungan Makan"
+                      amount={summary.currentWeek.breakdown.meals}
+                      icon={Utensils}
                       color="text-amber-600 bg-amber-50"
                     />
                     {summary.currentWeek.breakdown.activities > 0 && (
-                      <BreakdownRow 
-                        label="Aktifitas Bersama" 
-                        amount={summary.currentWeek.breakdown.activities} 
-                        icon={Sparkles} 
+                      <BreakdownRow
+                        label="Aktifitas Bersama"
+                        amount={summary.currentWeek.breakdown.activities}
+                        icon={Sparkles}
                         color="text-primary bg-primary/5"
                       />
                     )}
                     {summary.currentWeek.breakdown.gifts > 0 && (
-                      <BreakdownRow 
-                        label="Gifts & Iuran" 
-                        amount={summary.currentWeek.breakdown.gifts} 
-                        icon={Gift} 
+                      <BreakdownRow
+                        label="Gifts"
+                        amount={summary.currentWeek.breakdown.gifts}
+                        icon={Gift}
                         color="text-pink-600 bg-pink-50"
                       />
                     )}
@@ -427,14 +427,12 @@ function StatCard({
 }) {
   return (
     <div
-      className={`p-3 rounded-xl ${
-        variant === "muted" ? "bg-muted/50" : "bg-primary/5"
-      }`}
+      className={`p-3 rounded-xl ${variant === "muted" ? "bg-muted/50" : "bg-primary/5"
+        }`}
     >
       <Icon
-        className={`w-4 h-4 mb-2 ${
-          variant === "muted" ? "text-muted-foreground" : "text-primary"
-        }`}
+        className={`w-4 h-4 mb-2 ${variant === "muted" ? "text-muted-foreground" : "text-primary"
+          }`}
       />
       <p className="text-base font-bold text-foreground truncate">{value}</p>
       <p className="text-[10px] text-muted-foreground truncate">{subValue}</p>
@@ -444,15 +442,15 @@ function StatCard({
 
 StatCard.displayName = "StatCard";
 
-function BreakdownRow({ 
-  label, 
-  amount, 
-  icon: Icon, 
-  color 
-}: { 
-  label: string; 
-  amount: number; 
-  icon: any; 
+function BreakdownRow({
+  label,
+  amount,
+  icon: Icon,
+  color
+}: {
+  label: string;
+  amount: number;
+  icon: any;
   color: string;
 }) {
   const formatCurrency = (amount: number) => {
