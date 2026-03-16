@@ -25,7 +25,8 @@ import {
   Utensils,
   Carrot,
   Store,
-  Sparkles
+  Sparkles,
+  Gift
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -113,8 +114,12 @@ export default function Profile() {
               <div className="grid grid-cols-3 gap-3">
                 <StatCard
                   label="Total Tagihan"
-                  value={formatCurrency((summary.currentWeek.actualCost || summary.currentWeek.estimatedCost) + (summary.currentWeek.activityCost || 0))}
-                  subValue={summary.currentWeek.activityCost ? "Dapur + Aktifitas" : (summary.currentWeek.actualCost ? "Aktual" : "Estimasi")}
+                  value={formatCurrency(
+                    (summary.currentWeek.actualCost || summary.currentWeek.estimatedCost) + 
+                    (summary.currentWeek.activityCost || 0) + 
+                    (summary.currentWeek.giftCost || 0)
+                  )}
+                  subValue="Estimasi total tagihan"
                   icon={Wallet}
                 />
                 <StatCard
@@ -134,6 +139,39 @@ export default function Profile() {
                   icon={TrendingUp}
                 />
               </div>
+
+              {/* Breakdown by Type */}
+              {summary.currentWeek.breakdown && (
+                <div className="bg-muted/30 rounded-2xl p-4 border border-border/10">
+                  <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <TrendingUp className="h-3 w-3" /> Rincian Jenis Biaya
+                  </h3>
+                  <div className="grid grid-cols-1 gap-2.5">
+                    <BreakdownRow 
+                      label="Urusan Dapur" 
+                      amount={summary.currentWeek.breakdown.meals} 
+                      icon={Utensils} 
+                      color="text-amber-600 bg-amber-50"
+                    />
+                    {summary.currentWeek.breakdown.activities > 0 && (
+                      <BreakdownRow 
+                        label="Aktifitas Bersama" 
+                        amount={summary.currentWeek.breakdown.activities} 
+                        icon={Sparkles} 
+                        color="text-primary bg-primary/5"
+                      />
+                    )}
+                    {summary.currentWeek.breakdown.gifts > 0 && (
+                      <BreakdownRow 
+                        label="Gifts & Iuran" 
+                        amount={summary.currentWeek.breakdown.gifts} 
+                        icon={Gift} 
+                        color="text-pink-600 bg-pink-50"
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Daily Breakdown */}
               {summary.currentWeek.dailyBreakdown.length > 0 && (
@@ -405,6 +443,41 @@ function StatCard({
 }
 
 StatCard.displayName = "StatCard";
+
+function BreakdownRow({ 
+  label, 
+  amount, 
+  icon: Icon, 
+  color 
+}: { 
+  label: string; 
+  amount: number; 
+  icon: any; 
+  color: string;
+}) {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  return (
+    <div className="flex items-center justify-between group">
+      <div className="flex items-center gap-3">
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${color}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <span className="text-sm font-medium text-foreground">{label}</span>
+      </div>
+      <span className="text-sm font-bold text-foreground">
+        {formatCurrency(amount)}
+      </span>
+    </div>
+  );
+}
 
 function AdminLink({
   href,

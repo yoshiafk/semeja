@@ -173,6 +173,19 @@ router.get('/member/:memberId', async (req, res) => {
         }
       }
       
+      // 5.7 Calculate Gift Costs for this member within the current week timeframe
+      let giftCost = 0;
+      const { rows: giftContributions } = await pool.query(
+        `SELECT gp.contribution_amount
+         FROM gift_participants gp
+         JOIN gifts g ON gp.gift_id = g.id
+         WHERE gp.member_id = $1
+         AND g.event_date >= $2 AND g.event_date <= $3`,
+        [memberId, plan.week_start, plan.week_end]
+      );
+      
+      giftCost = giftContributions.reduce((sum, gc) => sum + (parseInt(gc.contribution_amount) || 0), 0);
+      
       currentWeek = {
         mealPlanId: plan.id,
         weekLabel,
@@ -180,6 +193,12 @@ router.get('/member/:memberId', async (req, res) => {
         estimatedCost,
         actualCost,
         activityCost,
+        giftCost,
+        breakdown: {
+          meals: actualCost || estimatedCost,
+          activities: activityCost,
+          gifts: giftCost
+        },
         dailyBreakdown
       };
     }

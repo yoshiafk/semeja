@@ -44,9 +44,12 @@ router.get('/:id', async (req, res) => {
       WHERE p.activity_id = $1
     `, [id]);
     
+    const { rows: itemRows } = await pool.query('SELECT * FROM activity_items WHERE activity_id = $1 ORDER BY id ASC', [id]);
+    
     res.json({
       ...activityRows[0],
-      participants: participantRows
+      participants: participantRows,
+      items: itemRows
     });
   } catch (error) {
     console.error('Error fetching activity details:', error);
@@ -141,6 +144,54 @@ router.post('/:id/join', async (req, res) => {
   } catch (error) {
     console.error('Error joining activity:', error);
     res.status(500).json({ error: 'Failed to join activity' });
+  }
+});
+
+// POST to record activity items
+router.post('/:id/items', async (req, res) => {
+  const { id } = req.params;
+  const { items } = req.body; // Array of { name, quantity, price }
+  
+  if (!Array.isArray(items)) {
+    return res.status(400).json({ error: 'items must be an array' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // 1. Delete existing items
+    await client.query('DELETE FROM activity_items WHERE activity_id = $1', [id]);
+    
+    // 2. Insert new items
+    let totalActual = 0;
+    if (items.length > 0) {
+      for (const item of items) {
+        const price = parseInt(item.price || item.totalPrice) || 0;
+        await client.query(
+          'INSERT INTO activity_items (activity_id, name, quantity, price) VALUES ($1, $2, $3, $4)',
+          [id, item.name, item.quantity || 1, price]
+        );
+        totalActual += price;
+      }
+      
+      // 3. Update the activity's cost_amount if it's split bill
+      // Actually, we should update it regardless if we have items, 
+      // but for split bill it's critical.
+      await client.query(
+        'UPDATE activities SET cost_amount = $1 WHERE id = $2',
+        [totalActual, id]
+      );
+    }
+    
+    await client.query('COMMIT');
+    res.json({ message: 'Items updated successfully', total: totalActual });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error recording activity items:', error);
+    res.status(500).json({ error: 'Failed to record activity items' });
+  } finally {
+    client.release();
   }
 });
 

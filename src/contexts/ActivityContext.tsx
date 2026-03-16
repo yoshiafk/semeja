@@ -14,6 +14,15 @@ export interface ActivityParticipation {
   member_name?: string;
 }
 
+export interface ActivityItem {
+  id: number;
+  activity_id: number;
+  name: string;
+  quantity: number;
+  price: number;
+  created_at: string;
+}
+
 export interface Activity {
   id: number;
   title: string;
@@ -35,6 +44,7 @@ export interface Activity {
   
   // Detail fields
   participants?: ActivityParticipation[];
+  items?: ActivityItem[];
 }
 
 interface ActivityContextType {
@@ -47,6 +57,7 @@ interface ActivityContextType {
   joinActivity: (id: number, memberId: number, guestsCount?: number) => Promise<void>;
   leaveActivity: (id: number, memberId: number) => Promise<void>;
   deleteActivity: (id: number) => Promise<void>;
+  recordActivityItems: (id: number, items: any[]) => Promise<void>;
 }
 
 const ActivityContext = createContext<ActivityContextType | undefined>(undefined);
@@ -102,6 +113,11 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     await fetchActivities();
   };
 
+  const recordActivityItems = async (id: number, items: any[]) => {
+    await api.post(`/activities/${id}/items`, { items });
+    await fetchActivities();
+  };
+
   const value: ActivityContextType = {
     activities,
     loading,
@@ -111,7 +127,8 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     updateActivity,
     joinActivity,
     leaveActivity,
-    deleteActivity
+    deleteActivity,
+    recordActivityItems
   };
 
   return (

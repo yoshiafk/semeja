@@ -237,6 +237,15 @@ async function initDB(retries = 3) {
       ALTER TABLE activities ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'upcoming';
       CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
 
+      CREATE TABLE IF NOT EXISTS activity_items (
+        id SERIAL PRIMARY KEY,
+        activity_id INTEGER REFERENCES activities(id) ON DELETE CASCADE,
+        name VARCHAR(200) NOT NULL,
+        quantity DECIMAL(10,3) DEFAULT 1,
+        price INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS activity_participations (
         id SERIAL PRIMARY KEY,
         activity_id INTEGER REFERENCES activities(id) ON DELETE CASCADE,

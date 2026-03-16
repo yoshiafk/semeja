@@ -84,6 +84,12 @@ export interface MemberSummary {
     estimatedCost: number;
     actualCost: number;
     activityCost?: number;
+    giftCost?: number;
+    breakdown?: {
+      meals: number;
+      activities: number;
+      gifts: number;
+    };
     dailyBreakdown: Array<{
       date: string;
       dayName: string;
