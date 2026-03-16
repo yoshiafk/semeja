@@ -62,16 +62,20 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
   const [selectedMemberId, setSelectedMemberId] = useState<number | undefined>(undefined);
   const [searchQueries, setSearchQueries] = useState<Record<number, string>>({});
   const [activeSearchIdx, setActiveSearchIdx] = useState<number | null>(null);
+  const [initializedForData, setInitializedForData] = useState<OCRData | null>(null);
 
   // Auto-match items when data changes
   useEffect(() => {
-    if (!data || ingredients.length === 0) return;
+    if (!data || data === initializedForData || ingredients.length === 0) return;
 
-    const newMatches: { [key: number]: number | 'NEW' } = {};
-    const newSelected: number[] = [];
-    const newSearchQueries: Record<number, string> = {};
+    const newMatches: { [key: number]: number | 'NEW' } = { ...matches };
+    const newSelected: number[] = [...selectedIndices];
+    const newSearchQueries: Record<number, string> = { ...searchQueries };
 
     data.items.forEach((item, idx) => {
+      // Only initialize if we haven't touched this index yet
+      if (newSearchQueries[idx] !== undefined) return;
+
       // Simple name matching
       const match = ingredients.find(ing => 
         ing.name.toLowerCase().includes(item.name.toLowerCase()) || 
@@ -95,7 +99,8 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
     setMatches(newMatches);
     setSelectedIndices(newSelected);
     setSearchQueries(newSearchQueries);
-  }, [data, ingredients]);
+    setInitializedForData(data);
+  }, [data, ingredients, initializedForData]);
 
 
   if (!data && !loading) return null;

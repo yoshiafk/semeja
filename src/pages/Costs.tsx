@@ -275,11 +275,19 @@ export default function Costs() {
         if (!ingredientId || !activePlanId) continue;
         
         try {
+          const quantity = parseFloat(item.quantity) || 1;
+          const total_price = Math.round(parseFloat(item.totalPrice)) || 0;
+          
+          if (total_price <= 0) {
+            console.warn(`Skipping item ${item.name} with zero price`);
+            continue;
+          }
+
           await api.post("/purchases", {
             ingredient_id: ingredientId,
             supplier_name: supplierName || "OCR Import",
-            quantity: item.quantity,
-            total_price: item.totalPrice,
+            quantity,
+            total_price,
             update_stock: true,
             meal_plan_id: activePlanId,
             meal_id: selectedMealId,   // tag to specific day if set
