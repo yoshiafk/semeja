@@ -45,11 +45,13 @@ router.post('/receipt', requireAuth, upload.single('receipt'), async (req, res) 
 
   try {
     const modelsToTry = [
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+      'gemini-2.0-flash',
+      'gemini-flash-latest',
       'gemini-2.5-flash-lite',
       'gemini-3.1-flash-lite-preview',
-      'gemini-2.5-flash',
-      'gemini-flash-latest',
-      'gemini-2.0-flash'
+      'gemini-2.5-flash'
     ];
 
     // Prepare the image for Gemini (once for all models)
@@ -70,14 +72,23 @@ router.post('/receipt', requireAuth, upload.single('receipt'), async (req, res) 
         const model = genAI.getGenerativeModel({ model: modelName });
 
         const prompt = `
-          Extract all items from this receipt image. 
-          Identify the merchant/supplier name.
-          For each item, identify:
-          - name: The product name (e.g., "Susu UHT Full Cream")
-          - quantity: The numerical quantity (e.g., 2)
-          - unit: The unit of measurement (e.g., "kg", "pcs", "litre", or null if not specified)
-          - totalPrice: The total price for this item/line
-          - unitPrice: The price per unit (if specified, otherwise calculate or null)
+          Extract all line items from this receipt image. 
+          The receipt appears to be in a table format. Look for rows that have a name/description and a corresponding price.
+          
+          Identify the merchant/supplier name (look for the largest text or the header, e.g., "MUARA ANGKE (MASAK)").
+          
+          For each individual line item in the table, identify:
+          - name: The product or service name (e.g., "CUMI", "IKAN KAKAP MERAH", "MASAK SEAFOOD")
+          - quantity: The numerical quantity. If you see a quantity column, use it. If not, assume 1.
+          - unit: The unit of measurement (e.g., "kg", "pcs", or null)
+          - totalPrice: The total price for this specific line item.
+          - unitPrice: The price per unit (if specified, otherwise same as totalPrice if quantity is 1).
+
+          IMPORTANT RULES:
+          1. DO NOT skip any rows that have a name and a value that looks like a price (e.g., 310,000, 100,000).
+          2. Ignore rows that are explicitly summaries for the whole receipt (e.g., "TOTAL", "SUBTOTAL", "GRAND TOTAL", "TAX", "PPN", "CASH", "CHANGE").
+          3. Treat table headers (like the top merchant name) as metadata, not as items.
+          4. Ensure all prices are returned as integers without currency symbols or commas.
 
           Return strictly as a JSON object with the following structure:
           {
@@ -90,7 +101,7 @@ router.post('/receipt', requireAuth, upload.single('receipt'), async (req, res) 
             ]
           }
           
-          Do not include markers like \`\`\`json or any other text.
+          Do not include markers like \`\`\`json or any other text. Return ONLY the JSON.
         `;
 
         const result = await model.generateContent([prompt, imagePart]);
