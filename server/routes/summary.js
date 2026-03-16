@@ -190,8 +190,11 @@ router.get('/member/:memberId', async (req, res) => {
       
       // 5.7 Calculate Gift Costs for this member within the current week timeframe
       let giftCost = 0;
-      const { rows: giftContributions } = await pool.query(
-        `SELECT gp.contribution_amount
+      const { rows: giftsForMember } = await pool.query(
+        `SELECT g.id, 
+            (SELECT SUM(estimated_price) FROM gift_items WHERE gift_id = g.id) as total_price,
+            (SELECT COUNT(*) FROM gift_participants WHERE gift_id = g.id) as participant_count,
+            gp.contribution_amount
          FROM gift_participants gp
          JOIN gifts g ON gp.gift_id = g.id
          WHERE gp.member_id = $1
@@ -202,7 +205,16 @@ router.get('/member/:memberId', async (req, res) => {
         [memberId, plan.week_start, plan.week_end]
       );
       
-      giftCost = giftContributions.reduce((sum, gc) => sum + (parseInt(gc.contribution_amount) || 0), 0);
+      for (const gift of giftsForMember) {
+        const manualContrib = parseInt(gift.contribution_amount) || 0;
+        if (manualContrib > 0) {
+          giftCost += manualContrib;
+        } else {
+          const total = parseInt(gift.total_price) || 0;
+          const count = parseInt(gift.participant_count) || 1;
+          giftCost += Math.round(total / count);
+        }
+      }
       
       currentWeek = {
         mealPlanId: plan.id,
@@ -566,22 +578,37 @@ router.get('/:mealPlanId', async (req, res) => {
 
     // 7.6 Add Gift Costs for the week
     if (weekStart && weekEnd) {
-      const { rows: giftContributions } = await pool.query(
-        `SELECT gp.member_id, gp.contribution_amount
-         FROM gift_participants gp
-         JOIN gifts g ON gp.gift_id = g.id
+      const { rows: giftsInWeek } = await pool.query(
+        `SELECT g.id,
+            (SELECT SUM(estimated_price) FROM gift_items WHERE gift_id = g.id) as total_price,
+            (SELECT COUNT(*) FROM gift_participants WHERE gift_id = g.id) as participant_count
+         FROM gifts g
          WHERE (g.event_date >= $1 AND g.event_date <= $2) OR g.event_date IS NULL`,
         [weekStart, weekEnd]
       );
 
-      for (const contrib of giftContributions) {
-        const amount = parseInt(contrib.contribution_amount) || 0;
-        if (!memberTotals[contrib.member_id]) {
-          const { rows: memberInfo } = await pool.query('SELECT name FROM members WHERE id = $1', [contrib.member_id]);
-          if (memberInfo.length > 0) {
-            memberTotals[contrib.member_id] = { 
-              member_id: contrib.member_id, 
-              name: memberInfo[0].name, 
+      const { rows: giftParticipants } = await pool.query(
+        `SELECT gp.gift_id, gp.member_id, gp.contribution_amount, mb.name as member_name
+         FROM gift_participants gp
+         JOIN members mb ON gp.member_id = mb.id
+         WHERE gp.gift_id = ANY($1::int[])`,
+        [giftsInWeek.map(g => g.id)]
+      );
+
+      for (const gift of giftsInWeek) {
+        const total = parseInt(gift.total_price) || 0;
+        const count = parseInt(gift.participant_count) || 1;
+        const splitCost = Math.round(total / count);
+
+        const participants = giftParticipants.filter(p => p.gift_id === gift.id);
+        for (const p of participants) {
+          const manualContrib = parseInt(p.contribution_amount) || 0;
+          const share = manualContrib > 0 ? manualContrib : splitCost;
+
+          if (!memberTotals[p.member_id]) {
+            memberTotals[p.member_id] = { 
+              member_id: p.member_id, 
+              name: p.member_name, 
               days_joined: 0, 
               total: 0, 
               actual_total: 0,
@@ -589,9 +616,9 @@ router.get('/:mealPlanId', async (req, res) => {
               gift_total: 0 
             };
           }
-        }
-        if (memberTotals[contrib.member_id]) {
-          memberTotals[contrib.member_id].gift_total += amount;
+          if (memberTotals[p.member_id]) {
+            memberTotals[p.member_id].gift_total += share;
+          }
         }
       }
     }
