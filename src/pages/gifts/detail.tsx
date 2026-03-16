@@ -15,7 +15,7 @@ import { ReceiptUpload } from "@/components/ReceiptUpload";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { 
   getGiftDetail, addGiftItem, updateGiftItem, deleteGiftItem, 
-  joinGift, leaveGift, deleteGift
+  joinGift, leaveGift, deleteGift, updateGift
 } from "@/lib/api";
 import type { GiftDetail as GiftDetailType } from "@/lib/api";
 import { format } from "date-fns";
@@ -36,6 +36,10 @@ export default function GiftDetail() {
   const [newItem, setNewItem] = useState({ name: "", estimated_price: "" });
   const [showItemForm, setShowItemForm] = useState(false);
 
+  // State for date editing
+  const [isEditingDate, setIsEditingDate] = useState(false);
+  const [editedDate, setEditedDate] = useState("");
+
   const fetchDetail = async () => {
     if (!id) return;
     try {
@@ -46,6 +50,23 @@ export default function GiftDetail() {
       toast.error("Failed to load gift details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateDate = async () => {
+    if (!id) return;
+    setSubmitting(true);
+    try {
+      await updateGift(parseInt(id), { 
+        event_date: editedDate || null 
+      });
+      toast.success("Date updated");
+      setIsEditingDate(false);
+      fetchDetail();
+    } catch (error) {
+      toast.error("Failed to update date");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -209,12 +230,49 @@ export default function GiftDetail() {
           )}
           
           <div className="flex flex-wrap gap-4 pt-2 border-t border-border/30">
-            {gift.event_date && (
-              <div className="flex items-center gap-2 text-xs font-semibold text-foreground bg-secondary/30 px-3 py-1.5 rounded-lg border border-border/40">
-                <Calendar className="w-4 h-4 text-primary" />
-                {format(new Date(gift.event_date), "MMMM d, yyyy")}
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {isEditingDate ? (
+                <div className="flex items-center gap-2 bg-secondary/30 pl-3 pr-1 py-1 rounded-lg border border-border/40">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  <input
+                    type="date"
+                    value={editedDate}
+                    onChange={(e) => setEditedDate(e.target.value)}
+                    className="bg-transparent border-none text-xs font-semibold focus:ring-0 w-32"
+                  />
+                  <div className="flex gap-1 ml-1">
+                    <Button 
+                      size="sm" 
+                      className="h-7 w-7 rounded-md p-0" 
+                      onClick={handleUpdateDate}
+                      disabled={submitting}
+                    >
+                      {submitting ? <Loader2 className="h-3 w-3 animate-spin"/> : <CheckCircle2 className="h-4 w-4" />}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-7 w-7 rounded-md p-0" 
+                      onClick={() => setIsEditingDate(false)}
+                      disabled={submitting}
+                    >
+                      <Circle className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  className="flex items-center gap-2 text-xs font-semibold text-foreground bg-secondary/30 px-3 py-1.5 rounded-lg border border-border/40 cursor-pointer hover:bg-secondary/50 transition-colors"
+                  onClick={() => {
+                    setEditedDate(gift.event_date ? format(new Date(gift.event_date), "yyyy-MM-dd") : "");
+                    setIsEditingDate(true);
+                  }}
+                >
+                  <Calendar className="w-4 h-4 text-primary" />
+                  {gift.event_date ? format(new Date(gift.event_date), "MMMM d, yyyy") : "Set Event Date"}
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-2 text-xs font-semibold text-foreground bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/10">
               <Users className="w-4 h-4 text-primary" />
               {gift.participants.length} Participants
