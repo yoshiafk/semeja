@@ -233,6 +233,10 @@ async function initDB(retries = 3) {
         created_at TIMESTAMP DEFAULT NOW()
       );
 
+      ALTER TABLE activities ADD COLUMN IF NOT EXISTS receipt_id INTEGER REFERENCES attachments(id) ON DELETE SET NULL;
+      ALTER TABLE activities ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'upcoming';
+      CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
+
       CREATE TABLE IF NOT EXISTS activity_participations (
         id SERIAL PRIMARY KEY,
         activity_id INTEGER REFERENCES activities(id) ON DELETE CASCADE,

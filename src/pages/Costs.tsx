@@ -847,6 +847,40 @@ export default function Costs() {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={recordPurchase} className="space-y-4 pt-3">
+            {/* Day Selector */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">Tag ke Hari / Menu</label>
+              <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+                <button
+                  type="button"
+                  onClick={() => setSelectedMealId(null)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap border transition-all shrink-0",
+                    selectedMealId === null
+                      ? "bg-primary text-white border-primary shadow-sm"
+                      : "bg-white text-muted-foreground border-border hover:bg-secondary/50"
+                  )}
+                >
+                  Pekan Ini (General)
+                </button>
+                {data?.daily_breakdown.map((day) => (
+                  <button
+                    key={day.meal_id}
+                    type="button"
+                    onClick={() => setSelectedMealId(day.meal_id)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap border transition-all shrink-0",
+                      selectedMealId === day.meal_id
+                        ? "bg-primary text-white border-primary shadow-sm"
+                        : "bg-white text-muted-foreground border-border hover:bg-secondary/50"
+                    )}
+                  >
+                    {day.day_name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Beli di (Nama Toko/Suplier)</label>
               <Input required value={formData.supplier_name} onChange={e => setFormData({ ...formData, supplier_name: e.target.value })} placeholder="Cth: Pasar Palmerah / Indomaret" className="h-10 rounded-xl bg-secondary/80 border-border text-sm" />
@@ -1045,6 +1079,39 @@ export default function Costs() {
                         </Button>
                       </div>
                     )}
+                  </div>
+
+                  <div className="space-y-1.5 pt-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Tag ke Hari / Menu</label>
+                    <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMealId(null)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap border transition-all shrink-0",
+                          selectedMealId === null
+                            ? "bg-primary text-white border-primary shadow-sm"
+                            : "bg-white text-muted-foreground border-border hover:bg-secondary/50"
+                        )}
+                      >
+                        Pekan Ini (General)
+                      </button>
+                      {data?.daily_breakdown.map((day) => (
+                        <button
+                          key={day.meal_id}
+                          type="button"
+                          onClick={() => setSelectedMealId(day.meal_id)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap border transition-all shrink-0",
+                            selectedMealId === day.meal_id
+                              ? "bg-primary text-white border-primary shadow-sm"
+                              : "bg-white text-muted-foreground border-border hover:bg-secondary/50"
+                          )}
+                        >
+                          {day.day_name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="space-y-1.5">
