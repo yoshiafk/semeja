@@ -618,7 +618,23 @@ router.get('/:mealPlanId', async (req, res) => {
 
     // 7.8 Get individual purchases for the week
     const { rows: purchasesForWeek } = await pool.query(`
-      SELECT p.*, s.name as supplier_name, i.name as ingredient_name
+      SELECT 
+        p.*, 
+        s.name as supplier_name, 
+        i.name as ingredient_name,
+        (
+          SELECT string_agg(day_name, ', ')
+          FROM (
+            SELECT m.day_name 
+            FROM meals m 
+            WHERE m.id = p.meal_id
+            UNION
+            SELECT m.day_name
+            FROM purchase_assignments pa
+            JOIN meals m ON pa.meal_id = m.id
+            WHERE pa.purchase_id = p.id
+          ) days
+        ) as assigned_days
       FROM purchases p
       LEFT JOIN suppliers s ON p.supplier_id = s.id
       JOIN ingredients i ON p.ingredient_id = i.id

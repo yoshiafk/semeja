@@ -29,7 +29,14 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
   }
   try {
     const { rows } = await pool.query(
-      'INSERT INTO ingredients (name, unit, price_per_unit, category, stock_quantity, min_stock_threshold) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      `INSERT INTO ingredients (name, unit, price_per_unit, category, stock_quantity, min_stock_threshold) 
+       VALUES ($1, $2, $3, $4, $5, $6) 
+       ON CONFLICT (name) DO UPDATE SET 
+         unit = EXCLUDED.unit,
+         price_per_unit = EXCLUDED.price_per_unit,
+         category = CASE WHEN ingredients.category = '' THEN EXCLUDED.category ELSE ingredients.category END,
+         price_last_updated_at = NOW()
+       RETURNING *`,
       [name.trim(), unit, price_per_unit, category || '', stock_quantity || 0, min_stock_threshold || 0]
     );
     res.status(201).json(rows[0]);

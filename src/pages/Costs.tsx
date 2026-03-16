@@ -3,7 +3,7 @@ import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Receipt, TrendingUp, Users, ShoppingCart, Check, Plus, CalendarDays, Download, FileImage, Search } from "lucide-react";
-import { formatRupiah, cn, formatDate } from "@/lib/utils";
+import { formatRupiah, cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,7 @@ interface CostSummary {
     price_per_unit: number;
     cheapest_supplier: string | null;
   }>;
-  purchases: Array<{
+    purchases: Array<{
     id: number;
     ingredient_name: string;
     supplier_name: string;
@@ -65,6 +65,7 @@ interface CostSummary {
     total_price: number;
     purchased_at: string;
     receipt_id: number | null;
+    assigned_days?: string;
   }>;
 }
 
@@ -824,7 +825,12 @@ export default function Costs() {
                               <p className="text-[10px] text-muted-foreground/70 truncate flex items-center gap-1">
                                 <span>{p.supplier_name}</span>
                                 <span>•</span>
-                                <span>{formatDate(p.purchased_at)}</span>
+                                <span className={cn(
+                                  "font-medium",
+                                  p.assigned_days ? "text-primary" : "text-muted-foreground/50 italic"
+                                )}>
+                                  {p.assigned_days || "Pekan Ini (General)"}
+                                </span>
                               </p>
                             </div>
                           </div>
