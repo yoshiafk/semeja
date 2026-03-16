@@ -42,6 +42,7 @@ interface CostSummary {
     total: number;
     actual_total?: number;
     activity_total?: number;
+    gift_total?: number;
   }>;
   total_shopping_cost: number;
   total_actual_cost: number;
@@ -577,10 +578,21 @@ export default function Costs() {
                                 </div>
                               )}
 
+                              {((member as any).gift_total || 0) > 0 && (
+                                <div className="text-left md:text-right">
+                                  <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Gifts</div>
+                                  <div className="text-sm font-bold text-pink-600">+{formatRupiah((member as any).gift_total || 0)}</div>
+                                </div>
+                              )}
+
                               <div className="text-left md:text-right pt-2 border-t border-border/50 md:border-0 md:pt-0">
                                 <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Grand Total</div>
                                 <div className="text-base font-black text-primary">
-                                  {formatRupiah(((member as any).actual_total && (member as any).actual_total > 0 ? (member as any).actual_total : member.total) + ((member as any).activity_total || 0))}
+                                  {formatRupiah(
+                                    ((member as any).actual_total && (member as any).actual_total > 0 ? (member as any).actual_total : member.total) + 
+                                    ((member as any).activity_total || 0) +
+                                    ((member as any).gift_total || 0)
+                                  )}
                                 </div>
                               </div>
                             </div>

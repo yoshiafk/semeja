@@ -195,7 +195,10 @@ router.get('/member/:memberId', async (req, res) => {
          FROM gift_participants gp
          JOIN gifts g ON gp.gift_id = g.id
          WHERE gp.member_id = $1
-         AND g.event_date >= $2 AND g.event_date <= $3`,
+         AND (
+           (g.event_date >= $2 AND g.event_date <= $3)
+           OR g.event_date IS NULL
+         )`,
         [memberId, plan.week_start, plan.week_end]
       );
       
@@ -512,6 +515,7 @@ router.get('/:mealPlanId', async (req, res) => {
     Object.keys(memberTotals).forEach(member_id => {
       memberTotals[member_id].actual_total = memberTotals[member_id].total; // Use the sum of daily costs
       memberTotals[member_id].activity_total = 0;
+      memberTotals[member_id].gift_total = 0;
     });
 
     // 7.5 Add Activity Costs for the week
@@ -560,7 +564,37 @@ router.get('/:mealPlanId', async (req, res) => {
       }
     }
 
-    // Convert shopping list object to array and calculate exact shortage (to buy)
+    // 7.6 Add Gift Costs for the week
+    if (weekStart && weekEnd) {
+      const { rows: giftContributions } = await pool.query(
+        `SELECT gp.member_id, gp.contribution_amount
+         FROM gift_participants gp
+         JOIN gifts g ON gp.gift_id = g.id
+         WHERE (g.event_date >= $1 AND g.event_date <= $2) OR g.event_date IS NULL`,
+        [weekStart, weekEnd]
+      );
+
+      for (const contrib of giftContributions) {
+        const amount = parseInt(contrib.contribution_amount) || 0;
+        if (!memberTotals[contrib.member_id]) {
+          const { rows: memberInfo } = await pool.query('SELECT name FROM members WHERE id = $1', [contrib.member_id]);
+          if (memberInfo.length > 0) {
+            memberTotals[contrib.member_id] = { 
+              member_id: contrib.member_id, 
+              name: memberInfo[0].name, 
+              days_joined: 0, 
+              total: 0, 
+              actual_total: 0,
+              activity_total: 0,
+              gift_total: 0 
+            };
+          }
+        }
+        if (memberTotals[contrib.member_id]) {
+          memberTotals[contrib.member_id].gift_total += amount;
+        }
+      }
+    }
     const formattedShoppingList = Object.values(shoppingList).map(item => {
        // If stock > total_quantity, shortage is 0 (we have enough). 
        // Otherwise, shortage = total_quantity - stock
