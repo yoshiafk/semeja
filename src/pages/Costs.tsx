@@ -84,12 +84,14 @@ export default function Costs() {
   const [selectedIngredient, setSelectedIngredient] = useState<{ id?: number; name: string; qty: number; unit: string } | null>(null);
   const [formData, setFormData] = useState({ 
     supplier_name: "", 
-    quantity: "", 
+    quantity: "1", 
     total_price: "", 
     notes: "", 
     receipt_id: null as number | null,
     member_id: null as number | null,
-    ingredient_id: null as number | null
+    ingredient_id: null as number | null,
+    assigned_meal_ids: [] as number[],
+    assignments: [] as { meal_id: number; amount: number }[]
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -186,29 +188,58 @@ export default function Costs() {
       }
 
       if (editingPurchaseId) {
+        const totalAmount = parseInt(formData.total_price);
+        const assignedMealIds = formData.assigned_meal_ids;
+        let assignments: { meal_id: number; amount: number }[] = [];
+        if (assignedMealIds.length > 1) {
+          const splitAmount = Math.floor(totalAmount / assignedMealIds.length);
+          assignments = assignedMealIds.map((mealId, idx) => ({
+            meal_id: mealId,
+            amount: idx === assignedMealIds.length - 1 
+              ? totalAmount - (splitAmount * (assignedMealIds.length - 1))
+              : splitAmount
+          }));
+        }
+
         await api.put(`/purchases/${editingPurchaseId}`, {
           ingredient_id: ingredientId,
           supplier_name: formData.supplier_name,
           quantity: parseFloat(formData.quantity),
-          total_price: parseInt(formData.total_price),
+          total_price: totalAmount,
           meal_plan_id: activePlanId,
-          meal_id: selectedMealId,
+          meal_id: assignedMealIds.length === 1 ? assignedMealIds[0] : null,
           receipt_id: formData.receipt_id,
           member_id: formData.member_id,
-          notes: formData.notes
+          notes: formData.notes,
+          assignments: assignments
         });
         toast.success("Pembelian berhasil diperbarui!");
       } else {
+        const totalAmount = parseInt(formData.total_price);
+        const assignedMealIds = selectedMealId ? [selectedMealId] : formData.assigned_meal_ids;
+        let assignments: { meal_id: number; amount: number }[] = [];
+        if (assignedMealIds.length > 1) {
+          const splitAmount = Math.floor(totalAmount / assignedMealIds.length);
+          assignments = assignedMealIds.map((mealId, idx) => ({
+            meal_id: mealId,
+            amount: idx === assignedMealIds.length - 1 
+              ? totalAmount - (splitAmount * (assignedMealIds.length - 1))
+              : splitAmount
+          }));
+        }
+
         await api.post("/purchases", {
           ingredient_id: ingredientId,
           supplier_name: formData.supplier_name,
-          quantity: parseFloat(formData.quantity),
-          total_price: parseInt(formData.total_price),
+          quantity: parseFloat(formData.quantity) || 1,
+          total_price: totalAmount,
           update_stock: true,
           meal_plan_id: activePlanId,
-          meal_id: selectedMealId,   // tag to specific day if set
+          meal_id: assignedMealIds.length === 1 ? assignedMealIds[0] : null,
           receipt_id: formData.receipt_id,
-          member_id: formData.member_id
+          member_id: formData.member_id,
+          notes: formData.notes,
+          assignments: assignments
         });
         toast.success("Pembelian berhasil dicatat!");
       }
@@ -219,12 +250,14 @@ export default function Costs() {
       setIsAddingNewIngredient(false);
       setFormData({ 
         supplier_name: "", 
-        quantity: "", 
+        quantity: "1", 
         total_price: "", 
         notes: "", 
         receipt_id: null,
         member_id: null,
-        ingredient_id: null 
+        ingredient_id: null,
+        assigned_meal_ids: [],
+        assignments: []
       });
       setManualSearchQuery("");
       
@@ -242,7 +275,18 @@ export default function Costs() {
     setScannedReceiptId(receiptId);
     setIsScanning(false);
     setIsOCRUploadOpen(false);
-    setIsOCRReviewOpen(true);
+
+    // If scanning from within Purchase Dialog, auto-populate the record
+    if (isPurchaseOpen) {
+      setFormData(prev => ({
+        ...prev,
+        receipt_id: receiptId,
+        supplier_name: data.merchant_name || prev.supplier_name,
+        total_price: data.total_amount?.toString() || prev.total_price
+      }));
+    } else {
+      setIsOCRReviewOpen(true);
+    }
   };
 
   const handleOCRImport = async (selectedItems: any[], supplierName: string, memberId?: number) => {
@@ -326,7 +370,11 @@ export default function Costs() {
       notes: p.notes || "",
       receipt_id: p.receipt_id,
       member_id: p.member_id,
-      ingredient_id: p.ingredient_id
+      ingredient_id: p.ingredient_id,
+      assigned_meal_ids: p.assignments && p.assignments.length > 0 
+        ? p.assignments.map((a: any) => a.meal_id) 
+        : (p.meal_id ? [p.meal_id] : []),
+      assignments: p.assignments || []
     });
     setSelectedMealId(p.meal_id);
     setIsPurchaseOpen(true);
@@ -866,16 +914,21 @@ export default function Costs() {
               )}
             </DialogHeader>
           <form onSubmit={recordPurchase} className="space-y-4 pt-3">
-            {/* Day Selector */}
+            {/* Day Selector - Updated for Multi-select */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase">Tag ke Hari / Menu</label>
-              <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 leading-none">
+                <CalendarDays className="h-3 w-3" /> Dipakai Hari Apa? (Bisa pilih multi)
+              </label>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
                 <button
                   type="button"
-                  onClick={() => setSelectedMealId(null)}
+                  onClick={() => {
+                    setSelectedMealId(null);
+                    setFormData(prev => ({ ...prev, assigned_meal_ids: [] }));
+                  }}
                   className={cn(
                     "px-4 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap border transition-all shrink-0",
-                    selectedMealId === null
+                    (selectedMealId === null && formData.assigned_meal_ids.length === 0)
                       ? "bg-primary text-white border-primary shadow-sm"
                       : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"
                   )}
@@ -886,10 +939,18 @@ export default function Costs() {
                   <button
                     key={day.meal_id}
                     type="button"
-                    onClick={() => setSelectedMealId(day.meal_id)}
+                    onClick={() => {
+                      setSelectedMealId(null); // disable single tag mode
+                      setFormData(prev => {
+                        const ids = prev.assigned_meal_ids.includes(day.meal_id)
+                          ? prev.assigned_meal_ids.filter(id => id !== day.meal_id)
+                          : [...prev.assigned_meal_ids, day.meal_id];
+                        return { ...prev, assigned_meal_ids: ids };
+                      });
+                    }}
                     className={cn(
                       "px-4 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap border transition-all shrink-0",
-                      selectedMealId === day.meal_id
+                      formData.assigned_meal_ids.includes(day.meal_id)
                         ? "bg-primary text-white border-primary shadow-sm"
                         : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"
                     )}
@@ -898,6 +959,16 @@ export default function Costs() {
                   </button>
                 ))}
               </div>
+              {formData.assigned_meal_ids.length > 1 && (
+                <div className="px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/10 flex items-center gap-2">
+                  <div className="p-1 rounded bg-primary/20">
+                    <TrendingUp className="h-3 w-3 text-primary" />
+                  </div>
+                  <p className="text-[10px] text-primary font-medium">
+                    Biaya akan disebar otomatis ke {formData.assigned_meal_ids.length} hari pilihan
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">

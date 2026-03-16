@@ -92,7 +92,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
   const {
     ingredient_id, supplier_name, quantity, total_price,
     purchased_at, notes, update_stock, meal_plan_id, receipt_id, meal_id,
-    member_id
+    member_id, assignments
   } = req.body;
 
   if (!ingredient_id || !supplier_name || !quantity || !total_price) {
@@ -137,6 +137,18 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
       ]
     );
     const newPurchase = purchaseRows[0];
+    
+    // 3.5 Handle Assignments (Spread cost across multiple days)
+    if (assignments && Array.isArray(assignments)) {
+      for (const assign of assignments) {
+        if (assign.meal_id && assign.amount) {
+          await client.query(
+            'INSERT INTO purchase_assignments (purchase_id, meal_id, amount) VALUES ($1, $2, $3)',
+            [newPurchase.id, assign.meal_id, assign.amount]
+          );
+        }
+      }
+    }
 
     // 4. Optionally update stock
     if (update_stock) {
@@ -220,7 +232,7 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
   const {
     ingredient_id, supplier_name, quantity, total_price,
     purchased_at, notes, meal_plan_id, receipt_id, meal_id,
-    member_id
+    member_id, assignments
   } = req.body;
 
   const client = await pool.connect();
@@ -273,6 +285,20 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
 
     const updatedPurchase = purchaseRows[0];
 
+    // 2.5 Update assignments
+    if (assignments && Array.isArray(assignments)) {
+      // Clear old assignments first
+      await client.query('DELETE FROM purchase_assignments WHERE purchase_id = $1', [req.params.id]);
+      for (const assign of assignments) {
+        if (assign.meal_id && assign.amount) {
+          await client.query(
+            'INSERT INTO purchase_assignments (purchase_id, meal_id, amount) VALUES ($1, $2, $3)',
+            [updatedPurchase.id, assign.meal_id, assign.amount]
+          );
+        }
+      }
+    }
+
     // 3. Re-sync price_per_unit for the ingredient
     try {
       const { rows: recentPrices } = await client.query(
@@ -314,7 +340,15 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
       WHERE p.id = $1
     `, [updatedPurchase.id]);
 
-    res.json(resultRows[0]);
+    const finalPurchase = resultRows[0];
+    // Include assignments in response
+    const { rows: assignmentsRows } = await client.query(
+      'SELECT meal_id, amount FROM purchase_assignments WHERE purchase_id = $1',
+      [finalPurchase.id]
+    );
+    finalPurchase.assignments = assignmentsRows;
+
+    res.json(finalPurchase);
   } catch (err) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });

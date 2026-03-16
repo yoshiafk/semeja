@@ -109,7 +109,9 @@ router.get('/member/:memberId', async (req, res) => {
         let actualCostForDay = 0;
         try {
           const { rows: actualMealRows } = await pool.query(
-            `SELECT COALESCE(SUM(total_price), 0) as actual FROM purchases WHERE meal_id = $1`,
+            `SELECT 
+               COALESCE((SELECT SUM(total_price) FROM purchases WHERE meal_id = $1), 0) +
+               COALESCE((SELECT SUM(amount) FROM purchase_assignments WHERE meal_id = $1), 0) as actual`,
             [meal.id]
           );
           actualCostForDay = parseInt(actualMealRows[0].actual) || 0;
@@ -129,14 +131,27 @@ router.get('/member/:memberId', async (req, res) => {
         }
       }
       
-      // 5. Calculate actual cost share
+      // 5. Calculate actual cost share (Fair Billing Rework)
+      // Total actual cost is sum of ALL purchases in the week
       const { rows: purchaseSumObj } = await pool.query(
         `SELECT SUM(total_price) as actual_shopping_cost FROM purchases WHERE meal_plan_id = $1`,
         [plan.id]
       );
       const totalActualCost = parseInt(purchaseSumObj[0]?.actual_shopping_cost) || 0;
+
+      // "Assigned" costs are those linked to specific days (via meal_id or purchase_assignments)
+      const { rows: assignedSumObj } = await pool.query(
+        `SELECT 
+          COALESCE((SELECT SUM(total_price) FROM purchases WHERE meal_plan_id = $1 AND meal_id IS NOT NULL), 0) +
+          COALESCE((SELECT SUM(amount) FROM purchase_assignments pa JOIN purchases p ON pa.purchase_id = p.id WHERE p.meal_plan_id = $1), 0) as assigned`,
+        [plan.id]
+      );
+      const totalAssignedCost = parseInt(assignedSumObj[0]?.assigned) || 0;
+
+      // "General" cost is the leftover that isn't assigned to any specific day
+      const generalCost = Math.max(0, totalActualCost - totalAssignedCost);
       
-      // Get total portions across all members
+      // Get total portions across all members for general cost sharing
       const { rows: totalPortions } = await pool.query(
         `SELECT COUNT(*) as total FROM participations p
          JOIN meals m ON p.meal_id = m.id
@@ -145,9 +160,9 @@ router.get('/member/:memberId', async (req, res) => {
       );
       const totalSystemPortions = parseInt(totalPortions[0]?.total) || 0;
       
-      if (totalSystemPortions > 0 && participations.length > 0) {
-        actualCost = Math.round((totalActualCost / totalSystemPortions) * participations.length);
-      }
+      // Calculate member's share: sum of day-specific costs + proportional share of general costs
+      const generalCostPerPortion = totalSystemPortions > 0 ? (generalCost / totalSystemPortions) : 0;
+      actualCost = estimatedCost + Math.round(generalCostPerPortion * participations.length);
       
       // 5.5 Calculate Activity Costs for this member within the current week timeframe
       let activityCost = 0;
@@ -419,12 +434,22 @@ router.get('/:mealPlanId', async (req, res) => {
       try {
         const { rows: _mealPurchases } = await pool.query(
           `SELECT p.id, p.total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
-                  i.name as ingredient_name, s.name as supplier_name
+                  i.name as ingredient_name, s.name as supplier_name,
+                  FALSE as is_assignment
            FROM purchases p
            JOIN ingredients i ON p.ingredient_id = i.id
            LEFT JOIN suppliers s ON p.supplier_id = s.id
            WHERE p.meal_id = $1
-           ORDER BY p.created_at`,
+           UNION ALL
+           SELECT p.id, pa.amount as total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
+                  i.name as ingredient_name, s.name as supplier_name,
+                  TRUE as is_assignment
+           FROM purchase_assignments pa
+           JOIN purchases p ON pa.purchase_id = p.id
+           JOIN ingredients i ON p.ingredient_id = i.id
+           LEFT JOIN suppliers s ON p.supplier_id = s.id
+           WHERE pa.meal_id = $1
+           ORDER BY created_at`,
           [meal.id]
         );
         mealActualPurchaseRows = _mealPurchases;

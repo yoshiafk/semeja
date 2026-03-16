@@ -209,13 +209,24 @@ async function initDB(retries = 3) {
         ) STORED,
         purchased_at DATE DEFAULT CURRENT_DATE,
         notes VARCHAR(300) DEFAULT '',
+        meal_id INTEGER REFERENCES meals(id) ON DELETE SET NULL,
         member_id INTEGER REFERENCES members(id) ON DELETE SET NULL,
         created_at TIMESTAMP DEFAULT NOW()
       );
 
       ALTER TABLE purchases ADD COLUMN IF NOT EXISTS meal_plan_id INTEGER REFERENCES meal_plans(id) ON DELETE SET NULL;
       ALTER TABLE purchases ADD COLUMN IF NOT EXISTS receipt_id INTEGER REFERENCES attachments(id) ON DELETE SET NULL;
+      ALTER TABLE purchases ADD COLUMN IF NOT EXISTS meal_id INTEGER REFERENCES meals(id) ON DELETE SET NULL;
       ALTER TABLE purchases ADD COLUMN IF NOT EXISTS member_id INTEGER REFERENCES members(id) ON DELETE SET NULL;
+
+      CREATE TABLE IF NOT EXISTS purchase_assignments (
+        id SERIAL PRIMARY KEY,
+        purchase_id INTEGER REFERENCES purchases(id) ON DELETE CASCADE,
+        meal_id INTEGER REFERENCES meals(id) ON DELETE CASCADE,
+        amount INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(purchase_id, meal_id)
+      );
 
       CREATE TABLE IF NOT EXISTS activities (
         id SERIAL PRIMARY KEY,
