@@ -66,7 +66,11 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
 
   // Auto-match items when data changes
   useEffect(() => {
-    if (!data || data === initializedForData || ingredients.length === 0) return;
+    if (!data || data === initializedForData) return;
+    if (!data.items || data.items.length === 0) {
+      setInitializedForData(data);
+      return;
+    }
 
     const newMatches: { [key: number]: number | 'NEW' } = { ...matches };
     const newSelected: number[] = [...selectedIndices];
@@ -258,8 +262,18 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                         <div className="pl-7 h-10 bg-muted/50 rounded-lg" />
                       </div>
                     ))
+                  ) : !data?.items || data.items.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                        <Search className="h-6 w-6 text-muted-foreground/40" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground">Tidak ada item terdeteksi</p>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
+                        Pastikan foto struk cukup jelas dan terbaca dengan baik.
+                      </p>
+                    </div>
                   ) : (
-                    data?.items.map((item, idx) => {
+                    data.items.map((item, idx) => {
                       const matchedIngId = matches[idx];
                       
                       return (

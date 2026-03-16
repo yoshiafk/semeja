@@ -70,7 +70,7 @@ router.post('/receipt', requireAuth, upload.single('receipt'), async (req, res) 
         const model = genAI.getGenerativeModel({ model: modelName });
 
         const prompt = `
-          Extract all grocery items from this receipt image. 
+          Extract all items from this receipt image. 
           Identify the merchant/supplier name.
           For each item, identify:
           - name: The product name (e.g., "Susu UHT Full Cream")
