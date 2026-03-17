@@ -125,7 +125,7 @@ export default function Profile() {
                 <StatCard
                   label="Hari Ikut"
                   value={`${summary.currentWeek.daysJoined}`}
-                  subValue="hari"
+                  subValue="Hari"
                   icon={CalendarDays}
                 />
                 <StatCard
@@ -135,7 +135,7 @@ export default function Profile() {
                       ? Math.round((summary.currentWeek.actualCost || summary.currentWeek.estimatedCost) / summary.currentWeek.daysJoined)
                       : 0
                   )}
-                  subValue="per hari"
+                  subValue="Rata-rata/Hari"
                   icon={TrendingUp}
                 />
               </div>
