@@ -171,6 +171,10 @@ async function initDB(retries = 3) {
       );
 
       ALTER TABLE members ADD COLUMN IF NOT EXISTS device_id VARCHAR(255);
+      ALTER TABLE members ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
+      ALTER TABLE members ADD COLUMN IF NOT EXISTS last_ip VARCHAR(45);
+      ALTER TABLE members ADD COLUMN IF NOT EXISTS last_user_agent TEXT;
+      ALTER TABLE members ADD COLUMN IF NOT EXISTS last_location VARCHAR(100);
       DROP INDEX IF EXISTS idx_members_name_unique; -- Drop old unique if exists
       
       -- We will use a functional index for case-insensitive uniqueness

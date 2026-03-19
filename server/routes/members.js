@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const axios = require('axios');
 const { pool } = require('../db');
-const { generateToken, requireAuth } = require('../middleware/auth');
+const { generateToken, requireAuth, verifyToken } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
 
 const loginLimiter = rateLimit({
@@ -12,10 +13,38 @@ const loginLimiter = rateLimit({
   validate: { xForwardedForHeader: false },
 });
 
+async function getGeoLocation(ip) {
+  if (!ip || ip === '::1' || ip === '127.0.0.1' || ip.includes('localhost')) return 'Local';
+  try {
+    // fields=status,city,countryCode
+    const cleanIp = ip.replace('::ffff:', '');
+    const { data } = await axios.get(`http://ip-api.com/json/${cleanIp}?fields=status,city,countryCode`, { timeout: 2000 });
+    if (data.status === 'success') {
+      return `${data.city}, ${data.countryCode}`;
+    }
+  } catch (err) {
+    console.error('Geo IP failed:', err.message);
+  }
+  return null;
+}
+
 // GET all members
 router.get('/', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  let isAdmin = false;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    const decoded = verifyToken(token);
+    if (decoded && (decoded.role === 'admin' || decoded.role === 'superadmin')) {
+      isAdmin = true;
+    }
+  }
+
   try {
-    const { rows } = await pool.query('SELECT id, name, role, device_id FROM members ORDER BY name');
+    const query = isAdmin 
+      ? 'SELECT id, name, role, device_id, last_login_at, last_ip, last_user_agent, last_location FROM members ORDER BY name'
+      : 'SELECT id, name, role FROM members ORDER BY name';
+    const { rows } = await pool.query(query);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -55,6 +84,15 @@ router.get('/me', async (req, res) => {
     if (!user) {
       return res.status(401).json({ error: 'Session not found' });
     }
+
+    // Update last login metadata
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const ua = req.headers['user-agent'];
+    const location = await getGeoLocation(ip);
+    await pool.query(
+      'UPDATE members SET last_login_at = NOW(), last_ip = $1, last_user_agent = $2, last_location = $3 WHERE id = $4',
+      [ip, ua, location, user.id]
+    );
 
     res.json({ ...user, token: generateToken(user) });
   } catch (err) {
@@ -123,13 +161,25 @@ router.post('/', loginLimiter, async (req, res) => {
         }
       }
       
+      // Update last login metadata
+      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const ua = req.headers['user-agent'];
+      const location = await getGeoLocation(ip);
+      await pool.query(
+        'UPDATE members SET last_login_at = NOW(), last_ip = $1, last_user_agent = $2, last_location = $3 WHERE id = $4',
+        [ip, ua, location, user.id]
+      );
+      
       return res.json({ ...user, token: generateToken(user) });
     }
 
     // New Member Registration
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const ua = req.headers['user-agent'];
+    const location = await getGeoLocation(ip);
     const { rows: newRows } = await pool.query(
-      `INSERT INTO members (name, device_id) VALUES ($1, $2) RETURNING *`,
-      [name.trim(), deviceId] // Store the original casing but index is lowercase
+      `INSERT INTO members (name, device_id, last_login_at, last_ip, last_user_agent, last_location) VALUES ($1, $2, NOW(), $3, $4, $5) RETURNING *`,
+      [name.trim(), deviceId, ip, ua, location] // Store the original casing but index is lowercase
     );
     const newUser = newRows[0];
     res.json({ ...newUser, token: generateToken(newUser) });

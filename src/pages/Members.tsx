@@ -15,6 +15,10 @@ interface Member {
   id: number;
   name: string;
   role: 'superadmin' | 'admin' | 'member';
+  last_login_at?: string;
+  last_ip?: string;
+  last_user_agent?: string;
+  last_location?: string;
 }
 
 interface Meal {
@@ -40,7 +44,7 @@ interface Participation {
 }
 
 export default function Members() {
-  const { member: currentMember, isSuperadmin } = useMember();
+  const { member: currentMember, isAdmin, isSuperadmin } = useMember();
   const [members, setMembers] = useState<Member[]>([]);
   const [plans, setPlans] = useState<MealPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
@@ -235,6 +239,25 @@ export default function Members() {
                         {m.role === 'admin' && <UserCheck className="h-3.5 w-3.5 text-teal-500" />}
                       </div>
                       <p className="text-[11px] text-muted-foreground/70">{m.role}</p>
+                      {(isAdmin || isSuperadmin) && m.last_login_at && (
+                        <div className="mt-1 space-y-0.5">
+                          <p className="text-[10px] text-muted-foreground/60 leading-tight">
+                            Login: {new Date(m.last_login_at).toLocaleString('id-ID', { 
+                              day: '2-digit', 
+                              month: 'short', 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </p>
+                          {m.last_ip && (
+                            <p className="text-[9px] text-muted-foreground/40 font-mono">
+                              {m.last_location || m.last_ip.replace('::ffff:', '')} • {m.last_user_agent?.includes('iPhone') ? 'iPhone' : 
+                               m.last_user_agent?.includes('Android') ? 'Android' : 
+                               m.last_user_agent?.includes('Mac') ? 'Mac' : 'Desktop'}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
