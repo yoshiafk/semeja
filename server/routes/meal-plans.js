@@ -311,8 +311,6 @@ router.post('/:id/lock', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-module.exports = router;
-
 // ── Helper: reconcile costs when a plan is archived ──────────────────────────
 /**
  * Computes how much each member actually owes based on real purchase data,
@@ -397,3 +395,5 @@ async function reconcilePlanCosts(client, planId) {
     );
   }
 }
+
+module.exports = { router, reconcilePlanCosts };
