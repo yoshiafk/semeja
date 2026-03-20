@@ -23,6 +23,8 @@ const ocrRouter = require('./routes/ocr');
 const mealActualsRouter = require('./routes/meal-actuals');
 const mealPreviewRouter = require('./routes/meal-preview');
 const paymentsRouter = require('./routes/payments');
+const { autoArchiveMiddleware } = require('./lib/auto-archive');
+const { pool } = require('./db');
 
 const app = express();
 
@@ -63,11 +65,12 @@ app.use('/api', (req, res, next) => {
 });
 
 // Routes
+app.use('/api', autoArchiveMiddleware(pool));
 app.use('/api/members', membersRouter);
 app.use('/api/ingredients', ingredientsRouter);
 app.use('/api/recipes', recipesRouter);
 app.use('/api/recipe-search', recipeSearchRouter);
-app.use('/api/meal-plans', mealPlansRouter);
+app.use('/api/meal-plans', mealPlansRouter.router);
 app.use('/api/meals', mealsRouter);
 app.use('/api/meal-actuals', mealActualsRouter);
 app.use('/api/meal-preview', mealPreviewRouter);

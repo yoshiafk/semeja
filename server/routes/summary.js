@@ -189,6 +189,36 @@ router.get('/member/:memberId', async (req, res) => {
         dailyBreakdown
       };
     }
+
+    // 5.9 If no active plan, get last archived recap for "Last Week Recap"
+    let lastArchivedWeek = null;
+    if (!currentWeek) {
+      const { rows: lastPlans } = await pool.query(
+        `SELECT mp.*, pms.actual_cost, pms.days_joined
+         FROM meal_plans mp
+         JOIN plan_member_settlements pms ON mp.id = pms.meal_plan_id
+         WHERE pms.member_id = $1 AND mp.status = 'archived'
+         ORDER BY mp.week_end DESC LIMIT 1`,
+        [memberId]
+      );
+      
+      if (lastPlans.length > 0) {
+        const p = lastPlans[0];
+        const weekStart = new Date(p.week_start);
+        const weekEnd = new Date(p.week_end);
+        const formatDate = (d) => d.getDate();
+        const formatMonth = (d) => d.toLocaleDateString('id-ID', { month: 'short' });
+        const formatYear = (d) => d.getFullYear();
+        
+        lastArchivedWeek = {
+          mealPlanId: p.id,
+          weekLabel: `${formatDate(weekStart)} - ${formatDate(weekEnd)} ${formatMonth(weekEnd)} ${formatYear(weekEnd)}`,
+          daysJoined: p.days_joined,
+          totalCost: Math.round(parseFloat(p.actual_cost) || 0),
+          archivedAt: p.updated_at || p.week_end
+        };
+      }
+    }
     
     // 6. Calculate historical data from archived plans
     const { rows: historyData } = await pool.query(
@@ -230,6 +260,7 @@ router.get('/member/:memberId', async (req, res) => {
     res.json({
       member,
       currentWeek,
+      lastArchivedWeek,
       history
     });
     

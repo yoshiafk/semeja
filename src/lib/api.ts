@@ -96,6 +96,13 @@ export interface MemberSummary {
       costPerPerson: number;
     }>;
   } | null;
+  lastArchivedWeek: {
+    mealPlanId: number;
+    weekLabel: string;
+    daysJoined: number;
+    totalCost: number;
+    archivedAt: string;
+  } | null;
   history: {
     totalWeeks: number;
     totalCost: number;

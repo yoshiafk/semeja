@@ -26,7 +26,8 @@ import {
   Carrot,
   Store,
   Sparkles,
-  Gift
+  Gift,
+  CheckCircle2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -217,15 +218,69 @@ export default function Profile() {
               )}
             </CardContent>
           </Card>
+        ) : summary?.lastArchivedWeek ? (
+          <Card className="border-primary/10 bg-primary/[0.02]">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  Rekap Minggu Terakhir
+                </CardTitle>
+                <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px]">
+                  ✓ SELESAI
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/50">
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Periode</p>
+                  <p className="text-sm font-semibold">{summary.lastArchivedWeek.weekLabel}</p>
+                </div>
+                <div className="text-right space-y-0.5">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Tagihan</p>
+                  <p className="text-sm font-bold text-primary">{formatCurrency(summary.lastArchivedWeek.totalCost)}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-background border border-border/50 flex items-center gap-3">
+                  <CalendarDays className="w-4 h-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Hari Ikut</p>
+                    <p className="text-xs font-semibold">{summary.lastArchivedWeek.daysJoined} Hari</p>
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-background border border-border/50 flex items-center gap-3">
+                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Rata-rata</p>
+                    <p className="text-xs font-semibold">
+                      {formatCurrency(summary.lastArchivedWeek.daysJoined > 0 
+                        ? Math.round(summary.lastArchivedWeek.totalCost / summary.lastArchivedWeek.daysJoined) 
+                        : 0)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <p className="text-[10px] text-center text-muted-foreground italic">
+                *Tagihan ini sudah masuk ke riwayat dan siap untuk diselesaikan.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           <Card>
-            <CardContent className="py-8 text-center">
-              <Calendar className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">
-                Belum ada jadwal makan minggu ini
+            <CardContent className="py-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-8 h-8 text-muted-foreground/40" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground mb-1">Tidak Ada Jadwal Aktif</h3>
+              <p className="text-sm text-muted-foreground max-w-[200px] mx-auto">
+                Belum ada jadwal makan baru untuk minggu ini.
               </p>
-              <p className="text-xs text-muted-foreground/60 mt-1">
-                Gabung nanti kalau sudah ada jadwal ya!
+              <p className="text-xs text-muted-foreground/60 mt-4 px-6 py-2 bg-muted/50 rounded-full inline-block">
+                Pantau terus grup untuk info jadwal ya!
               </p>
             </CardContent>
           </Card>
