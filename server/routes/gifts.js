@@ -1,5 +1,5 @@
-const express = require('express');
 const { pool } = require('../db');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -56,7 +56,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST to create a new gift
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   const { title, description, event_date, created_by } = req.body;
   if (!title) return res.status(400).json({ error: 'title is required' });
   
@@ -74,7 +74,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT to update gift
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { title, description, event_date, status } = req.body;
   
@@ -98,7 +98,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // POST to add item to gift
-router.post('/:id/items', async (req, res) => {
+router.post('/:id/items', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { name, estimated_price, url, receipt_id } = req.body;
   if (!name) return res.status(400).json({ error: 'item name is required' });
@@ -117,7 +117,7 @@ router.post('/:id/items', async (req, res) => {
 });
 
 // PUT to update gift item
-router.put('/:id/items/:itemId', async (req, res) => {
+router.put('/:id/items/:itemId', requireAuth, async (req, res) => {
   const { itemId } = req.params;
   const { name, estimated_price, actual_price, url, status, receipt_id } = req.body;
   
@@ -143,7 +143,7 @@ router.put('/:id/items/:itemId', async (req, res) => {
 });
 
 // DELETE gift item
-router.delete('/:id/items/:itemId', async (req, res) => {
+router.delete('/:id/items/:itemId', requireAuth, async (req, res) => {
   const { itemId } = req.params;
   try {
     await pool.query('DELETE FROM gift_items WHERE id = $1', [itemId]);
@@ -155,7 +155,7 @@ router.delete('/:id/items/:itemId', async (req, res) => {
 });
 
 // POST to join gift pooling
-router.post('/:id/join', async (req, res) => {
+router.post('/:id/join', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { member_id, contribution_amount } = req.body;
   
@@ -178,7 +178,7 @@ router.post('/:id/join', async (req, res) => {
 });
 
 // POST to leave gift pooling
-router.post('/:id/leave', async (req, res) => {
+router.post('/:id/leave', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { member_id } = req.body;
   
@@ -194,7 +194,7 @@ router.post('/:id/leave', async (req, res) => {
 });
 
 // DELETE a gift
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   const { id } = req.params;
   try {
     const { rows } = await pool.query('DELETE FROM gifts WHERE id = $1 RETURNING *', [id]);

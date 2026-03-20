@@ -29,15 +29,23 @@ const app = express();
 // Trust proxy for Vercel/Rate Limiting
 app.set('trust proxy', 1);
 
-// Allow CORS from production frontend
+// Allow CORS
+const allowedOrigins = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : ['*'];
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: (origin, callback) => {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf('*') !== -1 || allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Device-ID']
 }));
 
 app.use(compression());
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // Vercel edge cache: short TTL for GET, no-store for mutations & sensitive routes
 app.use('/api', (req, res, next) => {

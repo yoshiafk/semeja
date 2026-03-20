@@ -1,5 +1,5 @@
-const express = require('express');
 const { pool } = require('../db');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -58,7 +58,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST to create a new activity
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   const { title, description, date, time, location, cost_type, cost_amount, max_participants, created_by, receipt_id } = req.body;
   if (!title || !date || !time) {
     return res.status(400).json({ error: 'title, date, and time are required' });
@@ -78,7 +78,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT to update activity
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { title, description, date, time, location, cost_type, cost_amount, max_participants, status, receipt_id } = req.body;
   
@@ -108,7 +108,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // POST to join an activity
-router.post('/:id/join', async (req, res) => {
+router.post('/:id/join', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { member_id, guests_count } = req.body;
   
@@ -148,7 +148,7 @@ router.post('/:id/join', async (req, res) => {
 });
 
 // POST to record activity items
-router.post('/:id/items', async (req, res) => {
+router.post('/:id/items', requireAuth, requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { items } = req.body; // Array of { name, quantity, price }
   
@@ -196,7 +196,7 @@ router.post('/:id/items', async (req, res) => {
 });
 
 // POST to leave an activity
-router.post('/:id/leave', async (req, res) => {
+router.post('/:id/leave', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { member_id } = req.body;
   
@@ -212,7 +212,7 @@ router.post('/:id/leave', async (req, res) => {
 });
 
 // DELETE an activity
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   const { id } = req.params;
   try {
     const { rows } = await pool.query('DELETE FROM activities WHERE id = $1 RETURNING *', [id]);

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { calculateMealEstimate } = require('../lib/cost-calculator');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { convertToWeight } = require('../lib/units');
 const { createShoppingListSnapshot } = require('../lib/snapshot');
@@ -352,41 +353,13 @@ async function reconcilePlanCosts(client, planId) {
     [planId]
   );
 
-  // 4. Get all meal_ingredients for estimated cost
-  const { rows: mealIngredients } = await client.query(
-    `SELECT mi.*, i.price_per_unit, i.name, i.unit as base_unit
-     FROM meal_ingredients mi
-     JOIN ingredients i ON mi.ingredient_id = i.id
-     WHERE mi.meal_id = ANY(SELECT id FROM meals WHERE meal_plan_id = $1)`,
-    [planId]
-  );
-
-  const { rows: riceRows } = await client.query(
-    "SELECT price_per_unit FROM ingredients WHERE name = 'Beras' LIMIT 1"
-  );
-  const ricePricePerUnit = parseFloat(riceRows[0]?.price_per_unit) || 0;
-
-  // 5. Build per-member summary
+  // 4. Build per-member summary
   const memberTotals = {};
 
   for (const meal of meals) {
     const pCount = meal.participant_count;
     if (pCount === 0) continue;
 
-    // Estimated cost for this meal
-    const ings = mealIngredients.filter(i => i.meal_id === meal.id);
-    let dayCost = 0;
-    ings.forEach(ing => {
-      const qty = (parseFloat(ing.quantity_per_person) || 0) * pCount;
-      const weight = convertToWeight(qty, ing.unit || ing.base_unit || 'secukupnya', ing.name);
-      dayCost += weight * (parseFloat(ing.price_per_unit) || 0);
-    });
-    if (meal.requires_rice) {
-      dayCost += 0.15 * pCount * ricePricePerUnit;
-    }
-    const estimatedCostPerPerson = pCount > 0 ? Math.round(dayCost / pCount) : 0;
-
-    // Assign estimated cost to each participant
     const dayParticipants = participations.filter(p => p.meal_id === meal.id);
     for (const p of dayParticipants) {
       if (!memberTotals[p.member_id]) {
@@ -398,7 +371,6 @@ async function reconcilePlanCosts(client, planId) {
         };
       }
       memberTotals[p.member_id].days_joined += 1;
-      memberTotals[p.member_id].estimated_cost += estimatedCostPerPerson;
     }
   }
 

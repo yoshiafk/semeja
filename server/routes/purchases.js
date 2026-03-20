@@ -186,7 +186,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
         await client.query(
           `UPDATE ingredients
            SET price_per_unit = $1,
-               price_last_updated = NOW()
+               price_last_updated_at = NOW()
            WHERE id = $2`,
           [Math.round(avg), ingredient_id]
         );
@@ -319,7 +319,7 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
         await client.query(
           `UPDATE ingredients
            SET price_per_unit = $1,
-               price_last_updated = NOW()
+               price_last_updated_at = NOW()
            WHERE id = $2`,
           [Math.round(avg), updatedPurchase.ingredient_id]
         );

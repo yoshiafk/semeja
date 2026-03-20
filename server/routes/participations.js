@@ -49,33 +49,33 @@ router.post('/', requireAuth, async (req, res) => {
 
     if (planRows.length) {
       const plan = planRows[0];
+      let role = null;
 
-      // Check if plan is locked (shopping/closed/archived)
-      if (['shopping', 'closed', 'archived'].includes(plan.status)) {
+      // Check if plan is locked (shopping/closed/archived) OR deadline passed
+      const isLocked = ['shopping', 'closed', 'archived'].includes(plan.status);
+      const isDeadlinePassed = plan.rsvp_deadline && new Date() > new Date(plan.rsvp_deadline);
+
+      if (isLocked || isDeadlinePassed) {
         const { rows: memberRows } = await pool.query(
           'SELECT role FROM members WHERE id = $1', [member_id]
         );
-        const role = memberRows[0]?.role;
-        if (role !== 'superadmin' && role !== 'admin') {
-          return res.status(403).json({
-            error: 'Pendaftaran sudah ditutup untuk minggu ini',
-            code: 'RSVP_LOCKED'
-          });
-        }
-      }
+        role = memberRows[0]?.role;
+        const isAdmin = role === 'superadmin' || role === 'admin';
 
-      // Check if RSVP deadline has passed
-      if (plan.rsvp_deadline && new Date() > new Date(plan.rsvp_deadline)) {
-        const { rows: memberRows } = await pool.query(
-          'SELECT role FROM members WHERE id = $1', [member_id]
-        );
-        const role = memberRows[0]?.role;
-        if (role !== 'superadmin' && role !== 'admin') {
-          return res.status(403).json({
-            error: 'Batas waktu pendaftaran sudah lewat',
-            code: 'DEADLINE_PASSED',
-            deadline: plan.rsvp_deadline
-          });
+        if (!isAdmin) {
+          if (isLocked) {
+            return res.status(403).json({
+              error: 'Pendaftaran sudah ditutup untuk minggu ini',
+              code: 'RSVP_LOCKED'
+            });
+          }
+          if (isDeadlinePassed) {
+            return res.status(403).json({
+              error: 'Batas waktu pendaftaran sudah lewat',
+              code: 'DEADLINE_PASSED',
+              deadline: plan.rsvp_deadline
+            });
+          }
         }
       }
     }

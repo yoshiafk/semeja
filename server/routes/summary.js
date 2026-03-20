@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const { convertToWeight } = require('../lib/units');
+const { calculateMealEstimate } = require('../lib/cost-calculator');
 
 // GET member-specific cost summary
 router.get('/member/:memberId', async (req, res) => {
@@ -76,94 +77,50 @@ router.get('/member/:memberId', async (req, res) => {
         [plan.id]
       );
       
-      // 4. Calculate cost for each meal the member joined
-      const memberMealIds = participations.map(p => p.meal_id);
-      
+      // 4. Batch fetch all actual purchases for all meals in this plan for this member summary
+      let allPlanPurchases = [];
+      try {
+        const { rows: _allPurchases } = await pool.query(
+          `SELECT p.total_price, p.meal_id as meal_id
+           FROM purchases p
+           WHERE p.meal_plan_id = $1
+           UNION ALL
+           SELECT pa.amount as total_price, pa.meal_id as meal_id
+           FROM purchase_assignments pa
+           JOIN purchases p ON pa.purchase_id = p.id
+           WHERE p.meal_plan_id = $1`,
+          [plan.id]
+        );
+        allPlanPurchases = _allPurchases;
+      } catch (_e) { /* column not yet available */ }
+
       for (const meal of meals) {
         const pCount = parseInt(meal.participant_count) || 0;
         if (pCount === 0) continue;
         
-        let dayCost = 0;
-        
-        // Calculate ingredients cost from meal_ingredients
+        // Calculate estimated cost using shared utility
         const currentMealIngs = allMealIngredients.filter(i => i.meal_id === meal.id);
-        currentMealIngs.forEach(ing => {
-          if (ing.name === 'Beras') return;
-          const qtyPerPerson = parseFloat(ing.quantity_per_person) || 0;
-          const totalQty = qtyPerPerson * pCount;
-          const pricePerUnit = parseFloat(ing.price_per_unit) || 0;
-          
-          // Fix: Use weight-converted quantity for cost estimation
-          const weightQty = convertToWeight(totalQty, ing.unit || ing.base_unit || 'secukupnya', ing.name);
-          dayCost += weightQty * pricePerUnit;
-        });
-        
-        // Add rice if required
-        if (meal.requires_rice && riceIngredient) {
-          const riceQty = 0.15 * pCount;
-          dayCost += riceQty * (parseFloat(riceIngredient.price_per_unit) || 0);
-        }
+        const mealEstimate = calculateMealEstimate(meal, currentMealIngs, pCount, parseFloat(riceIngredient?.price_per_unit) || 0);
         
         // NEW: Prefer actual purchases tagged to this meal over estimate
-        // Falls back to 0 if meal_id column not yet migrated in production
-        let actualCostForDay = 0;
-        try {
-          const { rows: actualMealRows } = await pool.query(
-            `SELECT 
-               COALESCE((SELECT SUM(total_price) FROM purchases WHERE meal_id = $1), 0) +
-               COALESCE((SELECT SUM(amount) FROM purchase_assignments WHERE meal_id = $1), 0) as actual`,
-            [meal.id]
-          );
-          actualCostForDay = parseInt(actualMealRows[0].actual) || 0;
-        } catch (_e) { /* column not yet available */ }
-        const resolvedCost = actualCostForDay > 0 ? actualCostForDay : Math.round(dayCost);
+        const actualCostForDay = allPlanPurchases
+          .filter(p => p.meal_id === meal.id)
+          .reduce((sum, p) => sum + (parseInt(p.total_price) || 0), 0);
+
+        const resolvedCost = actualCostForDay > 0 ? actualCostForDay : mealEstimate;
         const costPerPerson = pCount > 0 ? Math.round(resolvedCost / pCount) : 0;
         
         // Only add to breakdown if member participated
         if (memberMealIds.includes(meal.id)) {
-          const participation = participations.find(p => p.meal_id === meal.id);
           dailyBreakdown.push({
             date: meal.date,
             dayName: meal.day_name,
             costPerPerson: costPerPerson
           });
-          estimatedCost += costPerPerson;
+          actualCost += costPerPerson;
         }
       }
-      
-      // 5. Calculate actual cost share (Fair Billing Rework)
-      // Total actual cost is sum of ALL purchases in the week
-      const { rows: purchaseSumObj } = await pool.query(
-        `SELECT SUM(total_price) as actual_shopping_cost FROM purchases WHERE meal_plan_id = $1`,
-        [plan.id]
-      );
-      const totalActualCost = parseInt(purchaseSumObj[0]?.actual_shopping_cost) || 0;
 
-      // "Assigned" costs are those linked to specific days (via meal_id or purchase_assignments)
-      const { rows: assignedSumObj } = await pool.query(
-        `SELECT 
-          COALESCE((SELECT SUM(total_price) FROM purchases WHERE meal_plan_id = $1 AND meal_id IS NOT NULL), 0) +
-          COALESCE((SELECT SUM(amount) FROM purchase_assignments pa JOIN purchases p ON pa.purchase_id = p.id WHERE p.meal_plan_id = $1), 0) as assigned`,
-        [plan.id]
-      );
-      const totalAssignedCost = parseInt(assignedSumObj[0]?.assigned) || 0;
-
-      // "General" cost is the leftover that isn't assigned to any specific day
-      const generalCost = Math.max(0, totalActualCost - totalAssignedCost);
-      
-      // Get total portions across all members for general cost sharing
-      const { rows: totalPortions } = await pool.query(
-        `SELECT COUNT(*) as total FROM participations p
-         JOIN meals m ON p.meal_id = m.id
-         WHERE m.meal_plan_id = $1`,
-        [plan.id]
-      );
-      const totalSystemPortions = parseInt(totalPortions[0]?.total) || 0;
-      
-      // Calculate member's share: sum of day-specific costs + proportional share of general costs
-      const generalCostPerPortion = totalSystemPortions > 0 ? (generalCost / totalSystemPortions) : 0;
-      actualCost = estimatedCost + Math.round(generalCostPerPortion * participations.length);
-      
       // 5.5 Calculate Activity Costs for this member within the current week timeframe
       let activityCost = 0;
       const { rows: activityParticipations } = await pool.query(
@@ -200,7 +157,7 @@ router.get('/member/:memberId', async (req, res) => {
          WHERE gp.member_id = $1
          AND (
            (g.event_date >= $2 AND g.event_date <= $3)
-           OR g.event_date IS NULL
+           OR (g.event_date IS NULL AND (g.status = 'planning' OR g.status = 'active' OR g.status IS NULL))
          )`,
         [memberId, plan.week_start, plan.week_end]
       );
@@ -215,17 +172,17 @@ router.get('/member/:memberId', async (req, res) => {
           giftCost += Math.round(total / count);
         }
       }
-      
+
       currentWeek = {
         mealPlanId: plan.id,
         weekLabel,
         daysJoined: participations.length,
-        estimatedCost,
+        estimatedCost: 0, 
         actualCost,
         activityCost,
         giftCost,
         breakdown: {
-          meals: actualCost || estimatedCost,
+          meals: actualCost,
           activities: activityCost,
           gifts: giftCost
         },
@@ -357,42 +314,44 @@ router.get('/:mealPlanId', async (req, res) => {
     }
     // ----------------------------------------------------------
 
+    // 2.5 Batch fetch all purchases for all meals in this plan to avoid N+1 queries
+    let allPurchases = [];
+    try {
+      const { rows: _allPurchases } = await pool.query(
+        `SELECT p.id, p.total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
+                p.meal_id, i.name as ingredient_name, s.name as supplier_name,
+                FALSE as is_assignment
+         FROM purchases p
+         JOIN ingredients i ON p.ingredient_id = i.id
+         LEFT JOIN suppliers s ON p.supplier_id = s.id
+         WHERE p.meal_id = ANY($1::int[])
+         UNION ALL
+         SELECT p.id, pa.amount as total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
+                pa.meal_id, i.name as ingredient_name, s.name as supplier_name,
+                TRUE as is_assignment
+         FROM purchase_assignments pa
+         JOIN purchases p ON pa.purchase_id = p.id
+         JOIN ingredients i ON p.ingredient_id = i.id
+         LEFT JOIN suppliers s ON p.supplier_id = s.id
+         WHERE pa.meal_id = ANY($1::int[])
+         ORDER BY created_at`,
+        [meals.map(m => m.id)]
+      );
+      allPurchases = _allPurchases;
+    } catch (_e) { /* tables or columns might be missing in older schemas */ }
+
     for (const meal of meals) {
       const pCount = parseInt(meal.participant_count) || 0;
       let dayCost = 0;
       const dayIngredients = [];
 
-      // NEW: Move actual purchase fetching EARLIER to allow days with purchases but no recipe to show up
-      let mealActualPurchaseRows = [];
-      try {
-        const { rows: _mealPurchases } = await pool.query(
-          `SELECT p.id, p.total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
-                  i.name as ingredient_name, s.name as supplier_name,
-                  FALSE as is_assignment
-           FROM purchases p
-           JOIN ingredients i ON p.ingredient_id = i.id
-           LEFT JOIN suppliers s ON p.supplier_id = s.id
-           WHERE p.meal_id = $1
-           UNION ALL
-           SELECT p.id, pa.amount as total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
-                  i.name as ingredient_name, s.name as supplier_name,
-                  TRUE as is_assignment
-           FROM purchase_assignments pa
-           JOIN purchases p ON pa.purchase_id = p.id
-           JOIN ingredients i ON p.ingredient_id = i.id
-           LEFT JOIN suppliers s ON p.supplier_id = s.id
-           WHERE pa.meal_id = $1
-           ORDER BY created_at`,
-          [meal.id]
-        );
-        mealActualPurchaseRows = _mealPurchases;
-      } catch (_e) { /* column not yet available */ }
+      // Filter batch-fetched purchases for this specific meal
+      const mealActualPurchaseRows = allPurchases.filter(p => p.meal_id === meal.id);
       const actualCostForDay = mealActualPurchaseRows.reduce((sum, p) => sum + (parseInt(p.total_price) || 0), 0);
 
       // Skip aggregating ingredients if this day has no menus AND no actual purchases
       const currentMealItems = mealMenuItems.filter(it => it.meal_id === meal.id);
-      const hasAnyMenu = meal.main_course_recipe_id || meal.second_course_recipe_id || meal.dessert_recipe_id || 
-                          manualIngredientRows.some(ing => ing.meal_id === meal.id) ||
+      const hasAnyMenu = manualIngredientRows.some(ing => ing.meal_id === meal.id) ||
                           currentMealItems.length > 0;
       
       if (!hasAnyMenu && actualCostForDay === 0) {
@@ -401,9 +360,6 @@ router.get('/:mealPlanId', async (req, res) => {
           meal_id: meal.id,
           date: meal.date,
           day_name: meal.day_name,
-          main_course_menu: meal.main_course_menu,
-          second_course_menu: meal.second_course_menu,
-          dessert_menu: meal.dessert_menu,
           participant_count: pCount,
           total_cost: 0,
           cost_per_person: 0,

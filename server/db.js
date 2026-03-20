@@ -89,6 +89,7 @@ async function initDB(retries = 3) {
         meal_plan_id INTEGER REFERENCES meal_plans(id) ON DELETE CASCADE,
         date DATE NOT NULL,
         day_name VARCHAR(20) NOT NULL,
+        -- Legacy columns, will be dropped after migration to meal_menu_items
         main_course_menu VARCHAR(200) DEFAULT '',
         main_course_recipe_id INTEGER REFERENCES recipes(id),
         second_course_menu VARCHAR(200) DEFAULT '',
@@ -98,12 +99,16 @@ async function initDB(retries = 3) {
         UNIQUE(meal_plan_id, date)
       );
 
-      ALTER TABLE meals ADD COLUMN IF NOT EXISTS main_course_menu VARCHAR(200) DEFAULT '';
-      ALTER TABLE meals ADD COLUMN IF NOT EXISTS main_course_recipe_id INTEGER REFERENCES recipes(id);
-      ALTER TABLE meals ADD COLUMN IF NOT EXISTS second_course_menu VARCHAR(200) DEFAULT '';
-      ALTER TABLE meals ADD COLUMN IF NOT EXISTS second_course_recipe_id INTEGER REFERENCES recipes(id);
-      ALTER TABLE meals ADD COLUMN IF NOT EXISTS dessert_menu VARCHAR(200) DEFAULT '';
-      ALTER TABLE meals ADD COLUMN IF NOT EXISTS dessert_recipe_id INTEGER REFERENCES recipes(id);
+      -- Ensure meals has menu categories
+      ALTER TABLE meals ADD COLUMN IF NOT EXISTS requires_rice BOOLEAN DEFAULT FALSE;
+
+      -- DROP legacy menu columns if they exist (migrated to meal_menu_items)
+      ALTER TABLE meals DROP COLUMN IF EXISTS main_course_menu;
+      ALTER TABLE meals DROP COLUMN IF EXISTS second_course_menu;
+      ALTER TABLE meals DROP COLUMN IF EXISTS dessert_menu;
+      ALTER TABLE meals DROP COLUMN IF EXISTS main_course_recipe_id;
+      ALTER TABLE meals DROP COLUMN IF EXISTS second_course_recipe_id;
+      ALTER TABLE meals DROP COLUMN IF EXISTS dessert_recipe_id;
 
       ALTER TABLE meals DROP COLUMN IF EXISTS lunch_menu;
       ALTER TABLE meals DROP COLUMN IF EXISTS lunch_recipe_id;
@@ -125,6 +130,7 @@ async function initDB(retries = 3) {
         meal_id INTEGER REFERENCES meals(id) ON DELETE CASCADE,
         ingredient_id INTEGER REFERENCES ingredients(id) ON DELETE CASCADE,
         quantity_per_person DECIMAL(10,3) NOT NULL,
+        unit VARCHAR(50),
         meal_type VARCHAR(10) NOT NULL,
         UNIQUE(meal_id, ingredient_id, meal_type)
       );
@@ -304,6 +310,41 @@ async function initDB(retries = 3) {
 
       ALTER TABLE gift_items ADD COLUMN IF NOT EXISTS receipt_id INTEGER REFERENCES attachments(id) ON DELETE SET NULL;
 
+      CREATE TABLE IF NOT EXISTS plan_reactions (
+        id SERIAL PRIMARY KEY,
+        plan_id INTEGER REFERENCES meal_plans(id) ON DELETE CASCADE,
+        meal_id INTEGER REFERENCES meals(id) ON DELETE CASCADE,
+        member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+        reaction VARCHAR(20) NOT NULL, -- join, skip, unsure
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(meal_id, member_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS plan_member_settlements (
+        id SERIAL PRIMARY KEY,
+        meal_plan_id INTEGER REFERENCES meal_plans(id) ON DELETE CASCADE,
+        member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+        days_joined INTEGER DEFAULT 0,
+        estimated_cost INTEGER DEFAULT 0,
+        actual_cost INTEGER DEFAULT 0,
+        settled_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(meal_plan_id, member_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS payment_records (
+        id SERIAL PRIMARY KEY,
+        meal_plan_id INTEGER REFERENCES meal_plans(id) ON DELETE CASCADE,
+        member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+        amount INTEGER NOT NULL,
+        paid_at TIMESTAMP DEFAULT NOW(),
+        confirmed_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+        notes TEXT,
+        UNIQUE(meal_plan_id, member_id)
+      );
+
+      -- Migration: Ensure meal_ingredients has the unit column if it was created before
+      ALTER TABLE meal_ingredients ADD COLUMN IF NOT EXISTS unit VARCHAR(50);
+
       -- Performance indexes on foreign keys used in JOINs and WHERE clauses
       CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
       CREATE INDEX IF NOT EXISTS idx_activity_participations_activity_id ON activity_participations(activity_id);
@@ -321,6 +362,10 @@ async function initDB(retries = 3) {
       CREATE INDEX IF NOT EXISTS idx_purchases_ingredient_id ON purchases(ingredient_id);
       CREATE INDEX IF NOT EXISTS idx_purchases_supplier_id ON purchases(supplier_id);
       CREATE INDEX IF NOT EXISTS idx_purchases_meal_plan_id ON purchases(meal_plan_id);
+      
+      CREATE INDEX IF NOT EXISTS idx_reactions_plan ON plan_reactions(plan_id);
+      CREATE INDEX IF NOT EXISTS idx_reactions_meal ON plan_reactions(meal_id);
+      CREATE INDEX IF NOT EXISTS idx_payments_plan ON payment_records(meal_plan_id);
     `);
     console.log('Database schema initialized');
   } finally {

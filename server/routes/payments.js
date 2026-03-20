@@ -46,7 +46,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
          confirmed_by = EXCLUDED.confirmed_by,
          notes        = EXCLUDED.notes
        RETURNING *`,
-      [meal_plan_id, member_id, amount, req.memberId || null, notes || null]
+      [meal_plan_id, member_id, amount, req.user?.id || null, notes || null]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
