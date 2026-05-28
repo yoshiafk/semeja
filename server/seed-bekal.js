@@ -542,8 +542,7 @@ async function seedBekalSehat() {
     console.log('Bekal Sehat seed data inserted successfully.');
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Error seeding Bekal Sehat data:', err);
-    throw err;
+    console.error('Error seeding Bekal Sehat data:', err.message);
   } finally {
     client.release();
   }

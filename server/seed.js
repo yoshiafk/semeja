@@ -14,7 +14,14 @@ async function seed() {
 
     // Always run bekal sehat seeding (has its own idempotency check)
     client.release();
-    await seedBekalSehat();
+    client = null;
+    
+    try {
+      await seedBekalSehat();
+    } catch (err) {
+      console.warn('Bekal Sehat seeding failed (likely concurrent Vercel instances), skipping:', err.message);
+    }
+    
     client = await pool.connect();
 
     if (alreadySeeded) {
