@@ -32,9 +32,11 @@ import {
   UserPlus,
   UserMinus,
   Check,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 // ── Bumbu Color Palette ────────────────────────────────────────────────
 const BUMBU_STYLES: Record<string, { bg: string; border: string; text: string; badge: string; icon: string; dot: string }> = {
@@ -90,16 +92,25 @@ function formatQty(qty: number, portions: number, isBumbu: boolean = false, unit
     nameLower.includes("kaldu") ||
     nameLower.includes("minyak") ||
     nameLower.includes("merica") ||
-    nameLower.includes("ketumbar");
+    nameLower.includes("ketumbar") ||
+    nameLower.includes("daun") || // daun salam, daun jeruk
+    nameLower.includes("serai") ||
+    nameLower.includes("sereh") ||
+    nameLower.includes("lengkuas") ||
+    nameLower.includes("jahe");
 
-  // Non-linear scaling for spices/seasonings: 1 portion = 1x, 2 = 1.5x, 3 = 2x, etc.
+  // Non-linear scaling for spices/seasonings (Power curve ^0.65 for accurate culinary scaling)
+  // 1 -> 1x, 2 -> ~1.5x, 3 -> ~2x, 4 -> ~2.4x, 5 -> ~2.8x
   if (isSeasoning) {
-    multiplier = 1 + (portions - 1) * 0.5;
+    multiplier = Math.pow(portions, 0.65);
   }
 
   const scaled = qty * multiplier;
-  if (scaled === Math.floor(scaled)) return String(scaled);
-  return scaled.toFixed(1).replace(/\.0$/, "");
+  
+  // Format beautifully: if it's an integer, return it. If it's close to .0, remove decimal.
+  // We use toFixed(1) but strip trailing zeros
+  const formatted = parseFloat(scaled.toFixed(1));
+  return String(formatted);
 }
 
 // ── Helper: Format day date ──────────────────────────────────────────
@@ -683,55 +694,62 @@ export default function BekalSehat() {
 
         {/* ── Weekly Summary ──────────────────────────────────────── */}
         {selectedPlan.days && selectedPlan.days.length > 0 && (
-          <div className="mb-8 p-4 rounded-2xl bg-muted/30 border border-border/30">
-            <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-              📊 Ringkasan Mingguan ({portions} porsi)
-            </h3>
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="text-center p-3 rounded-xl bg-card">
-                <p className="text-lg font-extrabold text-primary">
-                  {selectedPlan.days.reduce((acc, d) => acc + (d.recipes?.length || 0), 0)}
-                </p>
-                <p className="text-[10px] text-muted-foreground">Total Resep</p>
-              </div>
-              <div className="text-center p-3 rounded-xl bg-card">
-                <p className="text-lg font-extrabold text-emerald-600">
-                  {selectedPlan.days.reduce(
-                    (acc, d) =>
-                      acc + (d.recipes?.reduce((a, r) => a + (r.kalori_estimasi || 0), 0) || 0),
-                    0
-                  ) * portions}
-                </p>
-                <p className="text-[10px] text-muted-foreground">Total kcal</p>
-              </div>
-              <div className="text-center p-3 rounded-xl bg-card">
-                <p className="text-lg font-extrabold text-amber-600">{bumbuDasar.length}</p>
-                <p className="text-[10px] text-muted-foreground">Bumbu Dasar</p>
-              </div>
-            </div>
-
-            {/* Per-day mini overview */}
-            <div className="space-y-2">
-              {selectedPlan.days.map((day) => (
-                <div key={day.id} className="flex items-center gap-2 text-xs">
-                  <span className="font-bold text-foreground w-14">{day.day_name?.slice(0, 3)}</span>
-                  <div className="flex-1 flex gap-1">
-                    {day.recipes?.map((r) => (
-                      <span
-                        key={r.id}
-                        className={cn(
-                          "px-2 py-0.5 rounded-full text-[10px] font-medium",
-                          r.category === "protein" ? "bg-orange-100 text-orange-700" : "bg-emerald-100 text-emerald-700"
-                        )}
-                      >
-                        {r.name}
-                      </span>
-                    ))}
-                  </div>
+          <Card className="mb-8 overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b pb-4">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-primary" />
+                Ringkasan Mingguan ({portions} porsi)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="p-4 grid grid-cols-3 gap-3 border-b border-border/50 bg-muted/10">
+                <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-background border shadow-sm">
+                  <p className="text-xl font-extrabold text-primary">
+                    {selectedPlan.days.reduce((acc, d) => acc + (d.recipes?.length || 0), 0)}
+                  </p>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-1">Total Resep</p>
                 </div>
-              ))}
-            </div>
-          </div>
+                <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-background border shadow-sm">
+                  <p className="text-xl font-extrabold text-emerald-600">
+                    {selectedPlan.days.reduce(
+                      (acc, d) =>
+                        acc + (d.recipes?.reduce((a, r) => a + (r.kalori_estimasi || 0), 0) || 0),
+                      0
+                    ) * portions}
+                  </p>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-1">Total kcal</p>
+                </div>
+                <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-background border shadow-sm">
+                  <p className="text-xl font-extrabold text-amber-600">{bumbuDasar.length}</p>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-1">Bumbu Dasar</p>
+                </div>
+              </div>
+
+              {/* Per-day mini overview */}
+              <div className="p-4 space-y-3">
+                {selectedPlan.days.map((day) => (
+                  <div key={day.id} className="flex items-start sm:items-center gap-3 text-xs">
+                    <span className="font-bold text-muted-foreground w-12 pt-1 sm:pt-0">{day.day_name?.slice(0, 3)}</span>
+                    <div className="flex-1 flex flex-wrap gap-1.5">
+                      {day.recipes?.map((r) => (
+                        <span
+                          key={r.id}
+                          className={cn(
+                            "px-2.5 py-1 rounded-full text-[10px] font-semibold border",
+                            r.category === "protein" 
+                              ? "bg-orange-50 text-orange-700 border-orange-200" 
+                              : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          )}
+                        >
+                          {r.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </PageContainer>
