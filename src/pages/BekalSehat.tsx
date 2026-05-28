@@ -75,8 +75,29 @@ const DAY_COLORS = [
 ];
 
 // ── Helper: Scale ingredient quantity ──────────────────────────────────
-function formatQty(qty: number, portions: number): string {
-  const scaled = qty * portions;
+function formatQty(qty: number, portions: number, isBumbu: boolean = false, unit: string = "", name: string = ""): string {
+  let multiplier = portions;
+  
+  const nameLower = name.toLowerCase();
+  const isSeasoning = 
+    isBumbu || 
+    unit.toLowerCase() === "sdt" || 
+    unit.toLowerCase() === "sdm" || 
+    nameLower.includes("garam") || 
+    nameLower.includes("gula") || 
+    nameLower.includes("kecap") || 
+    nameLower.includes("saus") || 
+    nameLower.includes("kaldu") ||
+    nameLower.includes("minyak") ||
+    nameLower.includes("merica") ||
+    nameLower.includes("ketumbar");
+
+  // Non-linear scaling for spices/seasonings: 1 portion = 1x, 2 = 1.5x, 3 = 2x, etc.
+  if (isSeasoning) {
+    multiplier = 1 + (portions - 1) * 0.5;
+  }
+
+  const scaled = qty * multiplier;
   if (scaled === Math.floor(scaled)) return String(scaled);
   return scaled.toFixed(1).replace(/\.0$/, "");
 }
@@ -200,7 +221,7 @@ function RecipeDetailCard({
                     )}
                   </span>
                   <span className="text-muted-foreground font-mono tabular-nums">
-                    {formatQty(Number(ing.quantity_per_portion), portions)} {ing.unit}
+                    {formatQty(Number(ing.quantity_per_portion), portions, ing.is_bumbu_dasar, ing.unit, ing.name)} {ing.unit}
                   </span>
                 </div>
               ))}
@@ -289,7 +310,7 @@ function BumbuDasarCard({
                 <div key={ing.id} className="flex items-center justify-between text-xs">
                   <span className="text-foreground/80">{ing.name}</span>
                   <span className="font-mono text-muted-foreground tabular-nums">
-                    {formatQty(Number(ing.quantity_per_portion), portions)} {ing.unit}
+                    {formatQty(Number(ing.quantity_per_portion), portions, true, ing.unit, ing.name)} {ing.unit}
                   </span>
                 </div>
               ))}

@@ -61,54 +61,71 @@ router.get('/plans/:id', async (req, res) => {
       [id]
     );
     if (planRows.length === 0) return res.status(404).json({ error: 'Plan not found' });
-
     const plan = planRows[0];
 
-    // Days
-    const { rows: days } = await pool.query(
-      'SELECT * FROM bekal_days WHERE plan_id = $1 ORDER BY day_number',
-      [id]
-    );
+    // Fetch all related data in parallel batch queries!
+    const [
+      { rows: days },
+      { rows: recipes },
+      { rows: ingredients },
+      { rows: steps },
+      { rows: participants }
+    ] = await Promise.all([
+      pool.query('SELECT * FROM bekal_days WHERE plan_id = $1 ORDER BY day_number', [id]),
+      pool.query(`
+        SELECT br.*, bbd.name as bumbu_dasar_name, bbd.color as bumbu_dasar_color
+        FROM bekal_recipes br
+        JOIN bekal_days bd ON br.day_id = bd.id
+        LEFT JOIN bekal_bumbu_dasar bbd ON br.bumbu_dasar_id = bbd.id
+        WHERE bd.plan_id = $1 ORDER BY br.sort_order
+      `, [id]),
+      pool.query(`
+        SELECT bri.* 
+        FROM bekal_recipe_ingredients bri
+        JOIN bekal_recipes br ON bri.recipe_id = br.id
+        JOIN bekal_days bd ON br.day_id = bd.id
+        WHERE bd.plan_id = $1 ORDER BY bri.sort_order
+      `, [id]),
+      pool.query(`
+        SELECT brs.* 
+        FROM bekal_recipe_steps brs
+        JOIN bekal_recipes br ON brs.recipe_id = br.id
+        JOIN bekal_days bd ON br.day_id = bd.id
+        WHERE bd.plan_id = $1 ORDER BY brs.step_number
+      `, [id]),
+      pool.query(`
+        SELECT bpart.*, m.name as member_name
+        FROM bekal_participations bpart
+        JOIN members m ON bpart.member_id = m.id
+        WHERE bpart.plan_id = $1 ORDER BY bpart.joined_at
+      `, [id])
+    ]);
 
-    // Recipes for each day
-    for (const day of days) {
-      const { rows: recipes } = await pool.query(
-        `SELECT br.*, bbd.name as bumbu_dasar_name, bbd.color as bumbu_dasar_color
-         FROM bekal_recipes br
-         LEFT JOIN bekal_bumbu_dasar bbd ON br.bumbu_dasar_id = bbd.id
-         WHERE br.day_id = $1
-         ORDER BY br.sort_order`,
-        [day.id]
-      );
+    // Assemble in memory
+    const recipesMap = new Map();
+    recipes.forEach(r => {
+      r.ingredients = [];
+      r.steps = [];
+      recipesMap.set(r.id, r);
+    });
 
-      for (const recipe of recipes) {
-        // Ingredients
-        const { rows: ingredients } = await pool.query(
-          'SELECT * FROM bekal_recipe_ingredients WHERE recipe_id = $1 ORDER BY sort_order',
-          [recipe.id]
-        );
-        recipe.ingredients = ingredients;
+    ingredients.forEach(ing => {
+      if (recipesMap.has(ing.recipe_id)) recipesMap.get(ing.recipe_id).ingredients.push(ing);
+    });
 
-        // Steps
-        const { rows: steps } = await pool.query(
-          'SELECT * FROM bekal_recipe_steps WHERE recipe_id = $1 ORDER BY step_number',
-          [recipe.id]
-        );
-        recipe.steps = steps;
-      }
+    steps.forEach(step => {
+      if (recipesMap.has(step.recipe_id)) recipesMap.get(step.recipe_id).steps.push(step);
+    });
 
-      day.recipes = recipes;
-    }
+    const daysMap = new Map();
+    days.forEach(d => {
+      d.recipes = [];
+      daysMap.set(d.id, d);
+    });
 
-    // Participants
-    const { rows: participants } = await pool.query(
-      `SELECT bpart.*, m.name as member_name
-       FROM bekal_participations bpart
-       JOIN members m ON bpart.member_id = m.id
-       WHERE bpart.plan_id = $1
-       ORDER BY bpart.joined_at`,
-      [id]
-    );
+    recipes.forEach(r => {
+      if (daysMap.has(r.day_id)) daysMap.get(r.day_id).recipes.push(r);
+    });
 
     res.json({ ...plan, days, participants });
   } catch (error) {
