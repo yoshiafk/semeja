@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { pool } = require('./db');
+const { seedBekalSehat } = require('./seed-bekal');
 
 const SUPERADMIN_NAME = process.env.SUPERADMIN_NAME || 'Admin';
 const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD || 'admin123';
@@ -307,6 +308,9 @@ async function seed() {
   } finally {
     client.release();
   }
+
+  // Seed Bekal Sehat module data
+  await seedBekalSehat();
 }
 
 module.exports = { seed };

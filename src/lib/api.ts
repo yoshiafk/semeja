@@ -273,3 +273,103 @@ export interface MealPlanLifecycle {
   locked_at?: string | null;
   meals: any[];
 }
+
+// ─── Bekal Sehat Module ──────────────────────────────────────────────
+
+export interface BekalBumbuIngredient {
+  id: number;
+  bumbu_id: number;
+  name: string;
+  quantity_per_portion: number;
+  unit: string;
+  sort_order: number;
+}
+
+export interface BekalBumbuDasar {
+  id: number;
+  name: string;
+  color: 'merah' | 'putih' | 'kuning';
+  description: string;
+  cara_membuat: string;
+  tips_penyimpanan: string;
+  ingredients: BekalBumbuIngredient[];
+}
+
+export interface BekalRecipeIngredient {
+  id: number;
+  recipe_id: number;
+  name: string;
+  quantity_per_portion: number;
+  unit: string;
+  is_bumbu_dasar: boolean;
+  sort_order: number;
+}
+
+export interface BekalRecipeStep {
+  id: number;
+  recipe_id: number;
+  step_number: number;
+  instruction: string;
+}
+
+export interface BekalRecipe {
+  id: number;
+  day_id: number;
+  name: string;
+  description: string;
+  category: 'protein' | 'sayuran';
+  bumbu_dasar_id: number | null;
+  bumbu_dasar_name: string | null;
+  bumbu_dasar_color: string | null;
+  estimasi_waktu: number;
+  kalori_estimasi: number;
+  tips_bekal: string;
+  sort_order: number;
+  ingredients: BekalRecipeIngredient[];
+  steps: BekalRecipeStep[];
+}
+
+export interface BekalDay {
+  id: number;
+  plan_id: number;
+  day_number: number;
+  day_name: string;
+  recipes: BekalRecipe[];
+}
+
+export interface BekalParticipant {
+  id: number;
+  plan_id: number;
+  member_id: number;
+  member_name: string;
+  portions: number;
+  joined_at: string;
+}
+
+export interface BekalPlan {
+  id: number;
+  title: string;
+  description: string;
+  week_label: string;
+  status: 'active' | 'archived';
+  created_by: number | null;
+  creator_name: string | null;
+  participant_count: number;
+  created_at: string;
+}
+
+export interface BekalPlanDetail extends BekalPlan {
+  days: BekalDay[];
+  participants: BekalParticipant[];
+}
+
+// Bekal Sehat API functions
+export const getBekalBumbuDasar = () => api.get<BekalBumbuDasar[]>('/bekal-sehat/bumbu-dasar');
+export const getBekalPlans = () => api.get<BekalPlan[]>('/bekal-sehat/plans');
+export const getBekalPlanDetail = (id: number) => api.get<BekalPlanDetail>(`/bekal-sehat/plans/${id}`);
+export const createBekalPlan = (data: { title: string; description?: string; week_label: string }) => api.post<BekalPlan>('/bekal-sehat/plans', data);
+export const updateBekalPlan = (id: number, data: Partial<BekalPlan>) => api.put<BekalPlan>(`/bekal-sehat/plans/${id}`, data);
+export const deleteBekalPlan = (id: number) => api.delete<{ message: string }>(`/bekal-sehat/plans/${id}`);
+export const joinBekalPlan = (planId: number, data: { member_id: number; portions?: number }) => api.post<BekalParticipant>(`/bekal-sehat/plans/${planId}/join`, data);
+export const leaveBekalPlan = (planId: number, data: { member_id: number }) => api.post<{ message: string }>(`/bekal-sehat/plans/${planId}/leave`, data);
+

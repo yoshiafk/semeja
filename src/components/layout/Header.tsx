@@ -15,6 +15,7 @@ import {
   Store,
   FlaskConical,
   ScanEye,
+  Salad,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -47,6 +48,7 @@ export function Header() {
       ],
     },
     { to: "/activities", icon: Activity, label: "Aktivitas" },
+    { to: "/bekal-sehat", icon: Salad, label: "Bekal Sehat" },
   ];
 
   return (

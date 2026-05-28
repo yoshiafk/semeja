@@ -79,6 +79,9 @@ const Suppliers   = lazy(() => import("@/pages/Suppliers"));
 // Profile
 const Profile = lazy(() => import("@/pages/Profile"));
 
+// Bekal Sehat Module
+const BekalSehat = lazy(() => import("@/pages/BekalSehat"));
+
 const PageLoader = () => (
   <div className="flex h-[60vh] items-center justify-center">
     <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -165,6 +168,9 @@ function App() {
 
               {/* Profile */}
               <Route path="/profile" element={<Profile />} />
+
+              {/* ── Bekal Sehat Module ──────────────────────── */}
+              <Route path="/bekal-sehat" element={<BekalSehat />} />
 
               {/* Legacy redirects */}
               <Route path="/members"      element={<Navigate to="/community/members" />} />

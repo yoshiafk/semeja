@@ -23,6 +23,7 @@ const ocrRouter = require('./routes/ocr');
 const mealActualsRouter = require('./routes/meal-actuals');
 const mealPreviewRouter = require('./routes/meal-preview');
 const paymentsRouter = require('./routes/payments');
+const bekalSehatRouter = require('./routes/bekal-sehat');
 const { autoArchiveMiddleware } = require('./lib/auto-archive');
 const { pool } = require('./db');
 
@@ -51,7 +52,7 @@ app.use(express.json({ limit: '1mb' }));
 
 // Vercel edge cache: short TTL for GET, no-store for mutations & sensitive routes
 app.use('/api', (req, res, next) => {
-  const volatileRoutes = ['/activities', '/meal-plans', '/meals', '/participations', '/summary', '/purchases', '/gifts', '/payments'];
+  const volatileRoutes = ['/activities', '/meal-plans', '/meals', '/participations', '/summary', '/purchases', '/gifts', '/payments', '/bekal-sehat'];
   const isVolatile = volatileRoutes.some(route => req.path.startsWith(route));
 
   if (req.method === 'GET' && !isVolatile) {
@@ -85,6 +86,7 @@ app.use('/api/gifts', giftsRouter);
 app.use('/api/attachments', attachmentsRouter);
 app.use('/api/ocr', ocrRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/bekal-sehat', bekalSehatRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

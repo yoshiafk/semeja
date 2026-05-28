@@ -342,6 +342,98 @@ async function initDB(retries = 3) {
         UNIQUE(meal_plan_id, member_id)
       );
 
+      -- ── Bekal Sehat Module ──────────────────────────────────────────
+
+      -- Bumbu Dasar library (merah, putih, kuning)
+      CREATE TABLE IF NOT EXISTS bekal_bumbu_dasar (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        color VARCHAR(20) NOT NULL, -- 'merah', 'putih', 'kuning'
+        description TEXT DEFAULT '',
+        cara_membuat TEXT DEFAULT '',
+        tips_penyimpanan TEXT DEFAULT '',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS bekal_bumbu_ingredients (
+        id SERIAL PRIMARY KEY,
+        bumbu_id INTEGER REFERENCES bekal_bumbu_dasar(id) ON DELETE CASCADE,
+        name VARCHAR(150) NOT NULL,
+        quantity_per_portion DECIMAL(10,3) NOT NULL,
+        unit VARCHAR(30) NOT NULL,
+        sort_order INTEGER DEFAULT 0
+      );
+
+      -- Weekly bekal plans (created by admin)
+      CREATE TABLE IF NOT EXISTS bekal_plans (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(200) NOT NULL,
+        description TEXT DEFAULT '',
+        week_label VARCHAR(50) NOT NULL, -- e.g. 'Minggu 1 - Juni 2026'
+        status VARCHAR(20) DEFAULT 'active', -- 'active', 'archived'
+        created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      -- 7 days per plan
+      CREATE TABLE IF NOT EXISTS bekal_days (
+        id SERIAL PRIMARY KEY,
+        plan_id INTEGER REFERENCES bekal_plans(id) ON DELETE CASCADE,
+        day_number INTEGER NOT NULL, -- 1-7
+        day_name VARCHAR(20) NOT NULL, -- Senin, Selasa, etc.
+        UNIQUE(plan_id, day_number)
+      );
+
+      -- Recipes attached to a day (2 per day: protein + sayuran)
+      CREATE TABLE IF NOT EXISTS bekal_recipes (
+        id SERIAL PRIMARY KEY,
+        day_id INTEGER REFERENCES bekal_days(id) ON DELETE CASCADE,
+        name VARCHAR(200) NOT NULL,
+        description TEXT DEFAULT '',
+        category VARCHAR(20) NOT NULL, -- 'protein' or 'sayuran'
+        bumbu_dasar_id INTEGER REFERENCES bekal_bumbu_dasar(id) ON DELETE SET NULL,
+        estimasi_waktu INTEGER DEFAULT 30, -- minutes
+        kalori_estimasi INTEGER DEFAULT 0, -- kcal per portion
+        tips_bekal TEXT DEFAULT '',
+        sort_order INTEGER DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS bekal_recipe_ingredients (
+        id SERIAL PRIMARY KEY,
+        recipe_id INTEGER REFERENCES bekal_recipes(id) ON DELETE CASCADE,
+        name VARCHAR(150) NOT NULL,
+        quantity_per_portion DECIMAL(10,3) NOT NULL,
+        unit VARCHAR(30) NOT NULL,
+        is_bumbu_dasar BOOLEAN DEFAULT false,
+        sort_order INTEGER DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS bekal_recipe_steps (
+        id SERIAL PRIMARY KEY,
+        recipe_id INTEGER REFERENCES bekal_recipes(id) ON DELETE CASCADE,
+        step_number INTEGER NOT NULL,
+        instruction TEXT NOT NULL,
+        UNIQUE(recipe_id, step_number)
+      );
+
+      -- Member participation (join with portion count)
+      CREATE TABLE IF NOT EXISTS bekal_participations (
+        id SERIAL PRIMARY KEY,
+        plan_id INTEGER REFERENCES bekal_plans(id) ON DELETE CASCADE,
+        member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+        portions INTEGER DEFAULT 1, -- 1-5
+        joined_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(plan_id, member_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_bekal_days_plan ON bekal_days(plan_id);
+      CREATE INDEX IF NOT EXISTS idx_bekal_recipes_day ON bekal_recipes(day_id);
+      CREATE INDEX IF NOT EXISTS idx_bekal_recipe_ingredients_recipe ON bekal_recipe_ingredients(recipe_id);
+      CREATE INDEX IF NOT EXISTS idx_bekal_recipe_steps_recipe ON bekal_recipe_steps(recipe_id);
+      CREATE INDEX IF NOT EXISTS idx_bekal_bumbu_ingredients_bumbu ON bekal_bumbu_ingredients(bumbu_id);
+      CREATE INDEX IF NOT EXISTS idx_bekal_participations_plan ON bekal_participations(plan_id);
+      CREATE INDEX IF NOT EXISTS idx_bekal_participations_member ON bekal_participations(member_id);
+
       -- Migration: Ensure meal_ingredients has the unit column if it was created before
       ALTER TABLE meal_ingredients ADD COLUMN IF NOT EXISTS unit VARCHAR(50);
 
