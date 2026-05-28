@@ -120,16 +120,16 @@ router.get('/plans/:id', async (req, res) => {
 // ── POST /api/bekal-sehat/plans ───────────────────────────────────────
 // Create a new plan (admin only)
 router.post('/plans', requireAuth, requireAdmin, async (req, res) => {
-  const { title, description, week_label } = req.body;
-  if (!title || !week_label) {
-    return res.status(400).json({ error: 'title and week_label are required' });
+  const { title, description, start_date, week_label } = req.body;
+  if (!title || !week_label || !start_date) {
+    return res.status(400).json({ error: 'title, start_date, and week_label are required' });
   }
 
   try {
     const { rows } = await pool.query(
-      `INSERT INTO bekal_plans (title, description, week_label, created_by)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [title, description || '', week_label, req.user.id]
+      `INSERT INTO bekal_plans (title, description, start_date, week_label, created_by)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [title, description || '', start_date, week_label, req.user.id]
     );
     res.status(201).json(rows[0]);
   } catch (error) {
@@ -142,17 +142,18 @@ router.post('/plans', requireAuth, requireAdmin, async (req, res) => {
 // Update plan metadata
 router.put('/plans/:id', requireAuth, requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { title, description, week_label, status } = req.body;
+  const { title, description, start_date, week_label, status } = req.body;
 
   try {
     const { rows } = await pool.query(
       `UPDATE bekal_plans 
        SET title = COALESCE($1, title),
            description = COALESCE($2, description),
-           week_label = COALESCE($3, week_label),
-           status = COALESCE($4, status)
-       WHERE id = $5 RETURNING *`,
-      [title, description, week_label, status, id]
+           start_date = COALESCE($3, start_date),
+           week_label = COALESCE($4, week_label),
+           status = COALESCE($5, status)
+       WHERE id = $6 RETURNING *`,
+      [title, description, start_date, week_label, status, id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Plan not found' });
     res.json(rows[0]);

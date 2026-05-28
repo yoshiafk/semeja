@@ -81,6 +81,14 @@ function formatQty(qty: number, portions: number): string {
   return scaled.toFixed(1).replace(/\.0$/, "");
 }
 
+// ── Helper: Format day date ──────────────────────────────────────────
+function formatDayDate(startDateStr: string, dayNumber: number): string {
+  if (!startDateStr) return `Hari ${dayNumber}`;
+  const date = new Date(startDateStr);
+  date.setDate(date.getDate() + (dayNumber - 1));
+  return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+}
+
 // ── RecipeCard Component ──────────────────────────────────────────────
 function RecipeDetailCard({
   recipe,
@@ -587,7 +595,7 @@ export default function BekalSehat() {
                 )}
               >
                 <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
-                  Hari {day.day_number}
+                  {formatDayDate(selectedPlan.start_date, day.day_number)}
                 </span>
                 <span className={cn("text-sm font-extrabold", selectedDay === idx ? "text-white" : "text-foreground")}>
                   {day.day_name?.slice(0, 3)}
@@ -616,7 +624,7 @@ export default function BekalSehat() {
           <div className="mb-8 space-y-3 stagger-1">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-bold text-foreground">
-                {currentDay.day_name} — Menu Hari {currentDay.day_number}
+                {currentDay.day_name}, {formatDayDate(selectedPlan.start_date, currentDay.day_number)}
               </h3>
               <span className="text-[10px] text-muted-foreground">
                 {currentDay.recipes?.length || 0} resep

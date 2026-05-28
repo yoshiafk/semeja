@@ -85,14 +85,19 @@ async function seedBekalSehat() {
       }
     }
 
-    // ── 2. Create default plan ─────────────────────────────────────
+    // Calculate next Monday for start_date
+    const today = new Date();
+    const nextMonday = new Date(today);
+    nextMonday.setDate(today.getDate() + ((1 + 7 - today.getDay()) % 7 || 7));
+    const startDateString = nextMonday.toISOString().split('T')[0];
 
     const { rows: planRows } = await client.query(
-      `INSERT INTO bekal_plans (title, description, week_label, status)
-       VALUES ($1, $2, $3, $4) RETURNING id`,
+      `INSERT INTO bekal_plans (title, description, start_date, week_label, status)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
       [
         'Menu Bekal Sehat Minggu Pertama',
         'Menu masakan sehat dengan sayuran dan protein untuk bekal kerja anak kost. Menggunakan bumbu dasar merah, putih, dan kuning yang saling terkait agar hemat dan praktis.',
+        startDateString,
         'Minggu 1',
         'active',
       ]

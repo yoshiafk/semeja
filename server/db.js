@@ -369,6 +369,7 @@ async function initDB(retries = 3) {
         id SERIAL PRIMARY KEY,
         title VARCHAR(200) NOT NULL,
         description TEXT DEFAULT '',
+        start_date DATE NOT NULL,
         week_label VARCHAR(50) NOT NULL, -- e.g. 'Minggu 1 - Juni 2026'
         status VARCHAR(20) DEFAULT 'active', -- 'active', 'archived'
         created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
@@ -436,6 +437,9 @@ async function initDB(retries = 3) {
 
       -- Migration: Ensure meal_ingredients has the unit column if it was created before
       ALTER TABLE meal_ingredients ADD COLUMN IF NOT EXISTS unit VARCHAR(50);
+      
+      -- Migration: Ensure bekal_plans has start_date
+      ALTER TABLE bekal_plans ADD COLUMN IF NOT EXISTS start_date DATE;
 
       -- Performance indexes on foreign keys used in JOINs and WHERE clauses
       CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);

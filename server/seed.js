@@ -6,11 +6,18 @@ const SUPERADMIN_NAME = process.env.SUPERADMIN_NAME || 'Admin';
 const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD || 'admin123';
 
 async function seed() {
-  const client = await pool.connect();
+  let client = await pool.connect();
   try {
     // Check if already seeded
     const { rows } = await client.query('SELECT COUNT(*) FROM recipes');
-    if (parseInt(rows[0].count) > 0) {
+    const alreadySeeded = parseInt(rows[0].count) > 0;
+
+    // Always run bekal sehat seeding (has its own idempotency check)
+    client.release();
+    await seedBekalSehat();
+    client = await pool.connect();
+
+    if (alreadySeeded) {
       console.log('Database already seeded, skipping');
       return;
     }
@@ -306,11 +313,8 @@ async function seed() {
   } catch (err) {
     console.error('Seed error:', err);
   } finally {
-    client.release();
+    if (client) client.release();
   }
-
-  // Seed Bekal Sehat module data
-  await seedBekalSehat();
 }
 
 module.exports = { seed };
