@@ -224,30 +224,23 @@ async function generateWeeklyPlan(startDate) {
         );
         const recipeId = recipeRows[0].id;
 
-        // Copy ingredients from pool
-        const { rows: poolIngredients } = await client.query(
-          'SELECT * FROM bekal_pool_ingredients WHERE pool_recipe_id = $1 ORDER BY sort_order',
-          [poolRecipe.id]
+        // Copy ingredients from pool using INSERT ... SELECT
+        await client.query(
+          `INSERT INTO bekal_recipe_ingredients (recipe_id, name, quantity_per_portion, unit, is_bumbu_dasar, sort_order)
+           SELECT $1, name, quantity_per_portion, unit, is_bumbu_dasar, sort_order
+           FROM bekal_pool_ingredients
+           WHERE pool_recipe_id = $2`,
+          [recipeId, poolRecipe.id]
         );
-        for (const ing of poolIngredients) {
-          await client.query(
-            `INSERT INTO bekal_recipe_ingredients (recipe_id, name, quantity_per_portion, unit, is_bumbu_dasar, sort_order)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-            [recipeId, ing.name, ing.quantity_per_portion, ing.unit, ing.is_bumbu_dasar, ing.sort_order]
-          );
-        }
 
-        // Copy steps from pool
-        const { rows: poolSteps } = await client.query(
-          'SELECT * FROM bekal_pool_steps WHERE pool_recipe_id = $1 ORDER BY step_number',
-          [poolRecipe.id]
+        // Copy steps from pool using INSERT ... SELECT
+        await client.query(
+          `INSERT INTO bekal_recipe_steps (recipe_id, step_number, instruction)
+           SELECT $1, step_number, instruction
+           FROM bekal_pool_steps
+           WHERE pool_recipe_id = $2`,
+          [recipeId, poolRecipe.id]
         );
-        for (const step of poolSteps) {
-          await client.query(
-            `INSERT INTO bekal_recipe_steps (recipe_id, step_number, instruction) VALUES ($1, $2, $3)`,
-            [recipeId, step.step_number, step.instruction]
-          );
-        }
       }
     }
 

@@ -1014,21 +1014,35 @@ async function seedBekalPool() {
       );
       const poolId = recipeRows[0].id;
 
-      // Insert ingredients
-      for (let j = 0; j < recipe.ingredients.length; j++) {
-        const ing = recipe.ingredients[j];
+      // Bulk insert ingredients
+      if (recipe.ingredients.length > 0) {
+        const ingValues = [];
+        const ingParams = [];
+        let paramIdx = 1;
+        recipe.ingredients.forEach((ing, j) => {
+          ingValues.push(`($${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++})`);
+          ingParams.push(poolId, ing.name, ing.qty, ing.unit, ing.is_bumbu || false, j);
+        });
         await client.query(
           `INSERT INTO bekal_pool_ingredients (pool_recipe_id, name, quantity_per_portion, unit, is_bumbu_dasar, sort_order)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [poolId, ing.name, ing.qty, ing.unit, ing.is_bumbu || false, j]
+           VALUES ${ingValues.join(', ')}`,
+          ingParams
         );
       }
 
-      // Insert steps
-      for (let k = 0; k < recipe.steps.length; k++) {
+      // Bulk insert steps
+      if (recipe.steps.length > 0) {
+        const stepValues = [];
+        const stepParams = [];
+        let paramIdx = 1;
+        recipe.steps.forEach((step, k) => {
+          stepValues.push(`($${paramIdx++}, $${paramIdx++}, $${paramIdx++})`);
+          stepParams.push(poolId, k + 1, step);
+        });
         await client.query(
-          `INSERT INTO bekal_pool_steps (pool_recipe_id, step_number, instruction) VALUES ($1, $2, $3)`,
-          [poolId, k + 1, recipe.steps[k]]
+          `INSERT INTO bekal_pool_steps (pool_recipe_id, step_number, instruction)
+           VALUES ${stepValues.join(', ')}`,
+          stepParams
         );
       }
     }
