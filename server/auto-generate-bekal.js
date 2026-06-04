@@ -151,17 +151,62 @@ async function generateWeeklyPlan(startDate) {
     // Track which pool IDs we pick this week to avoid intra-week duplicates
     const usedThisWeek = new Set();
 
+    // Helper to categorize protein type
+    const getProteinType = (name) => {
+      if (/ayam|ikan|sosis|daging|sapi/i.test(name)) return 'meat';
+      if (/telur/i.test(name)) return 'egg';
+      return 'plant';
+    };
+
+    let plantCount = 0;
+    let eggCount = 0;
+    let meatCount = 0;
+
     // 5. Pick recipes for each day
     const weekMenu = [];
     for (let i = 0; i < 7; i++) {
       const { protein: pBumbu, sayuran: sBumbu } = schedule[i];
 
-      // Pick protein
-      let proteinRecipe = poolMap.protein[pBumbu].find(r => !usedThisWeek.has(r.id));
+      // --- PICK PROTEIN ---
+      let proteinRecipe = null;
+      
+      const findConstrainedCandidate = (candidates) => {
+        let valid = candidates;
+        if (plantCount >= 2) valid = valid.filter(r => getProteinType(r.name) !== 'plant');
+        if (eggCount >= 2) valid = valid.filter(r => getProteinType(r.name) !== 'egg');
+        const daysLeft = 7 - i;
+        const meatsNeeded = 3 - meatCount;
+        if (meatsNeeded >= daysLeft) {
+          const meatOnly = valid.filter(r => getProteinType(r.name) === 'meat');
+          if (meatOnly.length > 0) valid = meatOnly;
+        }
+        return valid.length > 0 ? valid[0] : null;
+      };
+
+      // 1. Try target bumbu with constraints
+      let pCandidates = poolMap.protein[pBumbu].filter(r => !usedThisWeek.has(r.id));
+      proteinRecipe = findConstrainedCandidate(pCandidates);
+
+      // 2. Fallback to other bumbu with constraints
       if (!proteinRecipe) {
-        // Fallback: any protein from any bumbu
         for (const b of ['merah', 'putih', 'kuning']) {
-          proteinRecipe = poolMap.protein[b].find(r => !usedThisWeek.has(r.id));
+          pCandidates = poolMap.protein[b].filter(r => !usedThisWeek.has(r.id));
+          proteinRecipe = findConstrainedCandidate(pCandidates);
+          if (proteinRecipe) break;
+        }
+      }
+
+      // 3. Last resort: ignore constraints and pick anything from target bumbu
+      if (!proteinRecipe) {
+        pCandidates = poolMap.protein[pBumbu].filter(r => !usedThisWeek.has(r.id));
+        proteinRecipe = pCandidates[0];
+      }
+
+      // 4. Ultimate last resort: ignore constraints and pick anything
+      if (!proteinRecipe) {
+        for (const b of ['merah', 'putih', 'kuning']) {
+          pCandidates = poolMap.protein[b].filter(r => !usedThisWeek.has(r.id));
+          proteinRecipe = pCandidates[0];
           if (proteinRecipe) break;
         }
       }
@@ -175,7 +220,13 @@ async function generateWeeklyPlan(startDate) {
         }
       }
 
-      if (proteinRecipe) usedThisWeek.add(proteinRecipe.id);
+      if (proteinRecipe) {
+        usedThisWeek.add(proteinRecipe.id);
+        const type = getProteinType(proteinRecipe.name);
+        if (type === 'plant') plantCount++;
+        else if (type === 'egg') eggCount++;
+        else meatCount++;
+      }
       if (sayuranRecipe) usedThisWeek.add(sayuranRecipe.id);
 
       weekMenu.push({
