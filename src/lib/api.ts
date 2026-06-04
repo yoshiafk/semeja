@@ -352,7 +352,7 @@ export interface BekalPlan {
   description: string;
   start_date: string;
   week_label: string;
-  status: 'active' | 'archived';
+  status: 'upcoming' | 'active' | 'archived';
   created_by: number | null;
   creator_name: string | null;
   participant_count: number;
@@ -366,11 +366,13 @@ export interface BekalPlanDetail extends BekalPlan {
 
 // Bekal Sehat API functions
 export const getBekalBumbuDasar = () => api.get<BekalBumbuDasar[]>('/bekal-sehat/bumbu-dasar');
-export const getBekalPlans = () => api.get<BekalPlan[]>('/bekal-sehat/plans');
+export const getBekalPlans = (visibility?: 'member' | 'admin') =>
+  api.get<BekalPlan[]>(`/bekal-sehat/plans${visibility ? `?visibility=${visibility}` : ''}`);
 export const getBekalPlanDetail = (id: number) => api.get<BekalPlanDetail>(`/bekal-sehat/plans/${id}`);
 export const createBekalPlan = (data: { title: string; description?: string; start_date: string; week_label: string }) => api.post<BekalPlan>('/bekal-sehat/plans', data);
 export const updateBekalPlan = (id: number, data: Partial<BekalPlan>) => api.put<BekalPlan>(`/bekal-sehat/plans/${id}`, data);
 export const deleteBekalPlan = (id: number) => api.delete<{ message: string }>(`/bekal-sehat/plans/${id}`);
 export const joinBekalPlan = (planId: number, data: { member_id: number; portions?: number }) => api.post<BekalParticipant>(`/bekal-sehat/plans/${planId}/join`, data);
 export const leaveBekalPlan = (planId: number, data: { member_id: number }) => api.post<{ message: string }>(`/bekal-sehat/plans/${planId}/leave`, data);
+export const generateBekalPlan = () => api.post<BekalPlan>('/bekal-sehat/plans/generate');
 

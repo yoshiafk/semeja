@@ -417,12 +417,48 @@ async function initDB(retries = 3) {
         UNIQUE(recipe_id, step_number)
       );
 
+      -- ── Bekal Recipe Pool (template library for auto-generation) ─────
+
+      CREATE TABLE IF NOT EXISTS bekal_recipe_pool (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(200) NOT NULL UNIQUE,
+        description TEXT DEFAULT '',
+        category VARCHAR(20) NOT NULL,        -- 'protein' or 'sayuran'
+        bumbu_dasar_id INTEGER REFERENCES bekal_bumbu_dasar(id),
+        estimasi_waktu INTEGER DEFAULT 30,
+        kalori_estimasi INTEGER DEFAULT 0,
+        tips_bekal TEXT DEFAULT '',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS bekal_pool_ingredients (
+        id SERIAL PRIMARY KEY,
+        pool_recipe_id INTEGER REFERENCES bekal_recipe_pool(id) ON DELETE CASCADE,
+        name VARCHAR(150) NOT NULL,
+        quantity_per_portion DECIMAL(10,3) NOT NULL,
+        unit VARCHAR(30) NOT NULL,
+        is_bumbu_dasar BOOLEAN DEFAULT false,
+        sort_order INTEGER DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS bekal_pool_steps (
+        id SERIAL PRIMARY KEY,
+        pool_recipe_id INTEGER REFERENCES bekal_recipe_pool(id) ON DELETE CASCADE,
+        step_number INTEGER NOT NULL,
+        instruction TEXT NOT NULL,
+        UNIQUE(pool_recipe_id, step_number)
+      );
+
+      -- Link generated recipes back to pool templates for anti-repetition tracking
+      ALTER TABLE bekal_recipes ADD COLUMN IF NOT EXISTS source_pool_id
+        INTEGER REFERENCES bekal_recipe_pool(id) ON DELETE SET NULL;
+
       -- Member participation (join with portion count)
       CREATE TABLE IF NOT EXISTS bekal_participations (
         id SERIAL PRIMARY KEY,
         plan_id INTEGER REFERENCES bekal_plans(id) ON DELETE CASCADE,
         member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
-        portions INTEGER DEFAULT 1, -- 1-5
+        portions INTEGER DEFAULT 1, -- 1-10
         joined_at TIMESTAMP DEFAULT NOW(),
         UNIQUE(plan_id, member_id)
       );
@@ -434,6 +470,13 @@ async function initDB(retries = 3) {
       CREATE INDEX IF NOT EXISTS idx_bekal_bumbu_ingredients_bumbu ON bekal_bumbu_ingredients(bumbu_id);
       CREATE INDEX IF NOT EXISTS idx_bekal_participations_plan ON bekal_participations(plan_id);
       CREATE INDEX IF NOT EXISTS idx_bekal_participations_member ON bekal_participations(member_id);
+      CREATE INDEX IF NOT EXISTS idx_bekal_plans_start_date ON bekal_plans(start_date);
+      CREATE INDEX IF NOT EXISTS idx_bekal_plans_status ON bekal_plans(status);
+      CREATE INDEX IF NOT EXISTS idx_bekal_pool_category ON bekal_recipe_pool(category);
+      CREATE INDEX IF NOT EXISTS idx_bekal_pool_bumbu ON bekal_recipe_pool(bumbu_dasar_id);
+      CREATE INDEX IF NOT EXISTS idx_bekal_recipes_source ON bekal_recipes(source_pool_id);
+      CREATE INDEX IF NOT EXISTS idx_bekal_pool_ingredients_recipe ON bekal_pool_ingredients(pool_recipe_id);
+      CREATE INDEX IF NOT EXISTS idx_bekal_pool_steps_recipe ON bekal_pool_steps(pool_recipe_id);
 
       -- Migration: Ensure meal_ingredients has the unit column if it was created before
       ALTER TABLE meal_ingredients ADD COLUMN IF NOT EXISTS unit VARCHAR(50);

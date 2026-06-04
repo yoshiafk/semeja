@@ -33,6 +33,8 @@ import {
   UserMinus,
   Check,
   BarChart3,
+  CalendarDays,
+  CalendarClock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -371,14 +373,29 @@ function PortionSelector({
         <p className="text-[10px] text-muted-foreground -mt-0.5">porsi</p>
       </div>
       <button
-        onClick={() => onChange(Math.min(5, value + 1))}
-        disabled={value >= 5 || disabled}
+        onClick={() => onChange(Math.min(10, value + 1))}
+        disabled={value >= 10 || disabled}
         className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary disabled:opacity-30 transition-all touch-active"
       >
         <Plus className="w-4 h-4" />
       </button>
     </div>
   );
+}
+
+// ── Helper: Get today's day index (0-6, Mon=0) ──────────────────────
+function getTodayDayIndex(): number {
+  const jsDay = new Date().getDay(); // 0=Sun, 1=Mon, ...
+  return jsDay === 0 ? 6 : jsDay - 1; // Convert to Mon=0, Sun=6
+}
+
+// ── Helper: days until a date ────────────────────────────────────────
+function daysUntil(dateStr: string): number {
+  const target = new Date(dateStr);
+  const today = new Date();
+  target.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 // ── Main Page Component ───────────────────────────────────────────────
@@ -391,6 +408,12 @@ export default function BekalSehat() {
   const [portions, setPortions] = useState(1);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'upcoming'>('active');
+
+  // Derived plan references
+  const activePlan = plans.find((p) => p.status === 'active');
+  const upcomingPlan = plans.find((p) => p.status === 'upcoming');
+  const hasMultiplePlans = !!activePlan && !!upcomingPlan;
 
   // Check if current member is a participant
   const myParticipation = selectedPlan?.participants?.find(
@@ -401,17 +424,24 @@ export default function BekalSehat() {
     setLoading(true);
     try {
       const [plansData, bumbuData] = await Promise.all([
-        getBekalPlans(),
+        getBekalPlans('member'),
         getBekalBumbuDasar(),
       ]);
       setPlans(plansData);
       setBumbuDasar(bumbuData);
 
-      // Auto-load the first active plan
-      const activePlan = plansData.find((p) => p.status === "active") || plansData[0];
-      if (activePlan) {
-        const detail = await getBekalPlanDetail(activePlan.id);
+      // Auto-load the active plan (or first available)
+      const active = plansData.find((p) => p.status === 'active') || plansData[0];
+      if (active) {
+        const detail = await getBekalPlanDetail(active.id);
         setSelectedPlan(detail);
+        setActiveTab('active');
+
+        // Auto-select today's day for active plan
+        const todayIdx = getTodayDayIndex();
+        if (detail.days && todayIdx < detail.days.length) {
+          setSelectedDay(todayIdx);
+        }
 
         // If member is already joined, set their portions
         const myPart = detail.participants?.find((p) => p.member_id === member?.id);
@@ -519,22 +549,103 @@ export default function BekalSehat() {
     );
   }
 
+  // Handle tab switch between active and upcoming plans
+  const handleTabSwitch = async (tab: 'active' | 'upcoming') => {
+    const targetPlan = tab === 'active' ? activePlan : upcomingPlan;
+    if (!targetPlan) return;
+
+    setActiveTab(tab);
+    setLoading(true);
+    try {
+      const detail = await getBekalPlanDetail(targetPlan.id);
+      setSelectedPlan(detail);
+
+      // Auto-select today for active, day 1 for upcoming
+      if (tab === 'active') {
+        const todayIdx = getTodayDayIndex();
+        setSelectedDay(detail.days && todayIdx < detail.days.length ? todayIdx : 0);
+      } else {
+        setSelectedDay(0);
+      }
+
+      // Set portions from participation
+      const myPart = detail.participants?.find((p) => p.member_id === member?.id);
+      setPortions(myPart ? myPart.portions : 1);
+    } catch {
+      toast.error("Gagal memuat data plan");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <PageContainer>
       <div className="animate-page-in">
+        {/* ── Plan Tab Switcher ──────────────────────────────────── */}
+        {hasMultiplePlans && (
+          <div className="mb-5 flex gap-2 p-1 bg-muted/50 rounded-2xl">
+            <button
+              onClick={() => handleTabSwitch('active')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-200",
+                activeTab === 'active'
+                  ? "bg-white text-emerald-700 shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              Minggu Ini
+            </button>
+            <button
+              onClick={() => handleTabSwitch('upcoming')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-200 relative",
+                activeTab === 'upcoming'
+                  ? "bg-white text-blue-700 shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <CalendarClock className="w-3.5 h-3.5" />
+              Minggu Depan
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            </button>
+          </div>
+        )}
+
+        {/* ── Upcoming Plan Banner ───────────────────────────────── */}
+        {selectedPlan?.status === 'upcoming' && (
+          <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
+            <div className="flex items-start gap-2.5">
+              <CalendarClock className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-bold text-blue-800">
+                  Menu Minggu Depan — mulai {selectedPlan.start_date ? new Date(selectedPlan.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' }) : ''}
+                  {selectedPlan.start_date && ` (${daysUntil(selectedPlan.start_date)} hari lagi)`}
+                </p>
+                <p className="text-[11px] text-blue-600 mt-0.5">
+                  Gabung sekarang agar bahan bisa disiapkan!
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Hero Section ────────────────────────────────────────── */}
         <div className="mb-6">
           <div className="flex items-center gap-2.5 mb-1.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+            <div className={cn(
+              "w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br",
+              selectedPlan?.status === 'upcoming' ? "from-blue-400 to-indigo-500" : "from-emerald-400 to-teal-500"
+            )}>
               <Salad className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="text-xl font-extrabold text-foreground leading-tight">Bekal Sehat</h1>
-              <p className="text-xs text-muted-foreground">{selectedPlan.week_label}</p>
+              <p className="text-xs text-muted-foreground">{selectedPlan?.week_label}</p>
             </div>
           </div>
           <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-            {selectedPlan.description}
+            {selectedPlan?.description}
           </p>
         </div>
 

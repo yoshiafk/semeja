@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { syncPlanStatuses, generateWeeklyPlan, getNextMonday } = require('../auto-generate-bekal');
 
 const router = express.Router();
 
@@ -29,17 +30,30 @@ router.get('/bumbu-dasar', async (req, res) => {
 });
 
 // ── GET /api/bekal-sehat/plans ────────────────────────────────────────
-// Get all plans (active first)
+// Get all plans. Supports ?visibility=member to filter for member view.
 router.get('/plans', async (req, res) => {
   try {
+    // Auto-transition statuses & auto-generate next week if needed
+    await syncPlanStatuses();
+
+    const { visibility } = req.query;
+    let statusFilter = '';
+    if (visibility === 'member') {
+      // Members see active + upcoming plans only
+      statusFilter = `WHERE bp.status IN ('active', 'upcoming')`;
+    }
+
     const { rows } = await pool.query(`
       SELECT bp.*, m.name as creator_name,
         CAST(COALESCE(count(DISTINCT bpart.member_id), 0) AS INTEGER) as participant_count
       FROM bekal_plans bp
       LEFT JOIN members m ON bp.created_by = m.id
       LEFT JOIN bekal_participations bpart ON bp.id = bpart.plan_id
+      ${statusFilter}
       GROUP BY bp.id, m.name
-      ORDER BY bp.status = 'active' DESC, bp.created_at DESC
+      ORDER BY 
+        CASE bp.status WHEN 'active' THEN 0 WHEN 'upcoming' THEN 1 ELSE 2 END,
+        bp.start_date DESC
     `);
     res.json(rows);
   } catch (error) {
@@ -135,7 +149,7 @@ router.get('/plans/:id', async (req, res) => {
 });
 
 // ── POST /api/bekal-sehat/plans ───────────────────────────────────────
-// Create a new plan (admin only)
+// Create a new plan (admin only) — status auto-set based on start_date
 router.post('/plans', requireAuth, requireAdmin, async (req, res) => {
   const { title, description, start_date, week_label } = req.body;
   if (!title || !week_label || !start_date) {
@@ -143,15 +157,42 @@ router.post('/plans', requireAuth, requireAdmin, async (req, res) => {
   }
 
   try {
+    const today = new Date().toISOString().split('T')[0];
+    const autoStatus = start_date > today ? 'upcoming' : 'active';
+
     const { rows } = await pool.query(
-      `INSERT INTO bekal_plans (title, description, start_date, week_label, created_by)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [title, description || '', start_date, week_label, req.user.id]
+      `INSERT INTO bekal_plans (title, description, start_date, week_label, status, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [title, description || '', start_date, week_label, autoStatus, req.user.id]
     );
     res.status(201).json(rows[0]);
   } catch (error) {
     console.error('Error creating bekal plan:', error);
     res.status(500).json({ error: 'Failed to create plan' });
+  }
+});
+
+// ── POST /api/bekal-sehat/plans/generate ──────────────────────────────
+// Force-generate next week's plan (admin trigger)
+router.post('/plans/generate', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const nextMonday = getNextMonday(today);
+
+    // Check if already exists
+    const { rows: existing } = await pool.query(
+      `SELECT id FROM bekal_plans WHERE start_date = $1 AND status IN ('upcoming', 'active')`,
+      [nextMonday]
+    );
+    if (existing.length > 0) {
+      return res.status(409).json({ error: 'Plan for next week already exists', plan_id: existing[0].id });
+    }
+
+    const plan = await generateWeeklyPlan(nextMonday);
+    res.status(201).json(plan);
+  } catch (error) {
+    console.error('Error generating bekal plan:', error);
+    res.status(500).json({ error: 'Failed to generate plan' });
   }
 });
 
@@ -272,7 +313,7 @@ router.post('/plans/:id/join', requireAuth, async (req, res) => {
 
   if (!member_id) return res.status(400).json({ error: 'member_id is required' });
 
-  const portionCount = Math.min(5, Math.max(1, parseInt(portions) || 1));
+  const portionCount = Math.min(10, Math.max(1, parseInt(portions) || 1));
 
   try {
     const { rows } = await pool.query(

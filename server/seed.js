@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const { pool } = require('./db');
 const { seedBekalSehat } = require('./seed-bekal');
+const { seedBekalPool } = require('./seed-bekal-pool');
+const { generateWeeklyPlan, getNextMonday } = require('./auto-generate-bekal');
 
 const SUPERADMIN_NAME = process.env.SUPERADMIN_NAME || 'Admin';
 const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD || 'admin123';
@@ -20,6 +22,28 @@ async function seed() {
       await seedBekalSehat();
     } catch (err) {
       console.warn('Bekal Sehat seeding failed (likely concurrent Vercel instances), skipping:', err.message);
+    }
+
+    // Seed recipe pool (has its own idempotency check)
+    try {
+      await seedBekalPool();
+    } catch (err) {
+      console.warn('Bekal recipe pool seeding failed, skipping:', err.message);
+    }
+
+    // Auto-generate first plan if none exists
+    try {
+      const checkClient = await pool.connect();
+      const { rows: planCheck } = await checkClient.query('SELECT id FROM bekal_plans LIMIT 1');
+      checkClient.release();
+      if (planCheck.length === 0) {
+        // Generate plan starting next Monday
+        const today = new Date().toISOString().split('T')[0];
+        const nextMonday = getNextMonday(today);
+        await generateWeeklyPlan(nextMonday);
+      }
+    } catch (err) {
+      console.warn('Auto-generate first bekal plan failed, skipping:', err.message);
     }
     
     client = await pool.connect();
