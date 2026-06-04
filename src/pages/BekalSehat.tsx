@@ -409,6 +409,7 @@ export default function BekalSehat() {
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'upcoming'>('active');
+  const [cachedDetails, setCachedDetails] = useState<Record<number, BekalPlanDetail>>({});
 
   // Derived plan references
   const activePlan = plans.find((p) => p.status === 'active');
@@ -435,17 +436,30 @@ export default function BekalSehat() {
       if (active) {
         const detail = await getBekalPlanDetail(active.id);
         setSelectedPlan(detail);
-        setActiveTab('active');
+        setCachedDetails(prev => ({ ...prev, [active.id]: detail }));
+        setActiveTab(active.status === 'upcoming' ? 'upcoming' : 'active');
 
         // Auto-select today's day for active plan
-        const todayIdx = getTodayDayIndex();
-        if (detail.days && todayIdx < detail.days.length) {
-          setSelectedDay(todayIdx);
+        if (active.status === 'active') {
+          const todayIdx = getTodayDayIndex();
+          if (detail.days && todayIdx < detail.days.length) {
+            setSelectedDay(todayIdx);
+          }
+        } else {
+          setSelectedDay(0);
         }
 
         // If member is already joined, set their portions
         const myPart = detail.participants?.find((p) => p.member_id === member?.id);
         if (myPart) setPortions(myPart.portions);
+      }
+      
+      // Pre-fetch upcoming plan in the background (if exists) so tab switch is instant
+      const upcoming = plansData.find((p) => p.status === 'upcoming');
+      if (upcoming && upcoming.id !== active?.id) {
+        getBekalPlanDetail(upcoming.id).then(detail => {
+          setCachedDetails(prev => ({ ...prev, [upcoming.id]: detail }));
+        }).catch(console.error);
       }
     } catch (err) {
       console.error("Failed to load bekal sehat data:", err);
@@ -469,6 +483,7 @@ export default function BekalSehat() {
       // Reload plan detail
       const detail = await getBekalPlanDetail(selectedPlan.id);
       setSelectedPlan(detail);
+      setCachedDetails(prev => ({ ...prev, [selectedPlan.id]: detail }));
     } catch {
       toast.error("Gagal gabung ke plan");
     } finally {
@@ -485,6 +500,7 @@ export default function BekalSehat() {
       setPortions(1);
       const detail = await getBekalPlanDetail(selectedPlan.id);
       setSelectedPlan(detail);
+      setCachedDetails(prev => ({ ...prev, [selectedPlan.id]: detail }));
     } catch {
       toast.error("Gagal keluar dari plan");
     } finally {
@@ -551,31 +567,41 @@ export default function BekalSehat() {
 
   // Handle tab switch between active and upcoming plans
   const handleTabSwitch = async (tab: 'active' | 'upcoming') => {
+    if (tab === activeTab) return;
     const targetPlan = tab === 'active' ? activePlan : upcomingPlan;
     if (!targetPlan) return;
 
     setActiveTab(tab);
-    setLoading(true);
-    try {
-      const detail = await getBekalPlanDetail(targetPlan.id);
-      setSelectedPlan(detail);
 
-      // Auto-select today for active, day 1 for upcoming
-      if (tab === 'active') {
-        const todayIdx = getTodayDayIndex();
-        setSelectedDay(detail.days && todayIdx < detail.days.length ? todayIdx : 0);
-      } else {
-        setSelectedDay(0);
+    let detail = cachedDetails[targetPlan.id];
+
+    if (!detail) {
+      setLoading(true);
+      try {
+        detail = await getBekalPlanDetail(targetPlan.id);
+        setCachedDetails(prev => ({ ...prev, [targetPlan.id]: detail }));
+      } catch {
+        toast.error("Gagal memuat data plan");
+        setLoading(false);
+        return;
+      } finally {
+        setLoading(false);
       }
-
-      // Set portions from participation
-      const myPart = detail.participants?.find((p) => p.member_id === member?.id);
-      setPortions(myPart ? myPart.portions : 1);
-    } catch {
-      toast.error("Gagal memuat data plan");
-    } finally {
-      setLoading(false);
     }
+
+    setSelectedPlan(detail);
+
+    // Auto-select today for active, day 1 for upcoming
+    if (tab === 'active') {
+      const todayIdx = getTodayDayIndex();
+      setSelectedDay(detail.days && todayIdx < detail.days.length ? todayIdx : 0);
+    } else {
+      setSelectedDay(0);
+    }
+
+    // Set portions from participation
+    const myPart = detail.participants?.find((p) => p.member_id === member?.id);
+    setPortions(myPart ? myPart.portions : 1);
   };
 
   return (
