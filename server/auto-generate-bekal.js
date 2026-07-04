@@ -345,10 +345,11 @@ async function syncPlanStatuses() {
     if (existing.length === 0) {
       const { rows: poolCheck } = await pool.query('SELECT id FROM bekal_recipe_pool LIMIT 1');
       if (poolCheck.length > 0) {
-        // Run generation in the background (fire-and-forget) so we don't block the API response
-        generateWeeklyPlan(nextMonday).catch(err => {
-          console.error('Background auto-generation failed:', err.message);
-        });
+        try {
+          await generateWeeklyPlan(nextMonday);
+        } catch (err) {
+          console.error('Auto-generation failed:', err.message);
+        }
       }
     }
   }

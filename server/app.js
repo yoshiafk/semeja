@@ -112,8 +112,8 @@ async function doEnsureDB() {
       WHERE table_name = 'bekal_recipe_pool' AND column_name = 'is_bumbu_free'
     `);
     
-    // Check if seeded
-    const { rows: bekalCheck } = await client.query('SELECT 1 FROM bekal_bumbu_dasar LIMIT 1');
+    // Check if seeded with the latest budget-friendly recipes
+    const { rows: bekalCheck } = await client.query("SELECT 1 FROM bekal_recipe_pool WHERE name = 'Tahu Kecap Manis'");
     
     if (rows.length > 0 && bekalCheck.length > 0) {
       // Schema is up to date and seeded. Skip heavy initialization!
