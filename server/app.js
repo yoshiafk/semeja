@@ -104,31 +104,57 @@ let dbReady = null;
 
 async function doEnsureDB() {
   let client;
+  let lockAcquired = false;
   try {
     client = await pool.connect();
-    // Fast-path: Check if the latest schema column exists
-    const { rows } = await client.query(`
-      SELECT 1 FROM information_schema.columns 
-      WHERE table_name = 'bekal_recipe_pool' AND column_name = 'is_bumbu_free'
-    `);
     
-    // Check if seeded with the latest budget-friendly recipes
-    const { rows: bekalCheck } = await client.query("SELECT 1 FROM bekal_recipe_pool WHERE name = 'Tahu Kecap Manis'");
-    
-    if (rows.length > 0 && bekalCheck.length > 0) {
-      // Schema is up to date and seeded. Skip heavy initialization!
-      return;
-    }
-  } catch (e) {
-    // Tables don't exist or error occurred, proceed to full init
-  } finally {
-    if (client) client.release();
-  }
+    // Fast-path check
+    const checkFastPath = async () => {
+      try {
+        const { rows } = await client.query(`
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'bekal_recipe_pool' AND column_name = 'is_bumbu_free'
+        `);
+        const { rows: bekalCheck } = await client.query("SELECT 1 FROM bekal_recipe_pool WHERE name = 'Tahu Kecap Manis'");
+        return rows.length > 0 && bekalCheck.length > 0;
+      } catch (e) {
+        return false;
+      }
+    };
 
-  // Full heavy init (fallback)
-  console.log('Running full DB initialization and seed...');
-  await initDB();
-  await seed();
+    if (await checkFastPath()) return;
+
+    // Fast path failed, try to acquire distributed lock (key: 12345) to prevent concurrent lambda seeds
+    const { rows: lockRows } = await client.query('SELECT pg_try_advisory_lock(12345) as acquired');
+    lockAcquired = lockRows[0].acquired;
+
+    if (!lockAcquired) {
+      console.log('Another instance is initializing the DB. Waiting for it to finish...');
+      // Wait for up to 10 seconds for the other instance to finish seeding
+      for (let i = 0; i < 10; i++) {
+        await new Promise(res => setTimeout(res, 1000));
+        if (await checkFastPath()) {
+          console.log('DB initialized by another instance.');
+          return;
+        }
+      }
+      throw new Error('Database initialization lock timeout. Another process took too long.');
+    }
+
+    // Full heavy init (fallback)
+    console.log('Running full DB initialization and seed...');
+    await initDB();
+    await seed();
+
+  } catch (e) {
+    console.error('ensureDB failed:', e.message);
+    throw e;
+  } finally {
+    if (client) {
+      if (lockAcquired) await client.query('SELECT pg_advisory_unlock(12345)');
+      client.release();
+    }
+  }
 }
 
 function ensureDB() {
