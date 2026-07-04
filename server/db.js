@@ -484,6 +484,10 @@ async function initDB(retries = 3) {
       -- Migration: Ensure bekal_plans has start_date
       ALTER TABLE bekal_plans ADD COLUMN IF NOT EXISTS start_date DATE;
 
+      -- Migration: Add protein_type and is_bumbu_free to recipe pool for smarter generation
+      ALTER TABLE bekal_recipe_pool ADD COLUMN IF NOT EXISTS protein_type VARCHAR(20) DEFAULT NULL;
+      ALTER TABLE bekal_recipe_pool ADD COLUMN IF NOT EXISTS is_bumbu_free BOOLEAN DEFAULT false;
+
       -- Performance indexes on foreign keys used in JOINs and WHERE clauses
       CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
       CREATE INDEX IF NOT EXISTS idx_activity_participations_activity_id ON activity_participations(activity_id);

@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const { pool } = require('./db');
 const { seedBekalSehat } = require('./seed-bekal');
 const { seedBekalPool } = require('./seed-bekal-pool');
+const { appendBekalPool } = require('./migrate-bekal-pool');
 const { generateWeeklyPlan, getNextMonday } = require('./auto-generate-bekal');
 
 const SUPERADMIN_NAME = process.env.SUPERADMIN_NAME || 'Admin';
@@ -29,6 +30,13 @@ async function seed() {
       await seedBekalPool();
     } catch (err) {
       console.warn('Bekal recipe pool seeding failed, skipping:', err.message);
+    }
+
+    // Append new diverse recipes to pool (idempotent — ON CONFLICT DO NOTHING)
+    try {
+      await appendBekalPool();
+    } catch (err) {
+      console.warn('Bekal pool migration failed, skipping:', err.message);
     }
 
     // Auto-generate first plan if none exists

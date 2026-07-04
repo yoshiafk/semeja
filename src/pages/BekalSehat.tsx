@@ -383,10 +383,11 @@ function PortionSelector({
   );
 }
 
-// ── Helper: Get today's day index (0-6, Mon=0) ──────────────────────
+// ── Helper: Get today's day index (0-4, Mon=0, Fri=4; -1 if weekend) ──
 function getTodayDayIndex(): number {
-  const jsDay = new Date().getDay(); // 0=Sun, 1=Mon, ...
-  return jsDay === 0 ? 6 : jsDay - 1; // Convert to Mon=0, Sun=6
+  const jsDay = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  if (jsDay === 0 || jsDay === 6) return -1; // Weekend — no bekal day
+  return jsDay - 1; // Mon=0, Tue=1, Wed=2, Thu=3, Fri=4
 }
 
 // ── Helper: days until a date ────────────────────────────────────────
@@ -439,12 +440,11 @@ export default function BekalSehat() {
         setCachedDetails(prev => ({ ...prev, [active.id]: detail }));
         setActiveTab(active.status === 'upcoming' ? 'upcoming' : 'active');
 
-        // Auto-select today's day for active plan
+        // Auto-select today's day for active plan (Mon-Fri only; weekend → Jumat)
         if (active.status === 'active') {
           const todayIdx = getTodayDayIndex();
-          if (detail.days && todayIdx < detail.days.length) {
-            setSelectedDay(todayIdx);
-          }
+          const safeIdx = todayIdx >= 0 && detail.days && todayIdx < detail.days.length ? todayIdx : 0;
+          setSelectedDay(safeIdx);
         } else {
           setSelectedDay(0);
         }
@@ -591,10 +591,11 @@ export default function BekalSehat() {
 
     setSelectedPlan(detail);
 
-    // Auto-select today for active, day 1 for upcoming
+    // Auto-select today for active, day 0 for upcoming/weekend
     if (tab === 'active') {
       const todayIdx = getTodayDayIndex();
-      setSelectedDay(detail.days && todayIdx < detail.days.length ? todayIdx : 0);
+      const safeIdx = todayIdx >= 0 && detail.days && todayIdx < detail.days.length ? todayIdx : 0;
+      setSelectedDay(safeIdx);
     } else {
       setSelectedDay(0);
     }

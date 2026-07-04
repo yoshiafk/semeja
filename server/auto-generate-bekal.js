@@ -1,32 +1,29 @@
 const { pool } = require('./db');
 
 /**
- * Auto-generate a weekly Bekal Sehat plan from the recipe pool.
- * 
+ * Auto-generate a 5-day (Mon-Fri) Bekal Sehat plan from the recipe pool.
+ *
  * Algorithm:
  * 1. Get recently used recipe pool IDs (last 2 weeks) for anti-repetition
- * 2. Get available pool recipes, grouped by category + bumbu
- * 3. Generate a balanced bumbu schedule (no same bumbu for protein+sayuran on same day)
- * 4. Pick recipes matching the bumbu schedule, excluding recently used ones
+ * 2. Get available pool recipes, grouped by category + bumbu (+ free-form bucket)
+ * 3. Generate a balanced bumbu schedule for 5 days
+ * 4. Pick recipes matching the schedule with protein quotas:
+ *    - Ayam: minimum 3 out of 5 days
+ *    - Plant (tempe/tahu): max 1 day
+ *    - Egg (telur): max 1 day
  * 5. Create the plan with days, recipes, ingredients, and steps
  */
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-/**
- * Get the next Monday from a given date string.
- */
 function getNextMonday(fromDateStr) {
   const d = new Date(fromDateStr);
-  const day = d.getDay(); // 0=Sun,1=Mon,...
+  const day = d.getDay();
   const daysUntilMonday = day === 0 ? 1 : day === 1 ? 7 : (8 - day);
   d.setDate(d.getDate() + daysUntilMonday);
   return d.toISOString().split('T')[0];
 }
 
-/**
- * Fisher-Yates shuffle.
- */
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -37,29 +34,20 @@ function shuffle(arr) {
 }
 
 /**
- * Generate a balanced bumbu schedule for 7 days.
- * Constraint: protein.bumbu !== sayuran.bumbu on the same day.
- * Target: roughly equal bumbu usage across all 14 slots.
+ * Generate a balanced bumbu schedule for 5 days.
+ * Each day: protein bumbu !== sayuran bumbu.
  */
 function generateBumbuSchedule() {
   const bumbus = ['merah', 'putih', 'kuning'];
-
-  // Create 7 day-slots with rotated bumbu assignments
-  // Each bumbu appears ~4-5 times across 14 total slots (7 protein + 7 sayuran)
   const schedule = [];
-  for (let day = 0; day < 7; day++) {
+  for (let day = 0; day < 5; day++) {
     const proteinBumbu = bumbus[day % 3];
-    const sayuranBumbu = bumbus[(day + 1) % 3]; // offset by 1 to avoid collision
+    const sayuranBumbu = bumbus[(day + 1) % 3];
     schedule.push({ protein: proteinBumbu, sayuran: sayuranBumbu });
   }
-
-  // Shuffle the day order for variety between weeks
   return shuffle(schedule);
 }
 
-/**
- * Generate the auto-incremented week label.
- */
 async function generateWeekLabel(startDate) {
   const { rows } = await pool.query(
     'SELECT week_label FROM bekal_plans ORDER BY start_date DESC LIMIT 1'
@@ -80,11 +68,6 @@ async function generateWeekLabel(startDate) {
 
 // ── Main Generator ───────────────────────────────────────────────────
 
-/**
- * Generate a complete weekly bekal plan.
- * @param {string} startDate - ISO date string for the Monday start (e.g. '2026-06-08')
- * @returns {object} The created plan row
- */
 async function generateWeeklyPlan(startDate) {
   const client = await pool.connect();
   try {
@@ -95,7 +78,7 @@ async function generateWeeklyPlan(startDate) {
     const bumbuByColor = {};
     bumbuRows.forEach(b => { bumbuByColor[b.color] = b.id; });
 
-    // 2. Get recently used pool IDs (last 2 weeks = last 2 plans)
+    // 2. Get recently used pool IDs (last 2 plans / ~2 weeks)
     const { rows: recentRows } = await client.query(`
       SELECT DISTINCT br.source_pool_id
       FROM bekal_recipes br
@@ -106,7 +89,7 @@ async function generateWeeklyPlan(startDate) {
     `);
     const recentlyUsed = new Set(recentRows.map(r => r.source_pool_id));
 
-    // 3. Get all pool recipes with ingredients and steps
+    // 3. Get all pool recipes with bumbu color and protein_type
     const { rows: allPoolRecipes } = await client.query(`
       SELECT rp.*, bbd.color as bumbu_color
       FROM bekal_recipe_pool rp
@@ -114,119 +97,142 @@ async function generateWeeklyPlan(startDate) {
       ORDER BY rp.id
     `);
 
-    // Group by category + bumbu
+    // Group by category + bumbu (also include 'free' bucket for bumbu-free recipes)
     const poolMap = {
-      protein: { merah: [], putih: [], kuning: [] },
-      sayuran: { merah: [], putih: [], kuning: [] },
+      protein: { merah: [], putih: [], kuning: [], free: [] },
+      sayuran: { merah: [], putih: [], kuning: [], free: [] },
     };
 
     for (const recipe of allPoolRecipes) {
       const cat = recipe.category;
-      const bumbu = recipe.bumbu_color;
-      if (poolMap[cat] && poolMap[cat][bumbu]) {
-        // Prioritize non-recently-used recipes
-        if (!recentlyUsed.has(recipe.id)) {
-          poolMap[cat][bumbu].push(recipe);
-        }
+      if (!poolMap[cat]) continue;
+      const bucket = recipe.is_bumbu_free ? 'free' : (recipe.bumbu_color || 'free');
+      if (!recentlyUsed.has(recipe.id)) {
+        poolMap[cat][bucket].push(recipe);
       }
     }
 
-    // If any group is empty (all were recently used), allow recycling from oldest
+    // If any bumbu bucket is empty, allow recycling from that bumbu
     for (const cat of ['protein', 'sayuran']) {
-      for (const bumbu of ['merah', 'putih', 'kuning']) {
-        if (poolMap[cat][bumbu].length === 0) {
-          poolMap[cat][bumbu] = allPoolRecipes.filter(
-            r => r.category === cat && r.bumbu_color === bumbu
-          );
+      for (const bucket of ['merah', 'putih', 'kuning', 'free']) {
+        if (poolMap[cat][bucket].length === 0) {
+          const fallback = allPoolRecipes.filter(r => {
+            if (r.category !== cat) return false;
+            const b = r.is_bumbu_free ? 'free' : (r.bumbu_color || 'free');
+            return b === bucket;
+          });
+          poolMap[cat][bucket] = fallback;
         }
-        // Shuffle for randomization
-        poolMap[cat][bumbu] = shuffle(poolMap[cat][bumbu]);
+        poolMap[cat][bucket] = shuffle(poolMap[cat][bucket]);
       }
     }
 
-    // 4. Generate bumbu schedule
+    // 4. Generate bumbu schedule for 5 days
     const schedule = generateBumbuSchedule();
-    const dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    const dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
 
-    // Track which pool IDs we pick this week to avoid intra-week duplicates
+    // Track picks this week (intra-week deduplication)
     const usedThisWeek = new Set();
 
-    // Helper to categorize protein type
-    const getProteinType = (name) => {
-      if (/ayam|ikan|sosis|daging|sapi/i.test(name)) return 'meat';
-      if (/telur/i.test(name)) return 'egg';
-      return 'plant';
-    };
-
+    // Protein type counters & quotas (out of 5 days)
+    const CHICKEN_MIN = 3;
+    const PLANT_MAX = 1;
+    const EGG_MAX = 1;
+    let chickenCount = 0;
     let plantCount = 0;
     let eggCount = 0;
-    let meatCount = 0;
 
-    // 5. Pick recipes for each day
+    const getProteinType = (recipe) => {
+      if (recipe.protein_type) return recipe.protein_type;
+      const name = recipe.name || '';
+      if (/ayam/i.test(name)) return 'ayam';
+      if (/ikan|dori|kakap/i.test(name)) return 'ikan';
+      if (/telur/i.test(name)) return 'telur';
+      if (/tempe/i.test(name)) return 'tempe';
+      if (/tahu/i.test(name)) return 'tahu';
+      return 'other';
+    };
+
+    const isPlant = (t) => t === 'tempe' || t === 'tahu';
+
     const weekMenu = [];
-    for (let i = 0; i < 7; i++) {
+
+    /**
+     * Find the best protein candidate respecting chicken/plant/egg quotas.
+     */
+    const findConstrainedProtein = (candidates) => {
+      const i = weekMenu.length;
+      const remaining = 5 - i;
+      const chickenNeeded = CHICKEN_MIN - chickenCount;
+
+      let valid = candidates.filter(r => !usedThisWeek.has(r.id));
+
+      // Hard-block: must pick chicken if quota cannot be met otherwise
+      if (chickenNeeded >= remaining && remaining > 0) {
+        const chickenOnly = valid.filter(r => getProteinType(r) === 'ayam');
+        if (chickenOnly.length > 0) return chickenOnly[0];
+      }
+
+      // Soft-block: exclude plant if over quota
+      if (plantCount >= PLANT_MAX) {
+        valid = valid.filter(r => !isPlant(getProteinType(r)));
+      }
+      // Soft-block: exclude egg if over quota
+      if (eggCount >= EGG_MAX) {
+        valid = valid.filter(r => getProteinType(r) !== 'telur');
+      }
+
+      // Prefer chicken if under quota (chicken candidates first)
+      if (chickenCount < CHICKEN_MIN) {
+        const chickenFirst = [
+          ...valid.filter(r => getProteinType(r) === 'ayam'),
+          ...valid.filter(r => getProteinType(r) !== 'ayam'),
+        ];
+        if (chickenFirst.length > 0) return chickenFirst[0];
+      }
+
+      return valid.length > 0 ? valid[0] : null;
+    };
+
+    // 5. Pick recipes for each of 5 days
+    for (let i = 0; i < 5; i++) {
       const { protein: pBumbu, sayuran: sBumbu } = schedule[i];
 
       // --- PICK PROTEIN ---
       let proteinRecipe = null;
-      
-      const findConstrainedCandidate = (candidates) => {
-        let valid = candidates;
-        if (plantCount >= 2) valid = valid.filter(r => getProteinType(r.name) !== 'plant');
-        if (eggCount >= 2) valid = valid.filter(r => getProteinType(r.name) !== 'egg');
-        const daysLeft = 7 - i;
-        const meatsNeeded = 3 - meatCount;
-        if (meatsNeeded >= daysLeft) {
-          const meatOnly = valid.filter(r => getProteinType(r.name) === 'meat');
-          if (meatOnly.length > 0) valid = meatOnly;
-        }
-        return valid.length > 0 ? valid[0] : null;
-      };
+      const bucketsToTry = [pBumbu, ...['merah', 'putih', 'kuning', 'free'].filter(b => b !== pBumbu)];
 
-      // 1. Try target bumbu with constraints
-      let pCandidates = poolMap.protein[pBumbu].filter(r => !usedThisWeek.has(r.id));
-      proteinRecipe = findConstrainedCandidate(pCandidates);
+      for (const bucket of bucketsToTry) {
+        proteinRecipe = findConstrainedProtein(poolMap.protein[bucket]);
+        if (proteinRecipe) break;
+      }
 
-      // 2. Fallback to other bumbu with constraints
+      // Last resort: ignore quotas, pick anything unused
       if (!proteinRecipe) {
-        for (const b of ['merah', 'putih', 'kuning']) {
-          pCandidates = poolMap.protein[b].filter(r => !usedThisWeek.has(r.id));
-          proteinRecipe = findConstrainedCandidate(pCandidates);
-          if (proteinRecipe) break;
+        for (const bucket of bucketsToTry) {
+          const anyUnused = poolMap.protein[bucket].find(r => !usedThisWeek.has(r.id));
+          if (anyUnused) { proteinRecipe = anyUnused; break; }
         }
       }
 
-      // 3. Last resort: ignore constraints and pick anything from target bumbu
-      if (!proteinRecipe) {
-        pCandidates = poolMap.protein[pBumbu].filter(r => !usedThisWeek.has(r.id));
-        proteinRecipe = pCandidates[0];
-      }
-
-      // 4. Ultimate last resort: ignore constraints and pick anything
-      if (!proteinRecipe) {
-        for (const b of ['merah', 'putih', 'kuning']) {
-          pCandidates = poolMap.protein[b].filter(r => !usedThisWeek.has(r.id));
-          proteinRecipe = pCandidates[0];
-          if (proteinRecipe) break;
-        }
-      }
-
-      // Pick sayuran
-      let sayuranRecipe = poolMap.sayuran[sBumbu].find(r => !usedThisWeek.has(r.id));
-      if (!sayuranRecipe) {
-        for (const b of ['merah', 'putih', 'kuning']) {
-          sayuranRecipe = poolMap.sayuran[b].find(r => !usedThisWeek.has(r.id));
-          if (sayuranRecipe) break;
-        }
-      }
-
+      // Update counters
       if (proteinRecipe) {
         usedThisWeek.add(proteinRecipe.id);
-        const type = getProteinType(proteinRecipe.name);
-        if (type === 'plant') plantCount++;
-        else if (type === 'egg') eggCount++;
-        else meatCount++;
+        const t = getProteinType(proteinRecipe);
+        if (t === 'ayam') chickenCount++;
+        else if (isPlant(t)) plantCount++;
+        else if (t === 'telur') eggCount++;
       }
+
+      // --- PICK SAYURAN ---
+      let sayuranRecipe = null;
+      const sayuranBuckets = [sBumbu, ...['merah', 'putih', 'kuning', 'free'].filter(b => b !== sBumbu)];
+
+      for (const bucket of sayuranBuckets) {
+        sayuranRecipe = poolMap.sayuran[bucket].find(r => !usedThisWeek.has(r.id));
+        if (sayuranRecipe) break;
+      }
+
       if (sayuranRecipe) usedThisWeek.add(sayuranRecipe.id);
 
       weekMenu.push({
@@ -247,7 +253,7 @@ async function generateWeeklyPlan(startDate) {
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [
         `Menu Bekal Sehat ${weekLabel}`,
-        'Menu bekal sehat yang di-generate otomatis dengan variasi bumbu dasar merah, putih, dan kuning. Protein dan sayuran seimbang setiap hari.',
+        'Menu bekal sehat 5 hari (Senin-Jumat) yang di-generate otomatis. Minimal 3 hari Ayam per minggu, variasi bumbu dan sayuran.',
         startDate,
         weekLabel,
         status,
@@ -263,7 +269,6 @@ async function generateWeeklyPlan(startDate) {
       );
       const dayId = dayRows[0].id;
 
-      // Insert both recipes
       for (const [idx, poolRecipe] of [day.protein, day.sayuran].entries()) {
         if (!poolRecipe) continue;
 
@@ -275,28 +280,24 @@ async function generateWeeklyPlan(startDate) {
         );
         const recipeId = recipeRows[0].id;
 
-        // Copy ingredients from pool using INSERT ... SELECT
         await client.query(
           `INSERT INTO bekal_recipe_ingredients (recipe_id, name, quantity_per_portion, unit, is_bumbu_dasar, sort_order)
            SELECT $1, name, quantity_per_portion, unit, is_bumbu_dasar, sort_order
-           FROM bekal_pool_ingredients
-           WHERE pool_recipe_id = $2`,
+           FROM bekal_pool_ingredients WHERE pool_recipe_id = $2`,
           [recipeId, poolRecipe.id]
         );
 
-        // Copy steps from pool using INSERT ... SELECT
         await client.query(
           `INSERT INTO bekal_recipe_steps (recipe_id, step_number, instruction)
            SELECT $1, step_number, instruction
-           FROM bekal_pool_steps
-           WHERE pool_recipe_id = $2`,
+           FROM bekal_pool_steps WHERE pool_recipe_id = $2`,
           [recipeId, poolRecipe.id]
         );
       }
     }
 
     await client.query('COMMIT');
-    console.log(`Auto-generated bekal plan: "${plan.title}" (${plan.status}), start: ${startDate}`);
+    console.log(`Auto-generated bekal plan: "${plan.title}" (${plan.status}), start: ${startDate}, ayam: ${chickenCount}/5`);
     return plan;
   } catch (err) {
     await client.query('ROLLBACK');
@@ -311,17 +312,16 @@ async function generateWeeklyPlan(startDate) {
 
 /**
  * Synchronize plan statuses based on current date.
- * - upcoming → active when start_date <= today
- * - active → archived when start_date + 7 days <= today
+ * Plans run Mon-Fri (5 days), archived after 5 days (Saturday onward).
  * Also triggers auto-generation of next week's plan on Thursday+.
  */
 async function syncPlanStatuses() {
   const today = new Date().toISOString().split('T')[0];
 
-  // 1. Archive expired active plans
+  // 1. Archive expired active plans (5-day plans start Monday, expire Saturday)
   await pool.query(`
     UPDATE bekal_plans SET status = 'archived'
-    WHERE status = 'active' AND start_date + INTERVAL '7 days' <= $1::date
+    WHERE status = 'active' AND start_date + INTERVAL '5 days' <= $1::date
   `, [today]);
 
   // 2. Activate upcoming plans whose week has started
@@ -332,20 +332,17 @@ async function syncPlanStatuses() {
 
   // 3. Auto-generate next week if needed (Thursday+ trigger)
   const todayDate = new Date(today);
-  const dayOfWeek = todayDate.getDay(); // 0=Sun, 4=Thu
+  const dayOfWeek = todayDate.getDay();
 
-  // Thursday(4), Friday(5), Saturday(6), Sunday(0)
   if (dayOfWeek >= 4 || dayOfWeek === 0) {
     const nextMonday = getNextMonday(today);
 
-    // Check if next week's plan already exists
     const { rows: existing } = await pool.query(
       `SELECT id FROM bekal_plans WHERE start_date = $1 AND status IN ('upcoming', 'active')`,
       [nextMonday]
     );
 
     if (existing.length === 0) {
-      // Check that pool has recipes before generating
       const { rows: poolCheck } = await pool.query('SELECT id FROM bekal_recipe_pool LIMIT 1');
       if (poolCheck.length > 0) {
         try {
