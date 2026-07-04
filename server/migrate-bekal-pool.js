@@ -27,8 +27,16 @@ async function appendBekalPool() {
     // Self-healing check: if we haven't inserted the refined recipes yet, drop the old free-form ones
     const { rows: check } = await client.query("SELECT COUNT(*) FROM bekal_recipe_pool WHERE name = 'Tahu Kecap Manis'");
     if (parseInt(check[0].count) === 0) {
+      // Delete all free form recipes to replace them
       await client.query("DELETE FROM bekal_recipe_pool WHERE is_bumbu_free = true");
-      console.log("Cleaned up old free-form recipes to replace with budget-friendly versions.");
+      
+      // Explicitly purge old non-free-form ikan/nangka recipes that were lingering in the DB
+      await client.query("DELETE FROM bekal_recipe_pool WHERE name ILIKE '%ikan%' OR name ILIKE '%nangka%'");
+      
+      // Delete any upcoming plans so the system generates a fresh, clean week
+      await client.query("DELETE FROM bekal_plans WHERE status = 'upcoming'");
+      
+      console.log("Cleaned up old recipes and upcoming plans to replace with budget-friendly versions.");
     }
 
     const newRecipes = [

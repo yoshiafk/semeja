@@ -116,7 +116,8 @@ async function doEnsureDB() {
           WHERE table_name = 'bekal_recipe_pool' AND column_name = 'is_bumbu_free'
         `);
         const { rows: bekalCheck } = await client.query("SELECT 1 FROM bekal_recipe_pool WHERE name = 'Tahu Kecap Manis'");
-        return rows.length > 0 && bekalCheck.length > 0;
+        const { rows: ikanCheck } = await client.query("SELECT 1 FROM bekal_recipe_pool WHERE name ILIKE '%ikan%' OR name ILIKE '%nangka%' LIMIT 1");
+        return rows.length > 0 && bekalCheck.length > 0 && ikanCheck.length === 0;
       } catch (e) {
         return false;
       }
