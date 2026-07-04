@@ -25,10 +25,10 @@ async function appendBekalPool() {
     `);
 
     // Self-healing check: if we haven't inserted the refined recipes yet, drop the old free-form ones
-    const { rows: check } = await client.query("SELECT COUNT(*) FROM bekal_recipe_pool WHERE name = 'Daging Giling Kecap Manis'");
+    const { rows: check } = await client.query("SELECT COUNT(*) FROM bekal_recipe_pool WHERE name = 'Tahu Kecap Manis'");
     if (parseInt(check[0].count) === 0) {
       await client.query("DELETE FROM bekal_recipe_pool WHERE is_bumbu_free = true");
-      console.log("Cleaned up old free-form recipes to replace with refined no-ikan versions.");
+      console.log("Cleaned up old free-form recipes to replace with budget-friendly versions.");
     }
 
     const newRecipes = [
@@ -281,34 +281,34 @@ async function appendBekalPool() {
           'Tuang sisa saus, masak sampai saus mengental.',
         ],
       },
-      // ── FREE-FORM DAGING/SOSIS ───────────────────────────────────────
+      // ── FREE-FORM TAHU/TELUR (BUDGET) ───────────────────────────────
       {
-        name: 'Daging Giling Kecap Manis', category: 'protein',
-        description: 'Daging sapi giling saus kecap manis bawang putih. Sangat cepat dimasak.',
-        protein_type: 'sapi', is_bumbu_free: true, estimasi_waktu: 15, kalori: 250,
-        tips_bekal: 'Tidak perlu dipotong, bisa langsung ditumis dari freezer (jika sudah dicairkan semalam).',
+        name: 'Tahu Kecap Manis', category: 'protein',
+        description: 'Tahu putih goreng saus kecap manis bawang putih. Sangat cepat dan murah.',
+        protein_type: 'tahu', is_bumbu_free: true, estimasi_waktu: 15, kalori: 180,
+        tips_bekal: 'Goreng tahu sampai berkulit agar bumbu lebih meresap dan tahu tidak hancur.',
         ingredients: [
-          { name: 'Daging sapi giling', qty: 100, unit: 'gram' },
+          { name: 'Tahu putih (potong dadu)', qty: 150, unit: 'gram' },
           { name: 'Kecap manis', qty: 2, unit: 'sdm' },
           { name: 'Bawang putih', qty: 3, unit: 'siung' },
           { name: 'Jahe', qty: 0.5, unit: 'ruas' },
           { name: 'Garam', qty: 0.25, unit: 'sdt' },
-          { name: 'Minyak goreng', qty: 2, unit: 'sdm' },
+          { name: 'Minyak goreng', qty: 3, unit: 'sdm' },
         ],
         steps: [
+          'Goreng tahu putih di minyak panas sampai berkulit. Angkat dan sisihkan.',
           'Tumis bawang putih dan jahe sampai harum.',
-          'Masukkan daging sapi giling, aduk sampai berubah warna.',
           'Masukkan kecap manis, garam, dan sedikit air. Didihkan.',
-          'Masak sampai air menyusut dan bumbu meresap. Angkat.',
+          'Masukkan tahu goreng, aduk sampai air menyusut dan bumbu meresap. Angkat.',
         ],
       },
       {
-        name: 'Sosis Asam Manis', category: 'protein',
-        description: 'Sosis sapi tumis saus tomat asam manis.',
-        protein_type: 'sapi', is_bumbu_free: true, estimasi_waktu: 15, kalori: 240,
-        tips_bekal: 'Sangat cepat dan disukai banyak orang.',
+        name: 'Telur Dadar Asam Manis', category: 'protein',
+        description: 'Telur dadar tebal siram saus tomat asam manis.',
+        protein_type: 'telur', is_bumbu_free: true, estimasi_waktu: 15, kalori: 220,
+        tips_bekal: 'Telur dadar awet dan enak dimakan dengan saus asam manis.',
         ingredients: [
-          { name: 'Sosis sapi (potong bulat)', qty: 3, unit: 'buah' },
+          { name: 'Telur ayam', qty: 2, unit: 'butir' },
           { name: 'Saus tomat', qty: 2, unit: 'sdm' },
           { name: 'Bawang bombay', qty: 0.25, unit: 'buah' },
           { name: 'Nanas', qty: 30, unit: 'gram' },
@@ -318,10 +318,10 @@ async function appendBekalPool() {
           { name: 'Minyak goreng', qty: 1, unit: 'sdm' },
         ],
         steps: [
-          'Goreng sosis sebentar hingga mekar, sisihkan.',
+          'Kocok telur dengan sedikit garam, buat dadar tebal, lalu potong-potong. Sisihkan.',
           'Tumis bawang bombay, masukkan saus tomat, nanas, gula, cuka, dan air.',
           'Masak sampai saus mengental.',
-          'Masukkan sosis ke dalam saus, aduk rata lalu sajikan.',
+          'Sajikan telur dadar dengan siraman saus asam manis.',
         ],
       },
       // ── FREE-FORM TELUR ──────────────────────────────────────────────
