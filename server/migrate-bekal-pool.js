@@ -25,10 +25,10 @@ async function appendBekalPool() {
     `);
 
     // Self-healing check: if we haven't inserted the refined recipes yet, drop the old free-form ones
-    const { rows: check } = await client.query("SELECT COUNT(*) FROM bekal_recipe_pool WHERE name = 'Ayam Goreng Mentega'");
+    const { rows: check } = await client.query("SELECT COUNT(*) FROM bekal_recipe_pool WHERE name = 'Daging Giling Kecap Manis'");
     if (parseInt(check[0].count) === 0) {
       await client.query("DELETE FROM bekal_recipe_pool WHERE is_bumbu_free = true");
-      console.log("Cleaned up old free-form recipes to replace with refined versions.");
+      console.log("Cleaned up old free-form recipes to replace with refined no-ikan versions.");
     }
 
     const newRecipes = [
@@ -281,14 +281,14 @@ async function appendBekalPool() {
           'Tuang sisa saus, masak sampai saus mengental.',
         ],
       },
-      // ── FREE-FORM IKAN ───────────────────────────────────────────────
+      // ── FREE-FORM DAGING/SOSIS ───────────────────────────────────────
       {
-        name: 'Ikan Kecap Manis', category: 'protein',
-        description: 'Ikan fillet saus kecap manis bawang putih.',
-        protein_type: 'ikan', is_bumbu_free: true, estimasi_waktu: 20, kalori: 220,
-        tips_bekal: 'Kemas ikan dan saus terpisah.',
+        name: 'Daging Giling Kecap Manis', category: 'protein',
+        description: 'Daging sapi giling saus kecap manis bawang putih. Sangat cepat dimasak.',
+        protein_type: 'sapi', is_bumbu_free: true, estimasi_waktu: 15, kalori: 250,
+        tips_bekal: 'Tidak perlu dipotong, bisa langsung ditumis dari freezer (jika sudah dicairkan semalam).',
         ingredients: [
-          { name: 'Ikan fillet', qty: 150, unit: 'gram' },
+          { name: 'Daging sapi giling', qty: 100, unit: 'gram' },
           { name: 'Kecap manis', qty: 2, unit: 'sdm' },
           { name: 'Bawang putih', qty: 3, unit: 'siung' },
           { name: 'Jahe', qty: 0.5, unit: 'ruas' },
@@ -296,34 +296,32 @@ async function appendBekalPool() {
           { name: 'Minyak goreng', qty: 2, unit: 'sdm' },
         ],
         steps: [
-          'Goreng ikan di minyak panas sampai matang. Angkat.',
           'Tumis bawang putih dan jahe sampai harum.',
-          'Masukkan kecap manis dan sedikit air, didihkan.',
-          'Siram saus ke atas ikan.',
+          'Masukkan daging sapi giling, aduk sampai berubah warna.',
+          'Masukkan kecap manis, garam, dan sedikit air. Didihkan.',
+          'Masak sampai air menyusut dan bumbu meresap. Angkat.',
         ],
       },
       {
-        name: 'Ikan Asam Manis', category: 'protein',
-        description: 'Ikan fillet goreng tepung saus tomat.',
-        protein_type: 'ikan', is_bumbu_free: true, estimasi_waktu: 30, kalori: 240,
-        tips_bekal: 'Bawa saus terpisah.',
+        name: 'Sosis Asam Manis', category: 'protein',
+        description: 'Sosis sapi tumis saus tomat asam manis.',
+        protein_type: 'sapi', is_bumbu_free: true, estimasi_waktu: 15, kalori: 240,
+        tips_bekal: 'Sangat cepat dan disukai banyak orang.',
         ingredients: [
-          { name: 'Ikan fillet', qty: 150, unit: 'gram' },
-          { name: 'Tepung terigu', qty: 3, unit: 'sdm' },
-          { name: 'Tepung maizena', qty: 1, unit: 'sdm' },
+          { name: 'Sosis sapi (potong bulat)', qty: 3, unit: 'buah' },
           { name: 'Saus tomat', qty: 2, unit: 'sdm' },
           { name: 'Bawang bombay', qty: 0.25, unit: 'buah' },
           { name: 'Nanas', qty: 30, unit: 'gram' },
           { name: 'Gula pasir', qty: 1, unit: 'sdt' },
           { name: 'Cuka masak', qty: 0.5, unit: 'sdt' },
           { name: 'Garam', qty: 0.5, unit: 'sdt' },
-          { name: 'Minyak goreng', qty: 100, unit: 'ml' },
+          { name: 'Minyak goreng', qty: 1, unit: 'sdm' },
         ],
         steps: [
-          'Balut ikan dengan campuran tepung, goreng keemasan.',
+          'Goreng sosis sebentar hingga mekar, sisihkan.',
           'Tumis bawang bombay, masukkan saus tomat, nanas, gula, cuka, dan air.',
-          'Masak sampai mengental.',
-          'Sajikan ikan dengan saus.',
+          'Masak sampai saus mengental.',
+          'Masukkan sosis ke dalam saus, aduk rata lalu sajikan.',
         ],
       },
       // ── FREE-FORM TELUR ──────────────────────────────────────────────
