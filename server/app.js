@@ -101,9 +101,39 @@ app.use((err, req, res, _next) => {
 
 // DB initialization (idempotent, safe for serverless cold starts)
 let dbReady = null;
+
+async function doEnsureDB() {
+  let client;
+  try {
+    client = await pool.connect();
+    // Fast-path: Check if the latest schema column exists
+    const { rows } = await client.query(`
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'bekal_recipe_pool' AND column_name = 'is_bumbu_free'
+    `);
+    
+    // Check if seeded
+    const { rows: bekalCheck } = await client.query('SELECT 1 FROM bekal_bumbu_dasar LIMIT 1');
+    
+    if (rows.length > 0 && bekalCheck.length > 0) {
+      // Schema is up to date and seeded. Skip heavy initialization!
+      return;
+    }
+  } catch (e) {
+    // Tables don't exist or error occurred, proceed to full init
+  } finally {
+    if (client) client.release();
+  }
+
+  // Full heavy init (fallback)
+  console.log('Running full DB initialization and seed...');
+  await initDB();
+  await seed();
+}
+
 function ensureDB() {
   if (!dbReady) {
-    dbReady = initDB().then(() => seed());
+    dbReady = doEnsureDB();
   }
   return dbReady;
 }
