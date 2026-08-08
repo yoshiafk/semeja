@@ -600,6 +600,10 @@ async function initDB(retries = 3) {
       CREATE INDEX IF NOT EXISTS idx_trip_hotels_trip ON trip_hotels(trip_id);
       CREATE INDEX IF NOT EXISTS idx_trip_hotel_distances_hotel ON trip_hotel_distances(hotel_id);
       CREATE INDEX IF NOT EXISTS idx_trip_budget_trip ON trip_budget_rows(trip_id);
+
+      -- Migration: Added columns for Trip CRUD features
+      ALTER TABLE trip_schedule_items ADD COLUMN IF NOT EXISTS is_done BOOLEAN DEFAULT false;
+      ALTER TABLE trip_budget_rows ADD COLUMN IF NOT EXISTS actual_amount_rp INTEGER DEFAULT 0;
     `);
     console.log('Database schema initialized');
   } finally {

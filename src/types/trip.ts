@@ -29,6 +29,7 @@ export interface ScheduleItem {
   requires_booking: boolean;
   is_optional: boolean;
   sort_order: number;
+  is_done?: boolean;
 }
 
 export interface TripDay {
@@ -61,9 +62,11 @@ export interface TripHotel {
 }
 
 export interface TripBudgetRow {
+  id: number;
   category: string;
   detail: string;
   amount_rp: number;
+  actual_amount_rp: number;
   is_accommodation: boolean;
   is_total_row: boolean;
 }

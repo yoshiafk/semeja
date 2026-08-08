@@ -163,7 +163,7 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
         <DialogHeader className="p-6 border-b bg-secondary/20">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-              <ListCheck className="h-5 w-5 text-primary" />
+              <ListCheck className="size-5 text-primary" />
               Review & Cocokkan Hasil Scan
             </DialogTitle>
           </div>
@@ -198,7 +198,7 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                   <div className="flex items-center justify-center h-full text-muted-foreground/50 italic text-sm">
                     {loading ? (
                       <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary/40" />
+                        <Loader2 className="size-6 animate-spin text-primary/40" />
                         <p>Mengambil gambar...</p>
                       </div>
                     ) : "Struk tidak tersedia"}
@@ -211,7 +211,7 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
             <div className="flex flex-col bg-white overflow-hidden">
               <div className="p-4 border-b bg-primary/5">
                 <div className="flex items-center gap-2 mb-1">
-                  <Store className="h-5 w-5 text-primary" />
+                  <Store className="size-5 text-primary" />
                   <span className="text-base font-bold text-foreground">
                     {data?.supplierName || 'Merchant Tidak Terdeteksi'}
                   </span>
@@ -221,9 +221,9 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                   <span className="text-2xl font-black text-primary">{formatRupiah(data?.totalAmount || 0)}</span>
                 </div>
 
-                <div className="space-y-1.5 pt-3 border-t">
+                <div className="flex flex-col gap-1.5 pt-3 border-t">
                   <label className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                    <Users className="h-3 w-3" /> Siapa yang bayar?
+                    <Users className="size-3" /> Siapa yang bayar?
                   </label>
                   <div className="flex gap-2 flex-wrap">
                     {members.map(m => (
@@ -245,15 +245,15 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
               </div>
 
               <ScrollArea className="flex-1 p-4">
-                <div className="space-y-3 pb-32">
+                <div className="flex flex-col gap-3 pb-32">
 
                   {loading ? (
                     // Skeleton Loaders
                     Array.from({ length: 6 }).map((_, i) => (
                       <div key={i} className="flex flex-col gap-3 p-3 rounded-xl border border-border bg-white animate-pulse">
                         <div className="flex items-start gap-3">
-                          <div className="h-5 w-5 rounded bg-muted mt-1" />
-                          <div className="flex-1 space-y-2">
+                          <div className="size-5 rounded bg-muted mt-1" />
+                          <div className="flex-1 flex flex-col gap-2">
                             <div className="h-4 w-3/4 bg-muted rounded" />
                             <div className="h-3 w-1/2 bg-muted rounded" />
                           </div>
@@ -264,8 +264,8 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                     ))
                   ) : !data?.items || data.items.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                        <Search className="h-6 w-6 text-muted-foreground/40" />
+                      <div className="size-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                        <Search className="size-6 text-muted-foreground/40" />
                       </div>
                       <p className="text-sm font-medium text-foreground">Tidak ada item terdeteksi</p>
                       <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
@@ -313,9 +313,9 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                           </div>
 
                           {/* Matching Search */}
-                          <div className="pl-7 space-y-1.5 relative">
+                          <div className="pl-7 flex flex-col gap-1.5 relative">
                             <div className="relative">
-                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/60" />
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground/60" />
                               <Input
                                 placeholder="Cari bahan yang cocok..."
                                 value={searchQueries[idx] || ""}
@@ -363,7 +363,7 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                                               setActiveSearchIdx(null);
                                             }}
                                           >
-                                            <Plus className="h-3 w-3" />
+                                            <Plus className="size-3" />
                                             Tambah: "{searchQueries[idx]}" Sebagai Bahan Baru
                                           </button>
                                         )}
@@ -410,7 +410,7 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
               <div className="p-4 bg-secondary/20 border-t">
                 {loading ? (
                   <div className="flex items-center justify-center gap-2 py-1 text-sm text-primary font-medium">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="size-4 animate-spin" />
                     Gemini sedang membaca struk Anda...
                   </div>
                 ) : (
@@ -445,18 +445,18 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
           >
             {isSaving ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
                 Processing...
               </>
             ) : loading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
                 Menganalisa...
               </>
             ) : (
               <>
                 Simpan & Proses Items
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="size-4" />
               </>
             )}
           </Button>

@@ -65,7 +65,7 @@ export default function Suppliers() {
     return (
       <PageContainer>
         <div className="flex h-[60vh] items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Loader2 className="size-6 animate-spin text-primary" />
         </div>
       </PageContainer>
     );
@@ -73,7 +73,7 @@ export default function Suppliers() {
 
   return (
     <PageContainer>
-      <div className="space-y-5 md:space-y-6">
+      <div className="flex flex-col gap-5 md:flex flex-col gap-6">
         {/* Header */}
         <div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Daftar Supplier</h1>
@@ -83,7 +83,7 @@ export default function Suppliers() {
         {/* Search */}
         <div className="flex gap-3">
           <div className="flex-1 relative">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/70" />
             <Input
               placeholder="Cari nama toko atau lokasi..."
               value={search}
@@ -98,8 +98,8 @@ export default function Suppliers() {
 
         {/* List */}
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-            <Search className="h-12 w-12 text-border" />
+          <div className="flex flex-col items-center justify-center py-20 text-center flex flex-col gap-3">
+            <Search className="size-12 text-border" />
             <p className="text-muted-foreground/70 font-medium text-sm">Supplier tidak ditemukan</p>
             <p className="text-muted-foreground text-xs max-w-xs">
               Supplier akan otomatis ditambahkan saat Anda mencatat pembelian bahan baru di halaman Ingredients.
@@ -110,7 +110,7 @@ export default function Suppliers() {
             {filtered.map(supplier => (
               <div 
                 key={supplier.id} 
-                className="rounded-2xl border border-border/50 bg-white hover:border-border transition-all cursor-pointer p-4 space-y-3"
+                className="rounded-2xl border border-border/50 bg-white hover:border-border transition-all cursor-pointer p-4 flex flex-col gap-3"
                 onClick={() => {
                   setCurrentSupplier(supplier);
                   setIsDialogOpen(true);
@@ -119,7 +119,7 @@ export default function Suppliers() {
                 <div>
                   <h3 className="text-base font-semibold text-foreground truncate">{supplier.name}</h3>
                   <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
-                    <MapPin className="h-3 w-3 shrink-0" />
+                    <MapPin className="size-3 shrink-0" />
                     <span className="text-xs line-clamp-1">{supplier.location || "Lokasi belum diisi"}</span>
                   </div>
                 </div>
@@ -127,13 +127,13 @@ export default function Suppliers() {
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/30">
                   <div className="flex flex-col bg-secondary/80 p-2.5 rounded-xl">
                     <span className="text-[11px] text-muted-foreground/70 flex items-center gap-1 mb-0.5">
-                      <FileText className="h-3 w-3" /> Transaksi
+                      <FileText className="size-3" /> Transaksi
                     </span>
                     <span className="text-sm font-semibold text-foreground/90">{supplier.total_purchases}</span>
                   </div>
                   <div className="flex flex-col bg-secondary/80 p-2.5 rounded-xl">
                     <span className="text-[11px] text-muted-foreground/70 flex items-center gap-1 mb-0.5">
-                      <CalendarDays className="h-3 w-3" /> Terakhir
+                      <CalendarDays className="size-3" /> Terakhir
                     </span>
                     <span className="text-xs font-medium text-foreground/90 mt-0.5">
                       {supplier.last_purchase_date 
@@ -155,8 +155,8 @@ export default function Suppliers() {
             <DialogTitle className="text-lg font-bold text-foreground">Info Vendor</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">Update lokasi dan catatan toko</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground">Nama Toko/Supplier</label>
               <Input
                 value={currentSupplier.name}
@@ -166,7 +166,7 @@ export default function Suppliers() {
               <p className="text-[11px] text-muted-foreground/70">Nama supplier dibuat otomatis saat mencatat pembelian.</p>
             </div>
             
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground">Lokasi</label>
               <Input
                 placeholder="Contoh: Jl. Sudirman No 12..."
@@ -176,7 +176,7 @@ export default function Suppliers() {
               />
             </div>
             
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground">Catatan</label>
               <Input
                 placeholder="Jam buka, kontak Whatsapp..."

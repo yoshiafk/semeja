@@ -18,8 +18,8 @@ export function TripHotelCard({ hotel }: { hotel: TripHotel }) {
   return (
     <div className="bg-card border rounded-2xl overflow-hidden shadow-sm mb-4 p-4">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center flex-shrink-0">
-          <Building className="w-5 h-5" />
+        <div className="size-10 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center flex-shrink-0">
+          <Building className="size-5" />
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-bold text-foreground text-lg">{hotel.name}</h3>
@@ -31,7 +31,7 @@ export function TripHotelCard({ hotel }: { hotel: TripHotel }) {
 
       <div className="mt-4 pt-4 border-t border-border">
         <div className="flex gap-2 items-start">
-          <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+          <MapPin className="size-4 text-muted-foreground mt-0.5 flex-shrink-0" />
           <div className="flex-1">
             <button 
               onClick={handleCopy}

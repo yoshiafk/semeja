@@ -41,20 +41,20 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background px-6">
-      <div className="w-full max-w-sm text-center space-y-8">
+      <div className="w-full max-w-sm text-center flex flex-col gap-8">
         {/* Logo with Key Badge */}
-        <div className="relative mx-auto w-24 h-24 animate-page-in animate-float">
+        <div className="relative mx-auto size-24 animate-page-in animate-float">
           <picture>
             <source srcSet="/logo.webp" type="image/webp" />
             <img src="/logo.png" alt="Semeja" className="w-full h-full object-contain" />
           </picture>
-          <div className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-lg animate-page-in stagger-2">
-            <KeyRound className="h-4 w-4 text-primary-foreground" />
+          <div className="absolute -bottom-1 -right-1 flex size-9 items-center justify-center rounded-xl bg-primary shadow-lg animate-page-in stagger-2">
+            <KeyRound className="size-4 text-primary-foreground" />
           </div>
         </div>
 
         {/* Title */}
-        <div className="space-y-2 animate-page-in stagger-1">
+        <div className="flex flex-col gap-2 animate-page-in stagger-1">
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Selamat Datang!</h1>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Semeja khusus untuk penghuni coliving. Masukkan kunci rumah untuk masuk.
@@ -62,7 +62,7 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-3 animate-page-in stagger-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3 animate-page-in stagger-2">
           <Input
             type="password"
             placeholder="Masukkan kunci rumah..."
@@ -80,12 +80,12 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
           >
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 size-4 animate-spin" />
                 Mengecek...
               </>
             ) : (
               <>
-                <Home className="mr-2 h-4 w-4" />
+                <Home className="mr-2 size-4" />
                 Masuk Rumah
               </>
             )}

@@ -25,7 +25,7 @@ export function WhatsAppShareButton({
         className
       )}
     >
-      <MessageCircle className={size === 'sm' ? 'h-3 w-3' : 'h-4 w-4'} />
+      <MessageCircle className={size === 'sm' ? 'size-3' : 'size-4'} />
       {label}
     </button>
   );

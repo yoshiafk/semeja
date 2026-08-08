@@ -47,18 +47,18 @@ export const RecipeCard = React.memo(({
           <div className="flex items-center gap-2 mb-1">
             <h3 className="font-semibold text-sm text-foreground leading-tight line-clamp-2">{recipe.name}</h3>
             {recipe.is_normalized ? (
-              <span className="flex items-center text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full" title="Resep sudah dinormalisasi per 1 porsi">
-                <CheckCircle2 className="h-3 w-3 mr-0.5" /> 1 porsi
+              <span className="flex items-center text-[10px] text-success bg-success/10 px-1.5 py-0.5 rounded-full" title="Resep sudah dinormalisasi per 1 porsi">
+                <CheckCircle2 className="size-3 mr-0.5" /> 1 porsi
               </span>
             ) : (
-              <span className="flex items-center text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full" title="Resep belum dinormalisasi - jumlah bahan mungkin untuk beberapa porsi">
-                <AlertTriangle className="h-3 w-3 mr-0.5" /> Belum normal
+              <span className="flex items-center text-[10px] text-warning-foreground bg-warning/10 px-1.5 py-0.5 rounded-full" title="Resep belum dinormalisasi - jumlah bahan mungkin untuk beberapa porsi">
+                <AlertTriangle className="size-3 mr-0.5" /> Belum normal
               </span>
             )}
           </div>
           {recipe.source_url ? (
             <a href={recipe.source_url} target="_blank" rel="noreferrer" className="text-[11px] text-primary hover:text-primary/80 flex items-center gap-1">
-              <Link2 className="h-3 w-3" /> Cookpad {recipe.servings > 1 && `(${recipe.servings} porsi asli)`}
+              <Link2 className="size-3" /> Cookpad {recipe.servings > 1 && `(${recipe.servings} porsi asli)`}
             </a>
           ) : (
             <p className="text-[11px] text-muted-foreground/70">Manual Entry</p>
@@ -69,37 +69,37 @@ export const RecipeCard = React.memo(({
             <Button 
               variant="ghost" size="icon" 
               disabled={isRescraping}
-              className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-primary hover:bg-primary/10" 
+              className="size-7 rounded-lg text-muted-foreground/70 hover:text-primary hover:bg-primary/10" 
               onClick={() => onRescrape(recipe)}
               title="Re-scrape dari Cookpad"
             >
-              {isRescraping ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              {isRescraping ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
             </Button>
           )}
           {!recipe.is_normalized && !recipe.source_url && (
             <Button 
               variant="ghost" size="icon" 
-              className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-amber-600 hover:bg-amber-50" 
+              className="size-7 rounded-lg text-muted-foreground/70 hover:text-warning-foreground hover:bg-warning/10" 
               onClick={() => onNormalize(recipe)}
               title="Normalisasi manual"
             >
-              <AlertTriangle className="h-3 w-3" />
+              <AlertTriangle className="size-3" />
             </Button>
           )}
           <Button 
             variant="ghost" size="icon" 
-            className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-amber-600 hover:bg-amber-50" 
+            className="size-7 rounded-lg text-muted-foreground/70 hover:text-warning-foreground hover:bg-warning/10" 
             onClick={() => onEdit(recipe)}
           >
-            <Edit2 className="h-3 w-3" />
+            <Edit2 className="size-3" />
           </Button>
           <Button 
             variant="ghost" size="icon" 
             disabled={isDeleting}
-            className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-50" 
+            className="size-7 rounded-lg text-muted-foreground/70 hover:text-destructive hover:bg-destructive/10" 
             onClick={() => onDelete(recipe.id)}
           >
-            {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+            {isDeleting ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
           </Button>
         </div>
       </div>

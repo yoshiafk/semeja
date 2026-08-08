@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Textarea from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Gift, Calendar, Save, Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { Gift, Calendar, Save } from "lucide-react";
 import { createGift } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -43,26 +45,17 @@ export default function NewGift() {
 
   return (
     <PageContainer>
-      <div className="flex items-center gap-4 mb-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="rounded-full h-10 w-10 bg-white/50 backdrop-blur-sm border border-border/50"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">New Gift Plan</h1>
-          <p className="text-sm text-muted-foreground font-medium">Create a gift pooling for an event</p>
-        </div>
-      </div>
+      <PageHeader 
+        title="New Gift Plan" 
+        description="Create a gift pooling for an event" 
+        backTo={-1} 
+      />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="p-6 bg-white/50 backdrop-blur-sm border-border/50 shadow-sm space-y-5">
-          <div className="space-y-2.5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <Card className="p-6 bg-white/50 backdrop-blur-sm border-border/50 shadow-sm flex flex-col gap-5">
+          <div className="flex flex-col gap-2.5">
             <Label htmlFor="title" className="text-sm font-bold flex items-center gap-2">
-              <Gift className="w-4 h-4 text-primary" />
+              <Gift />
               Gift Title
             </Label>
             <Input
@@ -74,7 +67,7 @@ export default function NewGift() {
             />
           </div>
 
-          <div className="space-y-2.5">
+          <div className="flex flex-col gap-2.5">
             <Label htmlFor="description" className="text-sm font-bold">About the Gift</Label>
             <Textarea
               id="description"
@@ -86,9 +79,9 @@ export default function NewGift() {
             />
           </div>
 
-          <div className="space-y-2.5">
+          <div className="flex flex-col gap-2.5">
             <Label htmlFor="event_date" className="text-sm font-bold flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary" />
+              <Calendar />
               Event Date (Optional)
             </Label>
             <Input
@@ -113,14 +106,17 @@ export default function NewGift() {
           </Button>
           <Button
             type="submit"
-            className="flex-1 rounded-2xl h-12 font-bold bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="flex-1 rounded-2xl h-12 font-bold bg-primary text-primary-foreground shadow-lg shadow-primary/20"
             disabled={loading}
           >
             {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <>
+                <Spinner data-icon="inline-start" />
+                Creating...
+              </>
             ) : (
               <>
-                <Save className="w-5 h-5 mr-2" />
+                <Save data-icon="inline-start" />
                 Create Plan
               </>
             )}

@@ -47,7 +47,7 @@ export function DailyRecapCard({ day, onRecord, onEdit, onDelete, isAdmin }: Dai
       {/* Day header */}
       <div className="px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
             <span className="text-xs font-bold">
               {day.day_name.substring(0, 2)}
             </span>
@@ -101,7 +101,7 @@ export function DailyRecapCard({ day, onRecord, onEdit, onDelete, isAdmin }: Dai
 
       {/* Purchase log */}
       {(day.purchases ?? []).length > 0 && (
-        <div className="px-4 py-3 space-y-2.5">
+        <div className="px-4 py-3 flex flex-col gap-2.5">
           {day.purchases.map((p) => (
             <div key={p.id} className="flex items-center justify-between gap-3 group">
               <span className="text-xs text-foreground/80 font-medium truncate">{p.ingredient_name}</span>
@@ -119,7 +119,7 @@ export function DailyRecapCard({ day, onRecord, onEdit, onDelete, isAdmin }: Dai
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/5"
+                        className="size-6 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/5"
                         onClick={() => onEdit(p)}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
@@ -129,7 +129,7 @@ export function DailyRecapCard({ day, onRecord, onEdit, onDelete, isAdmin }: Dai
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                        className="size-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/5"
                         onClick={() => onDelete(p.id)}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>

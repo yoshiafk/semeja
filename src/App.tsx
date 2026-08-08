@@ -2,8 +2,7 @@ import { lazy, Suspense, Component } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
-import { Header } from "@/components/layout/Header";
-import { BottomTabBar} from "@/components/layout/BottomTabBar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { NameEntry } from "@/components/layout/NameEntry";
 import { Gatekeeper } from "@/components/layout/Gatekeeper";
 import { PasswordSetup } from "@/components/layout/PasswordSetup";
@@ -30,15 +29,15 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center bg-gray-50">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Waduh, ada masalah dikit!</h1>
-          <p className="text-gray-600 mb-6 max-w-md">Terjadi kesalahan yang tidak terduga. Silakan coba muat ulang halaman atau hubungi admin jika masalah berlanjut.</p>
-          <pre className="p-4 bg-gray-100 rounded text-xs text-left overflow-auto max-w-full mb-6">
+        <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center bg-background">
+          <h1 className="text-2xl font-bold text-destructive mb-4">Waduh, ada masalah dikit!</h1>
+          <p className="text-muted-foreground mb-6 max-w-md">Terjadi kesalahan yang tidak terduga. Silakan coba muat ulang halaman atau hubungi admin jika masalah berlanjut.</p>
+          <pre className="p-4 bg-muted rounded text-xs text-left overflow-auto max-w-full mb-6 border border-border">
             {this.state.error?.message}
           </pre>
           <button 
             onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             Muat Ulang Halaman
           </button>
@@ -88,7 +87,7 @@ const TripDetailView = lazy(() => import("@/pages/trips/detail"));
 
 const PageLoader = () => (
   <div className="flex h-[60vh] items-center justify-center">
-    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+    <Loader2 className="size-6 animate-spin text-primary" />
   </div>
 );
 
@@ -101,7 +100,7 @@ function App() {
   if (loading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <Loader2 className="size-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -123,11 +122,10 @@ function App() {
               className: "!rounded-xl !border-border/50 !shadow-lg !text-sm !font-medium",
             }}
           />
-          <Header />
-
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              {/* Home Hub */}
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Home Hub */}
               <Route path="/" element={<HomeHub />} />
 
               {/* ── Meals Module ───────────────────────────── */}
@@ -193,11 +191,11 @@ function App() {
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </Suspense>
+        </AppLayout>
 
-          <BottomTabBar />
-          <Analytics />
-          <SpeedInsights />
-        </div>
+        <Analytics />
+        <SpeedInsights />
+      </div>
       </ErrorBoundary>
     </Router>
   );

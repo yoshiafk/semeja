@@ -1,27 +1,29 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Share } from "lucide-react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { Share } from "lucide-react";
 import { getTripDetail } from "@/lib/api";
-import type { TripDetail, TripCity } from "@/types/trip";
+import type { TripDetail } from "@/types/trip";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TripDaySelector } from "@/components/TripDaySelector";
 import { TripDayCard } from "@/components/TripDayCard";
 import { TripHotelCard } from "@/components/TripHotelCard";
 import { TripBudgetTable } from "@/components/TripBudgetTable";
 import { shareToWhatsApp } from "@/lib/whatsapp";
-import { cn } from "@/lib/utils";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/button";
+import { useMember } from "@/hooks/useMember";
 
 export default function TripDetailView() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isAdmin } = useMember();
   
   const currentTab = searchParams.get("tab") || "itinerary";
   
   const [trip, setTrip] = useState<TripDetail | null>(null);
   const [loading, setLoading] = useState(true);
   
-  const [cityFilter, setCityFilter] = useState<TripCity | "all">("all");
   const [activeDay, setActiveDay] = useState<number>(1);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -39,49 +41,55 @@ export default function TripDetailView() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  // Update active day based on scroll position
-  useEffect(() => {
-    if (currentTab !== "itinerary" || !trip?.days) return;
-    
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter(e => e.isIntersecting);
-        if (visible.length > 0) {
-          const topVisible = visible.reduce((a, b) => 
-            a.intersectionRatio > b.intersectionRatio ? a : b
-          );
-          const dayIdStr = topVisible.target.id.replace("day-", "");
-          const dayNum = parseInt(dayIdStr, 10);
-          if (!isNaN(dayNum)) setActiveDay(dayNum);
-        }
-      },
-      { root: null, rootMargin: "-100px 0px -50% 0px", threshold: [0.1, 0.5] }
-    );
-    
-    trip.days.forEach(day => {
-      const el = document.getElementById(`day-${day.day_number}`);
-      if (el) observer.observe(el);
-    });
-    
-    return () => observer.disconnect();
-  }, [trip, currentTab]);
+  // We no longer update active day based on scroll position 
+  // since we only show one day at a time in standalone mode.
 
   const handleSelectDay = (dayNum: number) => {
     setActiveDay(dayNum);
-    const el = document.getElementById(`day-${dayNum}`);
-    if (el) {
-      const y = el.getBoundingClientRect().top + window.scrollY - 160;
-      window.scrollTo({ top: y, behavior: "smooth" });
+  };
+
+  const handleUpdateActual = async (rowId: number, actualAmount: number) => {
+    if (!slug) return;
+    try {
+      // Optimistic update
+      setTrip(prev => {
+        if (!prev) return prev;
+        const newBudget = prev.budget.map(r => r.id === rowId ? { ...r, actual_amount_rp: actualAmount } : r);
+        return { ...prev, budget: newBudget };
+      });
+      // Import the api function
+      const { updateTripBudgetActual } = await import("@/lib/api");
+      await updateTripBudgetActual(slug, rowId, actualAmount);
+    } catch (err) {
+      console.error("Failed to update actual amount:", err);
+      // Fallback: re-fetch if failed
+      getTripDetail(slug).then(setTrip).catch(console.error);
     }
   };
 
-  const handleCityFilter = (city: TripCity | "all") => {
-    setCityFilter(city);
-    if (city !== "all" && trip) {
-      const firstDayOfCity = trip.days.find(d => d.city === city || d.city === "transit");
-      if (firstDayOfCity) {
-        handleSelectDay(firstDayOfCity.day_number);
-      }
+  const handleToggleDone = async (itemId: number, isDone: boolean) => {
+    if (!slug) return;
+    try {
+      // Optimistic update
+      setTrip(prev => {
+        if (!prev) return prev;
+        const newDays = prev.days.map(d => {
+          const hasItem = d.schedule.some(s => s.id === itemId);
+          if (!hasItem) return d;
+          return {
+            ...d,
+            schedule: d.schedule.map(s => s.id === itemId ? { ...s, is_done: isDone } : s)
+          };
+        });
+        return { ...prev, days: newDays };
+      });
+      // Import the api function
+      const { toggleTripScheduleItem } = await import("@/lib/api");
+      await toggleTripScheduleItem(slug, itemId, isDone);
+    } catch (err) {
+      console.error("Failed to toggle item done status:", err);
+      // Fallback: re-fetch if failed
+      getTripDetail(slug).then(setTrip).catch(console.error);
     }
   };
 
@@ -105,120 +113,78 @@ export default function TripDetailView() {
     return <div className="min-h-screen pt-20 text-center text-muted-foreground">Perjalanan tidak ditemukan.</div>;
   }
 
-  const visibleDays = cityFilter === "all" 
-    ? trip.days 
-    : trip.days.filter(d => d.city === cityFilter || d.city === "transit");
+  const visibleDays = trip.days;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b">
-        <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => navigate("/trips")}
-              className="p-1 -ml-1 hover:bg-muted rounded-full active:scale-95 transition-all"
-            >
-              <ArrowLeft className="w-5 h-5 text-foreground" />
-            </button>
-            <h1 className="font-semibold text-lg truncate max-w-[200px] sm:max-w-md">{trip.title}</h1>
-          </div>
-          <button 
-            onClick={handleShareTrip}
-            className="p-2 hover:bg-muted rounded-full text-muted-foreground active:scale-95 transition-all"
+    <PageContainer>
+      <PageHeader 
+        title={trip.title} 
+        backTo="/trips"
+        action={
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleShareTrip} 
+            className="rounded-full size-10 bg-muted/50 hover:bg-muted border border-border/50 transition-colors"
           >
-            <Share className="w-5 h-5" />
-          </button>
-        </div>
-        
-        <div className="max-w-screen-xl mx-auto">
-          <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full flex justify-center py-2">
-            <TabsList className="inline-flex h-10 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground">
-              <TabsTrigger 
-                value="itinerary" 
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-5 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow"
-              >
-                Itinerary
-              </TabsTrigger>
-              <TabsTrigger 
-                value="hotel"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-5 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow"
-              >
-                Hotel
-              </TabsTrigger>
-              <TabsTrigger 
-                value="budget"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-5 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow"
-              >
-                Budget
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-      </div>
+            <Share className="size-5" />
+          </Button>
+        }
+      />
 
-      <div className="p-4 max-w-screen-xl mx-auto" ref={scrollContainerRef}>
+      <div className="max-w-3xl mx-auto w-full flex flex-col" ref={scrollContainerRef}>
+        <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full mb-6">
+          <TabsList className="grid w-full grid-cols-3 rounded-xl p-1 bg-muted/50 border">
+            <TabsTrigger 
+              value="itinerary" 
+              className="rounded-lg text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              Itinerary
+            </TabsTrigger>
+            <TabsTrigger 
+              value="hotel" 
+              className="rounded-lg text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              Hotel
+            </TabsTrigger>
+            <TabsTrigger 
+              value="budget" 
+              className="rounded-lg text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              Budget
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {/* TAB 1: ITINERARY */}
         {currentTab === "itinerary" && (
-          <div className="md:grid md:grid-cols-[240px_1fr] lg:grid-cols-[280px_1fr] md:gap-8 items-start">
-            {/* Sidebar (Sticky on desktop) */}
-            <div className="md:sticky md:top-[120px] z-30">
-              {/* City Filters */}
-              <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide md:flex-wrap md:overflow-visible">
-                <button
-                  onClick={() => handleCityFilter("all")}
-                  className={cn(
-                    "px-4 py-1.5 rounded-full border text-sm font-medium whitespace-nowrap transition-all",
-                    cityFilter === "all" ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-card text-muted-foreground hover:bg-muted"
-                  )}
-                >
-                  Semua
-                </button>
-                <button
-                  onClick={() => handleCityFilter("semarang")}
-                  className={cn(
-                    "px-4 py-1.5 rounded-full border text-sm font-medium whitespace-nowrap transition-all flex items-center gap-1.5",
-                    cityFilter === "semarang" ? "bg-green-600 text-white border-green-600 shadow-sm" : "bg-card text-muted-foreground hover:bg-muted"
-                  )}
-                >
-                  <span className={cn("w-2 h-2 rounded-full", cityFilter === "semarang" ? "bg-white" : "bg-green-500")} />
-                  Semarang
-                </button>
-                <button
-                  onClick={() => handleCityFilter("yogyakarta")}
-                  className={cn(
-                    "px-4 py-1.5 rounded-full border text-sm font-medium whitespace-nowrap transition-all flex items-center gap-1.5",
-                    cityFilter === "yogyakarta" ? "bg-purple-600 text-white border-purple-600 shadow-sm" : "bg-card text-muted-foreground hover:bg-muted"
-                  )}
-                >
-                  <span className={cn("w-2 h-2 rounded-full", cityFilter === "yogyakarta" ? "bg-white" : "bg-purple-500")} />
-                  Yogyakarta
-                </button>
-              </div>
-
-              {/* Sticky Day Selector (below header on mobile, static on desktop) */}
-              <div className="sticky top-[112px] md:static z-30 bg-background/95 md:bg-transparent backdrop-blur-sm py-2 -mx-4 px-4 md:mx-0 md:px-0 md:py-0 border-b border-border/40 md:border-none shadow-sm md:shadow-none">
+          <div className="flex flex-col gap-6 animate-page-in">
+            {/* Filter Section */}
+            <div className="flex flex-col gap-4">
+              {/* Day Selector */}
+              <div className="sticky top-[72px] z-20 bg-background/90 backdrop-blur-md py-2 -mx-4 px-4 md:mx-0 md:px-0">
                 <TripDaySelector 
                   days={trip.days} 
                   activeDay={activeDay} 
-                  cityFilter={cityFilter}
                   onSelectDay={handleSelectDay}
                 />
               </div>
             </div>
 
             {/* Days Content */}
-            <div className="mt-6 md:mt-0 space-y-6">
-              {visibleDays.map(day => (
+            <div className="flex flex-col gap-6 mt-2">
+              {visibleDays.filter(d => d.day_number === activeDay).map(day => (
                 <TripDayCard 
                   key={day.id} 
                   day={day} 
                   tripTitle={trip.title}
-                  defaultExpanded={day.day_number === activeDay}
+                  isStandalone={true}
+                  isAdmin={isAdmin}
+                  onToggleDone={handleToggleDone}
                 />
               ))}
               {visibleDays.length === 0 && (
-                <div className="text-center py-10 text-muted-foreground">
+                <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-2xl border border-dashed">
                   Tidak ada itinerary untuk filter ini.
                 </div>
               )}
@@ -228,12 +194,12 @@ export default function TripDetailView() {
 
         {/* TAB 2: HOTEL */}
         {currentTab === "hotel" && (
-          <div className="space-y-4 pt-2">
+          <div className="flex flex-col gap-4 animate-page-in">
             {trip.hotels.map(hotel => (
               <TripHotelCard key={hotel.id} hotel={hotel} />
             ))}
             {trip.hotels.length === 0 && (
-              <div className="text-center py-10 text-muted-foreground">
+              <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-2xl border border-dashed">
                 Belum ada data penginapan.
               </div>
             )}
@@ -242,21 +208,23 @@ export default function TripDetailView() {
 
         {/* TAB 3: BUDGET */}
         {currentTab === "budget" && (
-          <div className="space-y-4 pt-2">
+          <div className="flex flex-col gap-4 animate-page-in">
             {trip.budget.length > 0 ? (
               <TripBudgetTable 
                 rows={trip.budget} 
                 tripTitle={trip.title}
                 participantCount={trip.participant_count}
+                isAdmin={isAdmin}
+                onUpdateActual={handleUpdateActual}
               />
             ) : (
-              <div className="text-center py-10 text-muted-foreground">
+              <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-2xl border border-dashed">
                 Belum ada data budget.
               </div>
             )}
           </div>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

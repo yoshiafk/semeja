@@ -404,7 +404,7 @@ export default function Costs() {
     return (
       <PageContainer>
         <div className="flex h-[60vh] items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Loader2 className="size-6 animate-spin text-primary" />
         </div>
       </PageContainer>
     );
@@ -412,7 +412,7 @@ export default function Costs() {
 
   return (
     <PageContainer>
-      <div className="space-y-5 md:space-y-6">
+      <div className="flex flex-col gap-5 md:flex flex-col gap-6">
         {/* Header + Week Selector */}
         {plans.length > 0 && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -430,7 +430,7 @@ export default function Costs() {
                 {plans.filter(p => p.status === 'active').map((p) => (
                   <SelectItem key={p.id} value={p.id.toString()} className="text-sm rounded-lg">
                     {format(new Date(p.week_start), "d MMM", { locale: id })} – {format(new Date(p.week_end), "d MMM yyyy", { locale: id })}
-                    <span className="ml-2 text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded-md">Aktif</span>
+                    <span className="ml-2 text-[10px] text-success font-semibold bg-success/10 px-1.5 py-0.5 rounded-md">Aktif</span>
                   </SelectItem>
                 ))}
                 
@@ -450,8 +450,8 @@ export default function Costs() {
         )}
 
         {!data ? (
-          <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-3 bg-secondary rounded-2xl border border-dashed border-border">
-            <Receipt className="h-12 w-12 text-muted-foreground/50" />
+          <div className="flex flex-col items-center justify-center h-[50vh] text-center flex flex-col gap-3 bg-secondary rounded-2xl border border-dashed border-border">
+            <Receipt className="size-12 text-muted-foreground/50" />
             <div>
               <h2 className="text-base font-semibold text-foreground/90">Belum ada perhitungan biaya</h2>
               <p className="text-sm text-muted-foreground mt-1">Pilih pekan lain atau hubungi admin untuk membuat jadwal baru.</p>
@@ -463,7 +463,7 @@ export default function Costs() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative">
               {(loading || isSaving) && (
                 <div className="absolute inset-0 z-10 bg-white/50 backdrop-blur-[2px] rounded-2xl flex items-center justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <Loader2 className="size-6 animate-spin text-primary" />
                 </div>
               )}
               <div className="md:col-span-2 bg-primary/5 p-5 md:p-6 rounded-2xl border border-primary/10 flex flex-col justify-center">
@@ -482,7 +482,7 @@ export default function Costs() {
                       <div className="text-3xl md:text-4xl font-bold text-primary tracking-tight">
                         {formatRupiah(data.total_actual_cost)}
                       </div>
-                      <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md mb-1">
+                      <span className="text-[10px] text-success font-semibold bg-success/10 px-2 py-0.5 rounded-md mb-1">
                         Aktual
                       </span>
                     </div>
@@ -512,12 +512,12 @@ export default function Costs() {
           
               <div className="grid grid-cols-2 md:grid-cols-1 gap-3">
                 <div className="rounded-2xl border border-border/50 bg-white p-4 flex flex-col items-center justify-center text-center">
-                  <Users className="h-5 w-5 text-primary/40 mb-1.5" />
+                  <Users className="size-5 text-primary/40 mb-1.5" />
                   <div className="text-xl font-bold text-foreground">{data.member_totals.length}</div>
                   <div className="text-[11px] text-muted-foreground/70 font-medium">Warga Ikut</div>
                 </div>
                 <div className="rounded-2xl border border-border/50 bg-white p-4 flex flex-col items-center justify-center text-center">
-                  <ShoppingCart className="h-5 w-5 text-primary/40 mb-1.5" />
+                  <ShoppingCart className="size-5 text-primary/40 mb-1.5" />
                   <div className="text-xl font-bold text-foreground">{data.shopping_list.length}</div>
                   <div className="text-[11px] text-muted-foreground/70 font-medium">Jenis Bahan</div>
                 </div>
@@ -535,13 +535,13 @@ export default function Costs() {
                 </TabsList>
               </div>
 
-              <TabsContent value="split" className="mt-0 space-y-6">
+              <TabsContent value="split" className="mt-0 flex flex-col gap-6">
                 {/* Member Totals */}
-                <div className="space-y-3">
+                <div className="flex flex-col gap-3">
                   <h3 className="text-xs font-semibold text-muted-foreground/70 flex items-center gap-1.5">
                     <Users className="h-3.5 w-3.5" /> Distribusi Biaya
                   </h3>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     {data.member_totals.length === 0 ? (
                       <div className="text-center py-10 text-muted-foreground/70 text-sm">Belum ada warga yang bergabung</div>
                     ) : (
@@ -550,7 +550,7 @@ export default function Costs() {
                         .map(member => (
                           <div key={member.member_id} className="rounded-xl border border-border/50 bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-bold text-sm">
+                              <div className="size-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-bold text-sm">
                                 {member.days_joined}
                               </div>
                               <div>
@@ -563,25 +563,25 @@ export default function Costs() {
                                 <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Belanja</div>
                                 {(member as any).actual_total && (member as any).actual_total > 0 ? (
                                   <>
-                                    <div className="text-sm font-bold text-rose-600">{formatRupiah((member as any).actual_total)}</div>
+                                    <div className="text-sm font-bold text-destructive">{formatRupiah((member as any).actual_total)}</div>
                                     <div className="text-[10px] text-muted-foreground/70 line-through">Est: {formatRupiah(member.total)}</div>
                                   </>
                                 ) : (
-                                  <div className="text-sm font-bold text-rose-600">{formatRupiah(member.total)}</div>
+                                  <div className="text-sm font-bold text-destructive">{formatRupiah(member.total)}</div>
                                 )}
                               </div>
 
                               {((member as any).activity_total || 0) > 0 && (
                                 <div className="text-left md:text-right">
                                   <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Aktifitas</div>
-                                  <div className="text-sm font-bold text-blue-600">+{formatRupiah((member as any).activity_total || 0)}</div>
+                                  <div className="text-sm font-bold text-info">+{formatRupiah((member as any).activity_total || 0)}</div>
                                 </div>
                               )}
 
                               {((member as any).gift_total || 0) > 0 && (
                                 <div className="text-left md:text-right">
                                   <div className="text-[10px] text-muted-foreground font-semibold uppercase mb-1 hidden md:block">Gifts</div>
-                                  <div className="text-sm font-bold text-pink-600">+{formatRupiah((member as any).gift_total || 0)}</div>
+                                  <div className="text-sm font-bold text-chart-4">+{formatRupiah((member as any).gift_total || 0)}</div>
                                 </div>
                               )}
 
@@ -603,7 +603,7 @@ export default function Costs() {
                 </div>
 
                 {/* Settlement section */}
-                <div className="space-y-3">
+                <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-semibold text-muted-foreground/70 flex items-center gap-1.5">
                       <Receipt className="h-3.5 w-3.5" /> Status Pembayaran
@@ -612,7 +612,7 @@ export default function Costs() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 px-3 gap-1.5 text-xs font-medium rounded-lg border-green-300 text-green-700 hover:bg-green-50"
+                        className="h-8 px-3 gap-1.5 text-xs font-medium rounded-lg border-success/30 text-success hover:bg-success/10"
                         onClick={() => {
                           const currentPlan = plans.find(p => p.id === activePlanId);
                           const wl = currentPlan
@@ -631,7 +631,7 @@ export default function Costs() {
                       </Button>
                     )}
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     {data.member_totals
                       .sort((a, b) => b.total - a.total)
                       .map(memberData => (
@@ -662,7 +662,7 @@ export default function Costs() {
 
 
               {/* NEW: Daily tab – per-day actuals */}
-              <TabsContent value="daily" className="mt-0 space-y-3">
+              <TabsContent value="daily" className="mt-0 flex flex-col gap-3">
                 {data.daily_breakdown.map(day => (
                   <DailyRecapCard
                     key={day.meal_id}
@@ -744,7 +744,7 @@ export default function Costs() {
                   </Button>
                 </div>
               </div>
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   {data.shopping_list.map((ing, idx) => (
                     <div 
                       key={idx} 
@@ -761,13 +761,13 @@ export default function Costs() {
                             {ing.name}
                           </h4>
                           {ing.has_enough_stock ? (
-                            <span className="text-[11px] text-emerald-600 font-medium mt-0.5 inline-block">✓ Terpenuhi dari stok</span>
+                            <span className="text-[11px] text-success font-medium mt-0.5 inline-block">✓ Terpenuhi dari stok</span>
                           ) : ing.cheapest_supplier ? (
                             <span className="text-[11px] text-info font-medium mt-0.5 inline-block">📍 Termurah di {ing.cheapest_supplier}</span>
                           ) : null}
                         </div>
                         {ing.has_enough_stock && (
-                          <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md shrink-0">
+                          <span className="text-[10px] text-success font-semibold bg-success/10 px-2 py-0.5 rounded-md shrink-0">
                             Stok OK
                           </span>
                         )}
@@ -785,7 +785,7 @@ export default function Costs() {
                         {!ing.has_enough_stock && (
                           <div className="flex-1">
                             <span className="text-[11px] text-muted-foreground/70 block mb-0.5">Beli Kekurangan</span>
-                            <span className="font-semibold text-rose-600 text-sm">
+                            <span className="font-semibold text-destructive text-sm">
                               {ing.shortage_quantity % 1 === 0 ? ing.shortage_quantity : Number(ing.shortage_quantity).toFixed(2)}
                               <span className="text-[11px] text-muted-foreground/70 ml-1">{ing.unit}</span>
                             </span>
@@ -797,21 +797,21 @@ export default function Costs() {
                       <div className="flex items-center justify-between pt-2 border-t border-border/30">
                         <div>
                           <span className="text-[11px] text-muted-foreground/70 block mb-0.5">Estimasi Biaya</span>
-                          <span className={`text-base font-bold tracking-tight ${ing.has_enough_stock ? 'text-muted-foreground/50' : 'text-emerald-600'}`}>
+                          <span className={`text-base font-bold tracking-tight ${ing.has_enough_stock ? 'text-muted-foreground/50' : 'text-success'}`}>
                             {formatRupiah(ing.cost_to_buy)}
                           </span>
                         </div>
                         {!ing.has_enough_stock && ing.ingredient_id && (
                           <Button 
                             variant="default" size="sm" 
-                            className="h-8 px-3 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700"
+                            className="h-8 px-3 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90"
                             onClick={() => {
                               setSelectedIngredient({ id: ing.ingredient_id, name: ing.name, qty: ing.shortage_quantity, unit: ing.unit });
                               setFormData({ ...formData, quantity: ing.shortage_quantity.toString(), total_price: ing.cost_to_buy.toString() });
                               setIsPurchaseOpen(true);
                             }}
                           >
-                            <Plus className="h-3 w-3 mr-1" /> Catat
+                            <Plus className="size-3 mr-1" /> Catat
                           </Button>
                         )}
                       </div>
@@ -821,7 +821,7 @@ export default function Costs() {
 
                 {/* Purchase History Section */}
                 {data.purchases && data.purchases.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-border/50 space-y-4">
+                  <div className="mt-8 pt-6 border-t border-border/50 flex flex-col gap-4">
                     <h3 className="text-xs font-semibold text-muted-foreground/70 flex items-center gap-1.5 uppercase tracking-wider">
                       <TrendingUp className="h-3.5 w-3.5" /> Riwayat Belanja Pekan Ini
                     </h3>
@@ -829,8 +829,8 @@ export default function Costs() {
                       {data.purchases.map((p) => (
                         <div key={p.id} className="bg-white border border-border/50 rounded-xl p-3 flex items-center justify-between group hover:shadow-sm transition-shadow">
                           <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 bg-secondary/80 rounded-lg flex items-center justify-center text-muted-foreground group-hover:bg-primary/5 group-hover:text-primary transition-colors">
-                              <Receipt className="h-4 w-4" />
+                            <div className="size-9 bg-secondary/80 rounded-lg flex items-center justify-center text-muted-foreground group-hover:bg-primary/5 group-hover:text-primary transition-colors">
+                              <Receipt className="size-4" />
                             </div>
                             <div className="min-w-0">
                               <p className="text-sm font-bold text-foreground truncate">{p.ingredient_name}</p>
@@ -858,7 +858,7 @@ export default function Costs() {
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5"
+                                    className="size-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5"
                                     onClick={() => handleEditPurchase(p)}
                                   >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
@@ -866,7 +866,7 @@ export default function Costs() {
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                                    className="size-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/5"
                                     onClick={() => handleDeletePurchase(p.id)}
                                   >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
@@ -888,11 +888,11 @@ export default function Costs() {
                                     variant="ghost" 
                                     size="icon" 
                                     className={cn(
-                                      "h-8 w-8 rounded-lg",
-                                      p.receipt_id ? "text-emerald-600 bg-emerald-50" : "text-muted-foreground/40 bg-secondary/50"
+                                      "size-8 rounded-lg",
+                                      p.receipt_id ? "text-primary bg-primary/10" : "text-muted-foreground/40 bg-secondary/50"
                                     )}
                                   >
-                                    <FileImage className="h-4 w-4" />
+                                    <FileImage className="size-4" />
                                   </Button>
                                 }
                               />
@@ -915,7 +915,7 @@ export default function Costs() {
         if (!open) setEditingPurchaseId(null);
       }}>
         <DialogContent className="w-[95vw] max-w-lg rounded-2xl p-0 border-border overflow-hidden bg-card flex flex-col max-h-[90vh]">
-          <div className="p-6 overflow-y-auto w-full space-y-4">
+          <div className="p-6 overflow-y-auto w-full flex flex-col gap-4">
             <DialogHeader className="mb-2">
               <DialogTitle className="text-lg font-bold">
                 {editingPurchaseId ? "Edit Catatan" : "Catat Pembelian"}
@@ -931,11 +931,11 @@ export default function Costs() {
                 </div>
               )}
             </DialogHeader>
-          <form onSubmit={recordPurchase} className="space-y-4 pt-3">
+          <form onSubmit={recordPurchase} className="flex flex-col gap-4 pt-3">
             {/* Day Selector - Updated for Multi-select */}
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 leading-none">
-                <CalendarDays className="h-3 w-3" /> Dipakai Hari Apa? (Bisa pilih multi)
+                <CalendarDays className="size-3" /> Dipakai Hari Apa? (Bisa pilih multi)
               </label>
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
                 <button
@@ -980,7 +980,7 @@ export default function Costs() {
               {formData.assigned_meal_ids.length > 1 && (
                 <div className="px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/10 flex items-center gap-2">
                   <div className="p-1 rounded bg-primary/20">
-                    <TrendingUp className="h-3 w-3 text-primary" />
+                    <TrendingUp className="size-3 text-primary" />
                   </div>
                   <p className="text-[10px] text-primary font-medium">
                     Biaya akan disebar otomatis ke {formData.assigned_meal_ids.length} hari pilihan
@@ -989,16 +989,16 @@ export default function Costs() {
               )}
             </div>
 
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground">Beli di (Nama Toko/Suplier)</label>
               <Input required value={formData.supplier_name} onChange={e => setFormData({ ...formData, supplier_name: e.target.value })} placeholder="Cth: Pasar Palmerah / Indomaret" className="h-10 rounded-xl bg-secondary/80 border-border text-sm" />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Kuantitas ({selectedIngredient?.unit})</label>
                 <Input type="number" step="0.01" required value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })} className="h-10 rounded-xl bg-secondary/80 border-border text-sm" />
               </div>
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Total Harga (Rp)</label>
                 <Input type="number" required value={formData.total_price} onChange={e => setFormData({ ...formData, total_price: e.target.value })} className="h-10 rounded-xl bg-secondary/80 border-border text-sm" />
               </div>
@@ -1020,7 +1020,7 @@ export default function Costs() {
             />
 
             <Button type="submit" disabled={isSaving} className="w-full h-11 rounded-xl text-sm font-bold shadow-sm">
-              {isSaving && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              {isSaving && <Loader2 className="mr-1.5 size-4 animate-spin" />}
               {editingPurchaseId ? "Perbarui Catatan" : "Simpan Tagihan Aktual"}
             </Button>
           </form>
@@ -1064,7 +1064,7 @@ export default function Costs() {
                 : 'Cocokkan item di struk dengan daftar belanja pekan ini.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             <div className="flex bg-secondary/50 p-1 rounded-xl mb-4">
               <button 
                 className={cn("flex-1 py-2 text-xs font-bold rounded-lg transition-all", !isManualEntry ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
@@ -1093,14 +1093,14 @@ export default function Costs() {
                 onClear={() => {}}
               />
             ) : (
-              <form onSubmit={recordPurchase} className="space-y-4">
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
+              <form onSubmit={recordPurchase} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] font-bold text-muted-foreground uppercase">Item / Bahan</label>
                      {!isAddingNewIngredient ? (
                       <div className="relative">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
                           <Input 
                             placeholder="Cari Bahan..." 
                             value={manualSearchQuery}
@@ -1142,7 +1142,7 @@ export default function Costs() {
                                   {(filtered.length === 0 || query.length > 2) && (
                                     <button
                                       type="button"
-                                      className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 text-emerald-600 font-bold transition-colors flex items-center gap-2 border-t mt-1"
+                                      className="w-full text-left px-3 py-2 text-xs hover:bg-success/10 text-success font-bold transition-colors flex items-center gap-2 border-t mt-1"
                                       onClick={() => {
                                         setIsAddingNewIngredient(true);
                                         setNewIngredient({ ...newIngredient, name: manualSearchQuery });
@@ -1182,7 +1182,7 @@ export default function Costs() {
                           variant="ghost" 
                           size="icon" 
                           onClick={() => setIsAddingNewIngredient(false)}
-                          className="h-10 w-10 rounded-xl text-red-500"
+                          className="size-10 rounded-xl text-red-500"
                         >
                           ×
                         </Button>
@@ -1190,7 +1190,7 @@ export default function Costs() {
                     )}
                   </div>
 
-                  <div className="space-y-1.5 pt-1">
+                  <div className="flex flex-col gap-1.5 pt-1">
                     <label className="text-[10px] font-bold text-muted-foreground uppercase">Tag ke Hari / Menu</label>
                     <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
                       <button
@@ -1223,7 +1223,7 @@ export default function Costs() {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] font-bold text-muted-foreground uppercase">Toko / Supplier</label>
                     <Input 
                       required 
@@ -1235,7 +1235,7 @@ export default function Costs() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
+                    <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] font-bold text-muted-foreground uppercase">Kuantitas</label>
                       <Input 
                         type="number" 
@@ -1246,7 +1246,7 @@ export default function Costs() {
                         className="h-10 rounded-xl bg-secondary/80 border-border text-sm" 
                       />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] font-bold text-muted-foreground uppercase">Total Harga (Rp)</label>
                       <Input 
                         type="number" 
@@ -1258,7 +1258,7 @@ export default function Costs() {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5 pt-1">
+                  <div className="flex flex-col gap-1.5 pt-1">
                     <label className="text-[10px] font-bold text-muted-foreground uppercase">Warga yang Bayar</label>
                     <div className="flex gap-2 flex-wrap">
                       {allMembers.map(m => (
@@ -1281,7 +1281,7 @@ export default function Costs() {
                 </div>
 
                 <Button type="submit" disabled={isSaving} className="w-full h-11 rounded-xl text-sm font-bold mt-4 shadow-lg shadow-primary/20">
-                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isSaving && <Loader2 className="mr-2 size-4 animate-spin" />}
                   Catat Pembelian Manual
                 </Button>
               </form>

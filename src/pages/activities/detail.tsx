@@ -62,7 +62,7 @@ export default function ActivityDetail() {
     return (
       <PageContainer>
         <div className="flex justify-center p-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Loader2 className="size-6 animate-spin text-primary" />
         </div>
       </PageContainer>
     );
@@ -166,7 +166,7 @@ export default function ActivityDetail() {
     <PageContainer>
       <div className="flex items-center mb-6">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mr-2">
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="size-5" />
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight text-foreground line-clamp-1">{activity.title}</h1>
@@ -174,45 +174,45 @@ export default function ActivityDetail() {
         {(isAdmin || activity.created_by === member?.id) && (
           <div className="flex gap-2">
             <Button variant="ghost" size="icon" onClick={handleArchive} disabled={actionLoading} title="Arsipkan">
-              <Archive className="w-5 h-5 text-muted-foreground" />
+              <Archive className="size-5 text-muted-foreground" />
             </Button>
             <Button variant="ghost" size="icon" onClick={handleDelete} disabled={actionLoading} title="Hapus" className="text-destructive hover:text-destructive">
-              <Trash2 className="w-5 h-5" />
+              <Trash2 className="size-5" />
             </Button>
           </div>
         )}
       </div>
 
-      <div className="space-y-6 pb-24">
+      <div className="flex flex-col gap-6 pb-24">
         {/* Info Card */}
-        <div className="p-5 rounded-2xl border border-border/50 bg-card space-y-4 shadow-sm">
+        <div className="p-5 rounded-2xl border border-border/50 bg-card flex flex-col gap-4 shadow-sm">
           {activity.description && (
             <p className="text-sm text-foreground leading-relaxed">
               {activity.description}
             </p>
           )}
 
-          <div className="space-y-3 pt-2">
+          <div className="flex flex-col gap-3 pt-2">
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Calendar className="w-4 h-4 text-primary" />
+              <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Calendar className="size-4 text-primary" />
               </div>
               <div>
                 <p className="font-medium text-foreground">{format(dateObj, "EEEE, d MMMM yyyy", { locale: idLocale })}</p>
-                <p className="flex items-center gap-1"><Clock className="w-3 h-3" /> {activity.time.substring(0, 5)} WIB</p>
+                <p className="flex items-center gap-1"><Clock className="size-3" /> {activity.time.substring(0, 5)} WIB</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <MapPin className="w-4 h-4 text-primary" />
+              <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <MapPin className="size-4 text-primary" />
               </div>
               <p className="font-medium text-foreground">{activity.location || "Lokasi belum ditentukan"}</p>
             </div>
             
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Info className="w-4 h-4 text-primary" />
+              <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Info className="size-4 text-primary" />
               </div>
               <div>
                 <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary uppercase tracking-wider mb-0.5">
@@ -229,7 +229,7 @@ export default function ActivityDetail() {
 
             {/* Price Items Breakdown */}
             {activity.items && activity.items.length > 0 && (
-              <div className="pt-4 border-t border-border/30 space-y-3">
+              <div className="pt-4 border-t border-border/30 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                     <ListCheck className="h-3.5 w-3.5" /> Rincian Biaya
@@ -238,7 +238,7 @@ export default function ActivityDetail() {
                     Total: Rp {activity.cost_amount.toLocaleString('id-ID')}
                   </span>
                 </div>
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   {activity.items.map((item, idx) => (
                     <div key={idx} className="flex justify-between items-center text-sm py-1 border-b border-border/10 last:border-0">
                       <div className="flex-1 min-w-0 pr-4">
@@ -313,7 +313,7 @@ export default function ActivityDetail() {
                           setIsOCRReviewOpen(true);
                         }}
                       >
-                        <Sparkles className="h-4 w-4" />
+                        <Sparkles className="size-4" />
                         Atur Biaya
                       </Button>
                     )}
@@ -336,10 +336,10 @@ export default function ActivityDetail() {
         />
 
         {/* Participants section */}
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between px-1">
             <h3 className="font-semibold text-foreground flex items-center gap-2">
-              <Users className="w-4 h-4 text-muted-foreground" />
+              <Users className="size-4 text-muted-foreground" />
               Peserta
             </h3>
             <span className="text-xs text-muted-foreground">
@@ -351,7 +351,7 @@ export default function ActivityDetail() {
             {activity.participants?.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">Belum ada peserta.</p>
             ) : (
-              <ul className="space-y-2">
+              <ul className="flex flex-col gap-2">
                 {activity.participants?.map(p => (
                   <li key={p.id} className="flex justify-between items-center p-3 rounded-xl bg-muted/30 border border-border/30">
                     <span className="font-medium text-sm text-foreground">{p.member_name}</span>
@@ -402,7 +402,7 @@ export default function ActivityDetail() {
               onClick={handleJoin} 
               disabled={isFull || actionLoading}
             >
-              {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isFull ? "Penuh" : "Ikut")}
+              {actionLoading ? <Loader2 className="size-5 animate-spin" /> : (isFull ? "Penuh" : "Ikut")}
             </Button>
           </div>
         )}

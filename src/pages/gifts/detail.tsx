@@ -180,7 +180,7 @@ export default function GiftDetail() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         <p className="text-sm text-muted-foreground font-medium">Loading details...</p>
       </div>
     );
@@ -200,9 +200,9 @@ export default function GiftDetail() {
           variant="ghost"
           size="icon"
           onClick={() => navigate(-1)}
-          className="rounded-full h-10 w-10 bg-white/50 backdrop-blur-sm border border-border/50"
+          className="rounded-full size-10 bg-white/50 backdrop-blur-sm border border-border/50"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="size-5" />
         </Button>
         <div className="flex-1 min-w-0">
           <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider mb-1 bg-primary/5 text-primary border-primary/20">
@@ -214,15 +214,15 @@ export default function GiftDetail() {
           variant="ghost"
           size="icon"
           onClick={handleDeleteGift}
-          className="rounded-full h-10 w-10 text-muted-foreground hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100 transition-colors"
+          className="rounded-full size-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 transition-colors"
         >
-          <Trash2 className="w-5 h-5" />
+          <Trash2 className="size-5" />
         </Button>
       </div>
 
-      <div className="space-y-6 pb-20">
+      <div className="flex flex-col gap-6 pb-20">
         {/* Info Card */}
-        <Card className="p-5 bg-white/50 border-border/50 shadow-sm space-y-4">
+        <Card className="p-5 bg-white/50 border-border/50 shadow-sm flex flex-col gap-4">
           {gift.description && (
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
               {gift.description}
@@ -233,7 +233,7 @@ export default function GiftDetail() {
             <div className="flex items-center gap-2">
               {isEditingDate ? (
                 <div className="flex items-center gap-2 bg-secondary/30 pl-3 pr-1 py-1 rounded-lg border border-border/40">
-                  <Calendar className="w-4 h-4 text-primary" />
+                  <Calendar className="size-4 text-primary" />
                   <input
                     type="date"
                     value={editedDate}
@@ -243,20 +243,20 @@ export default function GiftDetail() {
                   <div className="flex gap-1 ml-1">
                     <Button 
                       size="sm" 
-                      className="h-7 w-7 rounded-md p-0" 
+                      className="size-7 rounded-md p-0" 
                       onClick={handleUpdateDate}
                       disabled={submitting}
                     >
-                      {submitting ? <Loader2 className="h-3 w-3 animate-spin"/> : <CheckCircle2 className="h-4 w-4" />}
+                      {submitting ? <Loader2 className="size-3 animate-spin"/> : <CheckCircle2 className="size-4" />}
                     </Button>
                     <Button 
                       size="sm" 
                       variant="ghost" 
-                      className="h-7 w-7 rounded-md p-0" 
+                      className="size-7 rounded-md p-0" 
                       onClick={() => setIsEditingDate(false)}
                       disabled={submitting}
                     >
-                      <Circle className="h-4 w-4 text-muted-foreground" />
+                      <Circle className="size-4 text-muted-foreground" />
                     </Button>
                   </div>
                 </div>
@@ -268,13 +268,13 @@ export default function GiftDetail() {
                     setIsEditingDate(true);
                   }}
                 >
-                  <Calendar className="w-4 h-4 text-primary" />
+                  <Calendar className="size-4 text-primary" />
                   {gift.event_date ? format(new Date(gift.event_date), "MMMM d, yyyy") : "Set Event Date"}
                 </div>
               )}
             </div>
             <div className="flex items-center gap-2 text-xs font-semibold text-foreground bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/10">
-              <Users className="w-4 h-4 text-primary" />
+              <Users className="size-4 text-primary" />
               {gift.participants.length} Participants
             </div>
           </div>
@@ -283,10 +283,10 @@ export default function GiftDetail() {
         {/* Cost Breakdown Card */}
         <Card className="p-5 bg-primary/5 border-primary/10 shadow-sm overflow-hidden relative">
           <div className="absolute top-0 right-0 p-3 opacity-5 pointer-events-none">
-            <DollarSign className="w-16 h-16" />
+            <DollarSign className="size-16" />
           </div>
           <h3 className="text-sm font-bold text-primary flex items-center gap-2 mb-4">
-            <DollarSign className="w-4 h-4" />
+            <DollarSign className="size-4" />
             Cost Calculation
           </h3>
           <div className="grid grid-cols-2 gap-4">
@@ -304,11 +304,11 @@ export default function GiftDetail() {
             {isJoined ? (
               <Button 
                 variant="outline" 
-                className="w-full rounded-2xl h-11 border-red-200 text-red-600 hover:bg-red-50 font-bold"
+                className="w-full rounded-2xl h-11 border-destructive/30 text-destructive hover:bg-destructive/10 font-bold"
                 onClick={handleLeave}
                 disabled={submitting}
               >
-                <UserMinus className="w-4 h-4 mr-2" />
+                <UserMinus className="size-4 mr-2" />
                 Leave Pooling
               </Button>
             ) : (
@@ -317,7 +317,7 @@ export default function GiftDetail() {
                 onClick={handleJoin}
                 disabled={submitting}
               >
-                <UserPlus className="w-4 h-4 mr-2" />
+                <UserPlus className="size-4 mr-2" />
                 Join & Split Cost
               </Button>
             )}
@@ -328,7 +328,7 @@ export default function GiftDetail() {
         </Card>
 
         {/* Items Section */}
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase tracking-wide">
               Gift Items
@@ -347,7 +347,7 @@ export default function GiftDetail() {
 
           {showItemForm && (
             <Card className="p-4 border-dashed border-primary/30 bg-primary/5 mb-4 animate-in slide-in-from-top-2">
-              <form onSubmit={handleAddItem} className="space-y-3">
+              <form onSubmit={handleAddItem} className="flex flex-col gap-3">
                 <Input 
                   placeholder="Item name (e.g. Birthday Cake)" 
                   value={newItem.name}
@@ -374,7 +374,7 @@ export default function GiftDetail() {
             </Card>
           )}
 
-          <div className="space-y-2.5">
+          <div className="flex flex-col gap-2.5">
             {gift.items.length === 0 ? (
               <div className="py-10 text-center border-2 border-dashed border-border/50 rounded-2xl bg-muted/20">
                 <p className="text-xs text-muted-foreground font-medium italic">No items added yet</p>
@@ -387,7 +387,7 @@ export default function GiftDetail() {
                   className={cn(
                     "flex items-center gap-3 p-3 rounded-2xl border transition-all",
                     item.status === 'bought' 
-                      ? "bg-green-50/50 border-green-100 opacity-80" 
+                      ? "bg-success/5 border-success/20 opacity-80" 
                       : "bg-white border-border/50"
                   )}
                 >
@@ -396,16 +396,16 @@ export default function GiftDetail() {
                     disabled={togglingItems.includes(item.id)}
                     className={cn(
                       "p-1 rounded-full transition-colors",
-                      item.status === 'bought' ? "text-green-500" : "text-muted-foreground/30 hover:text-primary/40",
+                      item.status === 'bought' ? "text-success" : "text-muted-foreground/30 hover:text-primary/40",
                       togglingItems.includes(item.id) && "animate-pulse"
                     )}
                   >
                     {togglingItems.includes(item.id) ? (
-                      <Loader2 className="w-6 h-6 animate-spin text-primary/50" />
+                      <Loader2 className="size-6 animate-spin text-primary/50" />
                     ) : item.status === 'bought' ? (
-                      <CheckCircle2 className="w-6 h-6" />
+                      <CheckCircle2 className="size-6" />
                     ) : (
-                      <Circle className="w-6 h-6" />
+                      <Circle className="size-6" />
                     )}
                   </button>
                   <div className="flex-1 min-w-0">
@@ -427,7 +427,7 @@ export default function GiftDetail() {
                           }}
                           trigger={
                             <button className="text-[10px] text-primary flex items-center gap-1 hover:underline font-bold">
-                              <Receipt className="h-3 w-3" /> Lihat Struk
+                              <Receipt className="size-3" /> Lihat Struk
                             </button>
                           }
                         />
@@ -455,9 +455,9 @@ export default function GiftDetail() {
                     variant="ghost" 
                     size="icon" 
                     onClick={() => handleDeleteItem(item.id)}
-                    className="h-8 w-8 text-muted-foreground/50 hover:text-red-500 rounded-full"
+                    className="size-8 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-full"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="size-4" />
                   </Button>
                 </div>
               ))
@@ -466,7 +466,7 @@ export default function GiftDetail() {
         </div>
 
         {/* Participants Table */}
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <h2 className="text-sm font-bold text-foreground px-1 uppercase tracking-wide">
             Participants ({gift.participants.length})
           </h2>
@@ -480,7 +480,7 @@ export default function GiftDetail() {
                 gift.participants.map((p) => (
                   <div key={p.id} className="flex items-center justify-between p-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                      <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
                         {p.member_name.substring(0, 2).toUpperCase()}
                       </div>
                       <span className="text-sm font-bold text-foreground truncate max-w-[120px]">

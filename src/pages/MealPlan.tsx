@@ -228,7 +228,7 @@ export default function MealPlanPage() {
     return (
       <PageContainer>
         <div className="flex h-[60vh] items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Loader2 className="size-6 animate-spin text-primary" />
         </div>
       </PageContainer>
     );
@@ -236,7 +236,7 @@ export default function MealPlanPage() {
 
   return (
     <PageContainer>
-      <div className="space-y-6 pb-8">
+      <div className="flex flex-col gap-6 pb-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-border/50">
           <div>
@@ -267,9 +267,9 @@ export default function MealPlanPage() {
                   size="sm"
                 onClick={() => { setRsvpDeadline(defaultDeadline()); setIsProposeDialogOpen(true); }}
                 disabled={isUpdatingStatus}
-                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-amber-600 hover:bg-amber-50 gap-1.5"
+                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-warning-foreground hover:bg-warning/10 gap-1.5"
               >
-                <Send className="h-3 w-3" />
+                <Send className="size-3" />
                 Usulkan
               </Button>
             )}
@@ -286,9 +286,9 @@ export default function MealPlanPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => { setWaMessage(msg); setIsWAPreviewOpen(true); }}
-                  className="h-9 px-3 rounded-lg text-xs font-medium border-green-300 text-green-700 hover:bg-green-50 gap-1.5"
+                  className="h-9 px-3 rounded-lg text-xs font-medium border-success/30 text-success hover:bg-success/10 gap-1.5"
                 >
-                  <MessageCircle className="h-3 w-3" />
+                  <MessageCircle className="size-3" />
                   Kirim WA Lagi
                 </Button>
               );
@@ -301,7 +301,7 @@ export default function MealPlanPage() {
                 size="sm"
                 onClick={() => transitionPlan('active')}
                 disabled={isUpdatingStatus}
-                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-green-600 hover:bg-green-50 gap-1.5"
+                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-success hover:bg-success/10 gap-1.5"
               >
                 Kunci Menu
               </Button>
@@ -312,7 +312,7 @@ export default function MealPlanPage() {
                 size="sm"
                 onClick={() => transitionPlan('shopping')}
                 disabled={isUpdatingStatus}
-                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-blue-600 hover:bg-blue-50 gap-1.5"
+                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-info hover:bg-info/10 gap-1.5"
               >
                 Mulai Belanja
               </Button>
@@ -323,7 +323,7 @@ export default function MealPlanPage() {
                 size="sm"
                 onClick={() => transitionPlan('closed')}
                 disabled={isUpdatingStatus}
-                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-purple-600 hover:bg-purple-50 gap-1.5"
+                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-chart-3 hover:bg-chart-3/10 gap-1.5"
               >
                 Selesai Belanja
               </Button>
@@ -334,9 +334,9 @@ export default function MealPlanPage() {
                   size="sm"
                 onClick={archivePlan}
                 disabled={isUpdatingStatus}
-                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-amber-600 hover:bg-amber-50 gap-1.5"
+                className="h-9 px-3 rounded-lg text-xs font-medium border-border/50 text-muted-foreground/70 hover:text-warning-foreground hover:bg-warning/10 gap-1.5"
               >
-                {isUpdatingStatus ? <Loader2 className="h-3 w-3 animate-spin" /> : <Archive className="h-3 w-3" />}
+                {isUpdatingStatus ? <Loader2 className="size-3 animate-spin" /> : <Archive className="size-3" />}
                 Arsipkan
               </Button>
             )}
@@ -346,7 +346,7 @@ export default function MealPlanPage() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsDeleteDialogOpen(true)}
-                className="h-9 w-9 rounded-lg text-muted-foreground/50 hover:text-rose-500 hover:bg-rose-50"
+                className="size-9 rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
@@ -373,9 +373,9 @@ export default function MealPlanPage() {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-            <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center">
-              <LayoutGrid className="h-6 w-6 text-muted-foreground/70" />
+          <div className="flex flex-col items-center justify-center py-20 text-center flex flex-col gap-3">
+            <div className="size-14 rounded-2xl bg-muted flex items-center justify-center">
+              <LayoutGrid className="size-6 text-muted-foreground/70" />
             </div>
             <p className="text-sm text-muted-foreground/70 font-medium">Belum ada perencanaan untuk pekan ini</p>
           </div>
@@ -391,8 +391,8 @@ export default function MealPlanPage() {
               Kirimkan ke anggota untuk dikonfirmasi keikutsertaannya
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground">Batas Waktu RSVP</label>
               <Input
                 type="datetime-local"
@@ -407,7 +407,7 @@ export default function MealPlanPage() {
               Batal
             </Button>
             <Button disabled={isUpdatingStatus} className="flex-1 h-11 rounded-xl font-semibold shadow-none" onClick={proposePlan}>
-              {isUpdatingStatus ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Mengusulkan...</> : "Usulkan & Bagikan WA"}
+              {isUpdatingStatus ? <><Loader2 className="mr-2 size-4 animate-spin" />Mengusulkan...</> : "Usulkan & Bagikan WA"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -429,8 +429,8 @@ export default function MealPlanPage() {
               Pilih tanggal mulai untuk jadwal 7 hari ke depan
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground">Tanggal Mulai</label>
               <Input
                 type="date"
@@ -445,7 +445,7 @@ export default function MealPlanPage() {
               Batal
             </Button>
             <Button disabled={isCreatingPlan} className="flex-1 h-11 rounded-xl font-semibold shadow-none" onClick={createNewPlan}>
-              {isCreatingPlan ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Membuat...</> : "Buat Jadwal"}
+              {isCreatingPlan ? <><Loader2 className="mr-2 size-4 animate-spin" /> Membuat...</> : "Buat Jadwal"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -468,10 +468,10 @@ export default function MealPlanPage() {
             </Button>
             <Button 
               disabled={isUpdatingStatus} 
-              className="flex-1 h-11 rounded-xl font-semibold bg-rose-600 hover:bg-rose-700 shadow-none" 
+              className="flex-1 h-11 rounded-xl font-semibold bg-destructive hover:bg-destructive/90 shadow-none text-destructive-foreground" 
               onClick={deletePlan}
             >
-              {isUpdatingStatus ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Ya, Hapus"}
+              {isUpdatingStatus ? <Loader2 className="mr-2 size-4 animate-spin" /> : "Ya, Hapus"}
             </Button>
           </DialogFooter>
         </DialogContent>

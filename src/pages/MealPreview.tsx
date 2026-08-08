@@ -160,7 +160,7 @@ export default function MealPreviewPage() {
     return (
       <PageContainer>
         <div className="flex justify-center items-center h-40">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
       </PageContainer>
     );
@@ -170,7 +170,7 @@ export default function MealPreviewPage() {
     return (
       <PageContainer>
         <div className="text-center py-20 text-muted-foreground">
-          <ScanEye className="w-8 h-8 mx-auto mb-2 opacity-40" />
+          <ScanEye className="size-8 mx-auto mb-2 opacity-40" />
           <p className="text-sm">Tidak ada meal plan aktif.</p>
         </div>
       </PageContainer>
@@ -193,8 +193,8 @@ export default function MealPreviewPage() {
         </div>
         <Button onClick={handleSave} disabled={isSaving || dirtyCount === 0} size="sm" className="flex-shrink-0">
           {isSaving
-            ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-            : <ShoppingCart className="w-4 h-4 mr-1.5" />}
+            ? <Loader2 className="size-4 mr-1.5 animate-spin" />
+            : <ShoppingCart className="size-4 mr-1.5" />}
           Simpan {dirtyCount > 0 ? `(${dirtyCount})` : ""}
         </Button>
       </div>
@@ -220,7 +220,7 @@ export default function MealPreviewPage() {
       </div>
 
       {/* Ingredient table by category */}
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         {Object.entries(grouped).map(([category, items]) => {
           const isExpanded = expandedCats[category] !== false;
           const overrideCount = items.filter(i => i.has_override).length;
@@ -238,14 +238,14 @@ export default function MealPreviewPage() {
                     {items.length} bahan
                   </span>
                   {overrideCount > 0 && (
-                    <span className="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
+                    <span className="text-xs text-warning bg-warning/10 px-2 py-0.5 rounded-full font-medium">
                       {overrideCount} diubah
                     </span>
                   )}
                 </div>
                 {isExpanded
-                  ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                  : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                  ? <ChevronUp className="size-4 text-muted-foreground" />
+                  : <ChevronDown className="size-4 text-muted-foreground" />}
               </button>
 
               {/* Ingredient rows */}
@@ -256,7 +256,7 @@ export default function MealPreviewPage() {
                     <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wide">Bahan</span>
                     <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wide text-right">Perlu</span>
                     <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wide text-right">Stok</span>
-                    <span className="text-[10px] uppercase font-semibold text-amber-600 tracking-wide text-center">Override qty/org</span>
+                    <span className="text-[10px] uppercase font-semibold text-warning tracking-wide text-center">Override qty/org</span>
                     <span />
                   </div>
 
@@ -270,7 +270,7 @@ export default function MealPreviewPage() {
                         key={ing.ingredient_id}
                         className={cn(
                           "grid grid-cols-[1fr_80px_80px_90px_40px] gap-2 items-center px-4 py-2.5",
-                          hasOverride && "bg-amber-50/40",
+                          hasOverride && "bg-warning/10",
                           ing.has_enough_stock && "opacity-60"
                         )}
                       >
@@ -279,14 +279,14 @@ export default function MealPreviewPage() {
                           <p className="text-sm font-medium text-foreground truncate">{ing.name}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {ing.has_enough_stock && (
-                              <span className="flex items-center gap-0.5 text-[10px] text-green-700 font-medium">
-                                <PackageCheck className="w-3 h-3" />
+                              <span className="flex items-center gap-0.5 text-[10px] text-success font-medium">
+                                <PackageCheck className="size-3" />
                                 Cukup stok
                               </span>
                             )}
                             {hasOverride && (
-                              <span className="flex items-center gap-0.5 text-[10px] text-amber-600 font-medium">
-                                <TrendingUp className="w-3 h-3" />
+                              <span className="flex items-center gap-0.5 text-[10px] text-warning font-medium">
+                                <TrendingUp className="size-3" />
                                 Override aktif
                               </span>
                             )}
@@ -313,8 +313,8 @@ export default function MealPreviewPage() {
                           placeholder={hasOverride ? "disimpan" : "qty/org"}
                           className={cn(
                             "h-7 text-xs text-right px-2",
-                            isDirty && "border-amber-300 bg-amber-50 ring-amber-100",
-                            hasOverride && !isDirty && "border-amber-200"
+                            isDirty && "border-warning/30 bg-warning/10 ring-warning/20",
+                            hasOverride && !isDirty && "border-warning/30"
                           )}
                         />
 
@@ -327,9 +327,9 @@ export default function MealPreviewPage() {
                           }
                           disabled={!isDirty && !hasOverride}
                           className={cn(
-                            "flex items-center justify-center w-7 h-7 rounded-lg transition-colors",
+                            "flex items-center justify-center size-7 rounded-lg transition-colors",
                             (isDirty || hasOverride)
-                              ? "text-muted-foreground hover:text-red-500 hover:bg-red-50"
+                              ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                               : "text-transparent pointer-events-none"
                           )}
                           title={hasOverride ? "Hapus override" : "Reset"}
@@ -351,8 +351,8 @@ export default function MealPreviewPage() {
         <div className="fixed bottom-20 left-0 right-0 px-4 z-40 lg:hidden">
           <Button onClick={handleSave} disabled={isSaving} className="w-full shadow-xl">
             {isSaving
-              ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-              : <ShoppingCart className="w-4 h-4 mr-1.5" />}
+              ? <Loader2 className="size-4 mr-1.5 animate-spin" />
+              : <ShoppingCart className="size-4 mr-1.5" />}
             Simpan {dirtyCount} perubahan
           </Button>
         </div>

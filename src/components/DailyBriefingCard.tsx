@@ -44,7 +44,7 @@ export function DailyBriefingCard({ meals, onStartLogging }: DailyBriefingCardPr
       {/* Header */}
       <div className="px-4 py-3 bg-primary/5 border-b border-border/30 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ShoppingCart className="h-4 w-4 text-primary" />
+          <ShoppingCart className="size-4 text-primary" />
           <span className="text-sm font-semibold text-foreground">
             {isTomorrow ? 'Belanja besok' : 'Belanja hari ini'}
             <span className="ml-1.5 text-xs font-normal text-muted-foreground">

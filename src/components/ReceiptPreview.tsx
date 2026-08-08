@@ -31,7 +31,7 @@ export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ receiptId, digit
       <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden rounded-2xl border-none">
         <DialogHeader className="p-4 bg-secondary/30 border-b border-border/50">
           <DialogTitle className="text-sm font-bold flex items-center gap-2">
-            <Receipt className="h-4 w-4 text-primary" />
+            <Receipt className="size-4 text-primary" />
             {receiptId ? "Struk Pembelian" : "Preview Digital"}
           </DialogTitle>
         </DialogHeader>
@@ -52,26 +52,26 @@ export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ receiptId, digit
                   asChild 
                   size="icon" 
                   variant="secondary" 
-                  className="h-8 w-8 rounded-full shadow-lg bg-white/90 backdrop-blur-sm"
+                  className="size-8 rounded-full shadow-lg bg-white/90 backdrop-blur-sm"
                 >
                   <a href={`/api/attachments/${receiptId}`} target="_blank" rel="noreferrer">
-                    <ExternalLink className="h-4 w-4" />
+                    <ExternalLink className="size-4" />
                   </a>
                 </Button>
               </div>
             </div>
           ) : digitalData ? (
-            <div className="p-6 space-y-6 bg-white">
+            <div className="p-6 flex flex-col gap-6 bg-white">
               {/* Digital receipt design */}
-              <div className="text-center space-y-1">
-                <div className="h-12 w-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-2">
-                  <Receipt className="h-6 w-6" />
+              <div className="text-center flex flex-col gap-1">
+                <div className="size-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-2">
+                  <Receipt className="size-6" />
                 </div>
                 <h3 className="font-bold text-lg text-foreground tracking-tight">{digitalData.title}</h3>
                 <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium">Bukti Digital Semeja</p>
               </div>
 
-              <div className="border-t border-b border-dashed border-border py-4 space-y-3">
+              <div className="border-t border-b border-dashed border-border py-4 flex flex-col gap-3">
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-3.5 w-3.5" />
@@ -101,7 +101,7 @@ export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ receiptId, digit
                 )}
               </div>
 
-              <div className="space-y-1 pt-2">
+              <div className="flex flex-col gap-1 pt-2">
                 <div className="flex justify-between items-end">
                   <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Biaya</span>
                   <span className="text-2xl font-black text-primary">
@@ -124,8 +124,8 @@ export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ receiptId, digit
               </div>
             </div>
           ) : (
-            <div className="p-12 text-center space-y-3">
-              <FileImage className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+            <div className="p-12 text-center flex flex-col gap-3">
+              <FileImage className="size-10 text-muted-foreground/30 mx-auto" />
               <p className="text-sm text-muted-foreground">Tidak ada struk atau data preview.</p>
             </div>
           )}

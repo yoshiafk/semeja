@@ -14,8 +14,18 @@ function computeCountdown(startDate: string, endDate: string): {
   variant: "upcoming" | "active" | "done";
 } {
   const now = new Date();
-  const start = new Date(startDate + "T00:00:00");
-  const end = new Date(endDate + "T23:59:59");
+  
+  // Safely handle both YYYY-MM-DD and full ISO strings
+  const parseToMidnight = (dateStr: string) => {
+    const yyyymmdd = dateStr.split('T')[0];
+    return new Date(yyyymmdd + "T00:00:00");
+  };
+
+  const start = parseToMidnight(startDate);
+  const end = parseToMidnight(endDate);
+  
+  // Set end date to 23:59:59 of that day
+  end.setHours(23, 59, 59, 999);
 
   if (now > end) {
     return { label: "Selesai ✓", sublabel: "Trip sudah selesai", variant: "done" };
@@ -35,15 +45,15 @@ function computeCountdown(startDate: string, endDate: string): {
 }
 
 const VARIANT_STYLES = {
-  upcoming: "bg-blue-50 border-blue-200 text-blue-700",
-  active: "bg-green-50 border-green-200 text-green-700",
-  done: "bg-gray-100 border-gray-200 text-gray-500",
+  upcoming: "bg-info/10 border-info/20 text-info",
+  active: "bg-success/10 border-success/20 text-success",
+  done: "bg-muted border-border text-muted-foreground",
 };
 
 const DOT_STYLES = {
-  upcoming: "bg-blue-400",
-  active: "bg-green-500 animate-pulse",
-  done: "bg-gray-400",
+  upcoming: "bg-info",
+  active: "bg-success animate-pulse",
+  done: "bg-muted-foreground",
 };
 
 export function TripCountdownBanner({ startDate, endDate, className = "" }: TripCountdownBannerProps) {
@@ -54,7 +64,7 @@ export function TripCountdownBanner({ startDate, endDate, className = "" }: Trip
 
   return (
     <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-semibold ${VARIANT_STYLES[variant]} ${className}`}>
-      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${DOT_STYLES[variant]}`} />
+      <span className={`size-2 rounded-full flex-shrink-0 ${DOT_STYLES[variant]}`} />
       <span>{label}</span>
       <span className="font-normal text-xs opacity-75 hidden sm:inline">· {sublabel}</span>
     </div>
@@ -70,7 +80,7 @@ export function TripCountdownBlock({ startDate, endDate }: TripCountdownBannerPr
 
   return (
     <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${VARIANT_STYLES[variant]}`}>
-      <span className={`w-3 h-3 rounded-full flex-shrink-0 ${DOT_STYLES[variant]}`} />
+      <span className={`size-3 rounded-full flex-shrink-0 ${DOT_STYLES[variant]}`} />
       <div>
         <p className="font-bold text-base leading-tight">{label}</p>
         <p className="text-xs opacity-75">{sublabel}</p>

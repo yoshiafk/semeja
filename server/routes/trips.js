@@ -80,7 +80,7 @@ router.get('/:slug', async (req, res) => {
     const { rows: itemRows } = await pool.query(`
       SELECT s.id, s.day_id, s.time_start, s.time_end, s.name, s.activity_type,
              s.location, s.area, s.maps_url, s.notes, s.opening_hours,
-             s.is_highlight, s.is_cash_only, s.requires_booking, s.is_optional, s.sort_order
+             s.is_highlight, s.is_cash_only, s.requires_booking, s.is_optional, s.sort_order, s.is_done
       FROM trip_schedule_items s
       JOIN trip_days d ON s.day_id = d.id
       WHERE d.trip_id = $1
@@ -94,7 +94,7 @@ router.get('/:slug', async (req, res) => {
 
     // Budget rows
     const { rows: budgetRows } = await pool.query(`
-      SELECT category, detail, amount_rp, is_accommodation, is_total_row
+      SELECT id, category, detail, amount_rp, actual_amount_rp, is_accommodation, is_total_row
       FROM trip_budget_rows
       WHERE trip_id = $1
       ORDER BY sort_order
@@ -153,6 +153,57 @@ router.put('/:slug', requireAuth, requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('Error updating trip:', err);
     res.status(500).json({ error: 'Failed to update trip' });
+  }
+});
+
+// ── PATCH /api/trips/:slug/schedule/:itemId/toggle — Toggle done status ──
+router.patch('/:slug/schedule/:itemId/toggle', requireAuth, async (req, res) => {
+  const { slug, itemId } = req.params;
+  const { is_done } = req.body;
+  
+  if (typeof is_done !== 'boolean') {
+    return res.status(400).json({ error: 'is_done boolean is required' });
+  }
+
+  try {
+    // We optionally verify the trip matches the slug, but checking itemId is usually enough
+    const { rows } = await pool.query(`
+      UPDATE trip_schedule_items
+      SET is_done = $1
+      WHERE id = $2
+      RETURNING *
+    `, [is_done, itemId]);
+
+    if (rows.length === 0) return res.status(404).json({ error: 'Schedule item not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Error toggling schedule item:', err);
+    res.status(500).json({ error: 'Failed to toggle schedule item' });
+  }
+});
+
+// ── PATCH /api/trips/:slug/budget/:rowId — Update actual budget ─────────
+router.patch('/:slug/budget/:rowId', requireAuth, requireAdmin, async (req, res) => {
+  const { slug, rowId } = req.params;
+  const { actual_amount_rp } = req.body;
+
+  if (typeof actual_amount_rp !== 'number') {
+    return res.status(400).json({ error: 'actual_amount_rp number is required' });
+  }
+
+  try {
+    const { rows } = await pool.query(`
+      UPDATE trip_budget_rows
+      SET actual_amount_rp = $1
+      WHERE id = $2
+      RETURNING *
+    `, [actual_amount_rp, rowId]);
+
+    if (rows.length === 0) return res.status(404).json({ error: 'Budget row not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Error updating budget actual:', err);
+    res.status(500).json({ error: 'Failed to update budget' });
   }
 });
 

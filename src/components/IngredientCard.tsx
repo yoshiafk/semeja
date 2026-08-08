@@ -46,7 +46,7 @@ export const IngredientCard = React.memo(({
       "rounded-2xl border border-border/50 bg-white hover:border-border transition-all group overflow-hidden",
       isDeleting && "opacity-40 grayscale-[0.5] pointer-events-none scale-[0.98]"
     )}>
-      <div className="p-4 space-y-4">
+      <div className="p-4 flex flex-col gap-4">
         {/* Header */}
         <div className="flex items-start justify-between">
           <span className="text-[11px] px-2 py-0.5 rounded-md bg-secondary text-muted-foreground font-medium">
@@ -55,18 +55,18 @@ export const IngredientCard = React.memo(({
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button 
               variant="ghost" size="icon" 
-              className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-primary hover:bg-secondary"
+              className="size-7 rounded-lg text-muted-foreground/70 hover:text-primary hover:bg-secondary"
               onClick={() => onEdit(ingredient)}
             >
-              <Pencil className="h-3 w-3" />
+              <Pencil className="size-3" />
             </Button>
             <Button 
               variant="ghost" size="icon" 
               disabled={isDeleting}
-              className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-50 disabled:opacity-50"
+              className="size-7 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-50 disabled:opacity-50"
               onClick={() => onDelete(ingredient.id)}
             >
-              {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+              {isDeleting ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
             </Button>
           </div>
         </div>
@@ -124,7 +124,7 @@ export const IngredientCard = React.memo(({
           </Button>
           <Button 
             variant="secondary" size="icon" 
-            className="rounded-xl w-8 h-8 bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-none"
+            className="rounded-xl size-8 bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-none"
             onClick={() => onConsume(ingredient)}
           >
             <span className="font-bold text-base leading-none">−</span>
@@ -142,7 +142,7 @@ export const IngredientCard = React.memo(({
             {purchaseHistory.length === 0 && !isLoadingHistory ? (
               <div className="text-xs text-muted-foreground/70 text-center py-4 bg-secondary rounded-xl">Belum ada riwayat</div>
             ) : (
-              <div className="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar">
+              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto custom-scrollbar">
                 {purchaseHistory.map(ph => (
                   <div key={ph.id} className="bg-secondary p-3 rounded-xl flex flex-col gap-1">
                     <div className="flex justify-between items-start">

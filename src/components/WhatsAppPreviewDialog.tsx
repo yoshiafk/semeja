@@ -44,7 +44,7 @@ export function WhatsAppPreviewDialog({
               onClose();
             }}
           >
-            <MessageCircle className="h-4 w-4 mr-1.5" />
+            <MessageCircle className="size-4 mr-1.5" />
             Kirim ke WA
           </Button>
         </DialogFooter>

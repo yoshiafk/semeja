@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function Header() {
   const { member, logout, isSuperadmin, isAdmin } = useMember();
@@ -52,12 +53,12 @@ export function Header() {
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-14 md:h-16 border-b border-border/80 bg-white/70 backdrop-blur-xl backdrop-saturate-150 px-4 md:px-6 lg:px-8 flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-50 h-14 md:h-16 border-b border-white/20 dark:border-white/10 bg-background/80 backdrop-blur-xl backdrop-saturate-150 shadow-[0_1px_3px_rgba(0,0,0,0.02)] px-4 md:px-6 lg:px-8 flex items-center justify-between">
       <div className="flex items-center gap-6 lg:gap-8">
         <NavLink to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <picture>
             <source srcSet="/logo.webp" type="image/webp" />
-            <img src="/logo.png" alt="Semeja" className="h-8 w-8 md:h-9 md:w-9 object-contain" />
+            <img src="/logo.png" alt="Semeja" className="size-8 md:h-9 md:w-9 object-contain" />
           </picture>
           <span className="text-lg md:text-xl font-extrabold text-foreground tracking-tight">Semeja</span>
         </NavLink>
@@ -107,9 +108,9 @@ export function Header() {
             variant="ghost"
             size="icon"
             onClick={logout}
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            className="size-8 text-muted-foreground hover:text-foreground"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="size-4" />
           </Button>
         </div>
       )}
@@ -168,37 +169,45 @@ function DropdownNav({
       >
         <item.icon className="h-3.5 w-3.5" />
         <span>{item.label}</span>
-        <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", open && "rotate-180")} />
+        <ChevronDown className={cn("size-3 transition-transform duration-200", open && "rotate-180")} />
       </button>
 
-      {open && (
-        <div className="absolute top-full left-0 mt-1.5 w-52 bg-white border border-border/60 rounded-xl shadow-lg overflow-hidden z-50 py-1">
-          {visibleChildren.map(child => (
-            <NavLink
-              key={child.to}
-              to={child.to}
-              onClick={() => setOpen(false)}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] font-medium transition-colors",
-                  isActive
-                    ? "text-primary bg-primary/8"
-                    : "text-foreground hover:bg-muted"
-                )
-              }
-            >
-              <child.icon className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-              <span>{child.label}</span>
-              {/* New pill for admin-only tools */}
-              {child.adminOnly && (
-                <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-primary/60 bg-primary/8 px-1.5 py-0.5 rounded-full">
-                  Admin
-                </span>
-              )}
-            </NavLink>
-          ))}
-        </div>
-      )}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -5, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -5, scale: 0.95 }}
+            transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
+            className="absolute top-full left-0 mt-1.5 w-52 bg-white border border-border/60 rounded-xl shadow-lg overflow-hidden z-50 py-1"
+          >
+            {visibleChildren.map(child => (
+              <NavLink
+                key={child.to}
+                to={child.to}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] font-medium transition-colors",
+                    isActive
+                      ? "text-primary bg-primary/8"
+                      : "text-foreground hover:bg-muted"
+                  )
+                }
+              >
+                <child.icon className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                <span>{child.label}</span>
+                {/* New pill for admin-only tools */}
+                {child.adminOnly && (
+                  <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-primary/60 bg-primary/8 px-1.5 py-0.5 rounded-full">
+                    Admin
+                  </span>
+                )}
+              </NavLink>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

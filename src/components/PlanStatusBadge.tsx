@@ -1,12 +1,12 @@
 import { cn } from '@/lib/utils';
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
-  draft:    { label: 'Draft',       className: 'bg-gray-100 text-gray-600' },
-  proposed: { label: 'Diusulkan',  className: 'bg-amber-100 text-amber-700' },
-  active:   { label: 'Aktif',       className: 'bg-green-100 text-green-700' },
-  shopping: { label: 'Belanja',     className: 'bg-blue-100 text-blue-700' },
-  closed:   { label: 'Selesai',     className: 'bg-purple-100 text-purple-700' },
-  archived: { label: 'Diarsipkan',  className: 'bg-gray-100 text-gray-400' },
+  draft:    { label: 'Draft',       className: 'bg-muted text-muted-foreground' },
+  proposed: { label: 'Diusulkan',   className: 'bg-warning/10 text-warning-foreground' },
+  active:   { label: 'Aktif',       className: 'bg-success/10 text-success' },
+  shopping: { label: 'Belanja',     className: 'bg-info/10 text-info' },
+  closed:   { label: 'Selesai',     className: 'bg-chart-3/10 text-chart-3' },
+  archived: { label: 'Diarsipkan',  className: 'bg-muted/50 text-muted-foreground/70' },
 };
 
 interface PlanStatusBadgeProps {

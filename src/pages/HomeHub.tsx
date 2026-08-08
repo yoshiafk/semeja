@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { ModuleCard } from "@/components/ui/module-card";
 import { UtensilsCrossed, Activity, Users, Sparkles, ClipboardList, Carrot, Gift, Salad, Map } from "lucide-react";
 import { getTodayParticipation, getTrips } from "@/lib/api";
@@ -36,23 +37,17 @@ export default function HomeHub() {
     <PageContainer>
       <div className="animate-page-in">
         {/* Greeting Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-2xl font-bold text-foreground">
-              {getGreeting()}, {member?.name?.split(" ")[0]}! 👋
-            </h1>
-          </div>
-          <p className="text-muted-foreground text-sm">
-            Apa yang mau kamu lakukan hari ini?
-          </p>
-        </div>
+        <PageHeader 
+          title={`${getGreeting()}, ${member?.name?.split(" ")[0]}! 👋`}
+          description="Apa yang mau kamu lakukan hari ini?"
+        />
 
         {/* Quick Stats */}
         {todayCount > 0 && (
           <div className="mb-6 p-4 rounded-2xl bg-primary/5 border border-primary/10">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Users className="w-5 h-5 text-primary" />
+              <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Users className="size-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">
@@ -106,21 +101,28 @@ export default function HomeHub() {
         {/* Perjalanan (Trips) Module - Full Width */}
         {latestTrip ? (
           <div className="mt-4">
-            <Link to={`/trips/${latestTrip.slug}`} className="block group relative border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow active:scale-[0.98]">
-              <div className="h-28 bg-gradient-to-r from-emerald-500 to-purple-600 relative p-4 flex flex-col justify-end">
-                <div className="absolute inset-0 bg-black/10 mix-blend-overlay transition-opacity group-hover:opacity-0"></div>
-                <div className="absolute top-3 right-3">
-                  <TripCountdownBanner startDate={latestTrip.start_date} endDate={latestTrip.end_date} status={latestTrip.status} className="bg-white/95 backdrop-blur-sm shadow-sm" />
+            <Link to={`/trips/${latestTrip.slug}`} className="block group relative border rounded-2xl overflow-hidden bg-card shadow-sm hover:shadow-md transition-all active:scale-[0.98]">
+              <div className="p-4 flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Map className="size-5 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-lg text-foreground leading-tight">
+                        {latestTrip.title}
+                      </h2>
+                      <p className="text-muted-foreground text-xs flex items-center gap-1.5 mt-0.5">
+                        <span>{new Date(latestTrip.start_date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} – {new Date(latestTrip.end_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
+                        <span className="opacity-50">·</span>
+                        <span>{latestTrip.participant_count} orang</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0 self-start">
+                    <TripCountdownBanner startDate={latestTrip.start_date} endDate={latestTrip.end_date} status={latestTrip.status} />
+                  </div>
                 </div>
-                <h2 className="text-white font-bold text-xl relative z-10 flex items-center gap-1.5">
-                  <Map className="w-5 h-5 opacity-90" />
-                  {latestTrip.title}
-                </h2>
-                <p className="text-white/90 text-sm relative z-10 flex items-center gap-1.5 mt-0.5">
-                  <span>{new Date(latestTrip.start_date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} – {new Date(latestTrip.end_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
-                  <span className="opacity-70">·</span>
-                  <span>{latestTrip.participant_count} orang</span>
-                </p>
                 {/* Timeline Progress */}
                 {(() => {
                   const now = new Date();
@@ -132,8 +134,8 @@ export default function HomeHub() {
                     progress = Math.min(100, Math.max(0, ((now.getTime() - start.getTime()) / (end.getTime() - start.getTime())) * 100));
                   }
                   return (
-                    <div className="w-full h-1.5 bg-white/20 rounded-full mt-3 relative z-10 overflow-hidden">
-                      <div className="h-full bg-white rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+                    <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
+                      <div className="h-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }} />
                     </div>
                   );
                 })()}
@@ -151,7 +153,7 @@ export default function HomeHub() {
         {/* Additional Quick Actions for Admin */}
         <div className="mt-8">
           <h2 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2">
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="size-4" />
             Jelajahi Fitur Lainnya
           </h2>
           <div className="grid grid-cols-3 gap-3">
@@ -214,7 +216,7 @@ function QuickLink({
       to={href}
       className="flex flex-col items-center gap-2 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors touch-active"
     >
-      <Icon className="w-5 h-5 text-muted-foreground" />
+      <Icon className="size-5 text-muted-foreground" />
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
     </Link>
   );

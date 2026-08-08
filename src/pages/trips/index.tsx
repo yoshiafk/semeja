@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Users, Calendar, Train } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Users, Calendar, Train } from "lucide-react";
 import { getTrips } from "@/lib/api";
 import type { TripSummary } from "@/types/trip";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { TripCountdownBlock } from "@/components/TripCountdownBanner";
 import { Button } from "@/components/ui/button";
 
 export default function TripsList() {
-  const navigate = useNavigate();
   const [trips, setTrips] = useState<TripSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,55 +20,45 @@ export default function TripsList() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b px-4 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => navigate(-1)}
-            className="p-1 -ml-1 hover:bg-muted rounded-full active:scale-95 transition-all"
-          >
-            <ArrowLeft className="w-5 h-5 text-foreground" />
-          </button>
-          <h1 className="font-semibold text-lg">Perjalanan</h1>
-        </div>
-        {/* +New button would go here for admin */}
-      </div>
-
-      <div className="p-4 space-y-4">
+    <PageContainer>
+      <PageHeader title="Perjalanan" backTo={-1} />
+      
+      <div className="flex flex-col gap-4">
         {loading ? (
           <div className="text-center py-10 text-muted-foreground animate-pulse">Memuat perjalanan...</div>
         ) : trips.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground">Belum ada perjalanan yang direncanakan.</div>
         ) : (
           trips.map(trip => (
-            <div key={trip.id} className="block group relative bg-card border rounded-3xl overflow-hidden shadow-sm">
-              {/* Gradient Hero */}
-              <div className="h-32 bg-gradient-to-r from-emerald-500 to-purple-600 relative p-5 flex flex-col justify-end">
-                <div className="absolute inset-0 bg-black/10 mix-blend-overlay"></div>
-                <h2 className="text-white font-bold text-2xl relative z-10">{trip.title}</h2>
-                {trip.subtitle && (
-                  <p className="text-white/90 text-sm relative z-10">{trip.subtitle}</p>
-                )}
+            <div key={trip.id} className="block group relative bg-card border rounded-3xl overflow-hidden shadow-sm p-5 hover:shadow-md transition-all">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="font-bold text-2xl text-foreground tracking-tight">{trip.title}</h2>
+                  {trip.subtitle && (
+                    <p className="text-muted-foreground text-sm mt-1">{trip.subtitle}</p>
+                  )}
+                </div>
+                <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
+                </div>
               </div>
 
-              {/* Content */}
-              <div className="p-5">
+              <div>
                 <div className="flex flex-wrap gap-x-4 gap-y-2 mb-5 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4 text-primary" />
+                    <Calendar className="size-4 text-primary" />
                     <span>
                       {new Date(trip.start_date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} – 
                       {new Date(trip.end_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <Users className="w-4 h-4 text-primary" />
+                    <Users className="size-4 text-primary" />
                     <span>{trip.participant_count} orang</span>
                   </div>
                   {trip.transport && trip.transport.length > 0 && (
                     <div className="flex items-center gap-1.5">
-                      <Train className="w-4 h-4 text-primary" />
+                      <Train className="size-4 text-primary" />
                       <span>{trip.transport.join(" · ")}</span>
                     </div>
                   )}
@@ -96,6 +87,6 @@ export default function TripsList() {
           ))
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

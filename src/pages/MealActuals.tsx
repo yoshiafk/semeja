@@ -141,21 +141,21 @@ export default function MealActualsPage() {
   const statusBadge = (status: PendingMeal["calibration_status"]) => {
     if (status === "done")
       return (
-        <span className="flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-          <CheckCircle2 className="w-3 h-3" />
+        <span className="flex items-center gap-1 text-xs font-semibold text-success bg-success/10 px-2 py-0.5 rounded-full">
+          <CheckCircle2 className="size-3" />
           Selesai
         </span>
       );
     if (status === "partial")
       return (
-        <span className="flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-          <AlertCircle className="w-3 h-3" />
+        <span className="flex items-center gap-1 text-xs font-semibold text-warning-foreground bg-warning/10 px-2 py-0.5 rounded-full">
+          <AlertCircle className="size-3" />
           Sebagian
         </span>
       );
     return (
-      <span className="flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded-full">
-        <AlertCircle className="w-3 h-3" />
+      <span className="flex items-center gap-1 text-xs font-semibold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">
+        <AlertCircle className="size-3" />
         Belum
       </span>
     );
@@ -167,7 +167,7 @@ export default function MealActualsPage() {
     return (
       <PageContainer>
         <div className="flex justify-center items-center h-40">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
       </PageContainer>
     );
@@ -177,7 +177,7 @@ export default function MealActualsPage() {
     return (
       <PageContainer>
         <div className="text-center py-20 text-muted-foreground">
-          <FlaskConical className="w-8 h-8 mx-auto mb-2 opacity-40" />
+          <FlaskConical className="size-8 mx-auto mb-2 opacity-40" />
           <p className="text-sm">Tidak ada meal plan aktif.</p>
         </div>
       </PageContainer>
@@ -196,7 +196,7 @@ export default function MealActualsPage() {
 
       <div className="grid md:grid-cols-[280px_1fr] gap-4">
         {/* Left: list of past meals */}
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           {pendingMeals.length === 0 && (
             <p className="text-sm text-muted-foreground px-1">
               Belum ada hari yang perlu dikalibrasi.
@@ -224,7 +224,7 @@ export default function MealActualsPage() {
                   </span>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              <ChevronRight className="size-4 text-muted-foreground" />
             </button>
           ))}
         </div>
@@ -233,7 +233,7 @@ export default function MealActualsPage() {
         <div>
           {!selectedMeal && (
             <div className="flex flex-col items-center justify-center h-48 rounded-2xl border border-dashed border-border/50 text-muted-foreground">
-              <FlaskConical className="w-6 h-6 mb-2 opacity-40" />
+              <FlaskConical className="size-6 mb-2 opacity-40" />
               <p className="text-sm">Pilih hari dari daftar untuk mulai kalibrasi</p>
             </div>
           )}
@@ -256,7 +256,7 @@ export default function MealActualsPage() {
               {/* Body */}
               {loadingIngredients ? (
                 <div className="flex justify-center items-center h-32">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
                 </div>
               ) : (
                 <div className="divide-y divide-border/30">
@@ -300,7 +300,7 @@ export default function MealActualsPage() {
                             }
                             className={cn(
                               "w-24 text-right h-8 text-sm",
-                              hasChanged && "border-amber-300 bg-amber-50 focus:ring-amber-200"
+                              hasChanged && "border-warning/30 bg-warning/10 focus:ring-warning/20"
                             )}
                             placeholder="0"
                           />
@@ -308,7 +308,7 @@ export default function MealActualsPage() {
                             {ing.unit}
                           </span>
                           {ing.is_calibrated && (
-                            <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            <CheckCircle2 className="size-4 text-success flex-shrink-0" />
                           )}
                         </div>
                       </div>
@@ -327,7 +327,7 @@ export default function MealActualsPage() {
                   disabled={isSaving || loadingIngredients}
                   size="sm"
                 >
-                  {isSaving && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
+                  {isSaving && <Loader2 className="size-4 mr-1.5 animate-spin" />}
                   Simpan kalibrasi
                 </Button>
               </div>

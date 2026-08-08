@@ -120,7 +120,7 @@ export default function Members() {
     return (
       <PageContainer>
         <div className="flex h-[60vh] items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Loader2 className="size-6 animate-spin text-primary" />
         </div>
       </PageContainer>
     );
@@ -128,7 +128,7 @@ export default function Members() {
 
   return (
     <PageContainer>
-      <div className="space-y-5">
+      <div className="flex flex-col gap-5">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 pb-4 border-b border-border/50">
           <div>
@@ -180,7 +180,7 @@ export default function Members() {
                         <TableRow key={m.id} className="hover:bg-secondary/50 transition-colors border-border/30">
                           <TableCell className="py-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold text-muted-foreground uppercase shrink-0">
+                              <div className="size-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold text-muted-foreground uppercase shrink-0">
                                 {m.name.substring(0, 2)}
                               </div>
                               <div className="min-w-0">
@@ -202,11 +202,11 @@ export default function Members() {
                               <TableCell key={day} className="text-center p-0">
                                 <div className="flex justify-center">
                                   {joined ? (
-                                    <div className="h-7 w-7 bg-primary/8 rounded-lg flex items-center justify-center">
+                                    <div className="size-7 bg-primary/8 rounded-lg flex items-center justify-center">
                                       <CheckCircle2 className="h-3.5 w-3.5 text-primary stroke-[2.5px]" />
                                     </div>
                                   ) : (
-                                    <Circle className="h-4 w-4 text-border" />
+                                    <Circle className="size-4 text-border" />
                                   )}
                                 </div>
                               </TableCell>
@@ -229,7 +229,7 @@ export default function Members() {
               {members.map(m => (
                 <div key={m.id} className="bg-white border border-border/50 rounded-xl p-4 flex items-center justify-between group hover:shadow-sm transition-shadow">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground text-sm font-semibold uppercase group-hover:bg-primary/8 group-hover:text-primary transition-colors">
+                    <div className="size-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground text-sm font-semibold uppercase group-hover:bg-primary/8 group-hover:text-primary transition-colors">
                       {m.name.substring(0, 2)}
                     </div>
                     <div>
@@ -240,7 +240,7 @@ export default function Members() {
                       </div>
                       <p className="text-[11px] text-muted-foreground/70">{m.role}</p>
                       {(isAdmin || isSuperadmin) && m.last_login_at && (
-                        <div className="mt-1 space-y-0.5">
+                        <div className="mt-1 flex flex-col gap-0.5">
                           <p className="text-[10px] text-muted-foreground/60 leading-tight">
                             Login: {new Date(m.last_login_at).toLocaleString('id-ID', { 
                               day: '2-digit', 
@@ -285,7 +285,7 @@ export default function Members() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-7 w-7 text-muted-foreground/50 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
+                        className="size-7 text-muted-foreground/50 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
                         onClick={() => deleteMember(m.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />

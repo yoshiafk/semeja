@@ -10,10 +10,14 @@ interface TripBudgetTableProps {
   tripTitle: string;
   participantCount: number;
   rows: TripBudgetRow[];
+  isAdmin?: boolean;
+  onUpdateActual?: (rowId: number, actualAmount: number) => Promise<void>;
 }
 
-export function TripBudgetTable({ tripTitle, participantCount, rows }: TripBudgetTableProps) {
+export function TripBudgetTable({ tripTitle, participantCount, rows, isAdmin, onUpdateActual }: TripBudgetTableProps) {
   const [includeAccommodation, setIncludeAccommodation] = useState(true);
+  const [editingRow, setEditingRow] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState<string>("");
 
   // Filter rows based on toggle (only filter non-total rows for the list)
   const displayRows = useMemo(() => {
@@ -43,7 +47,7 @@ export function TripBudgetTable({ tripTitle, participantCount, rows }: TripBudge
       </div>
 
       {/* Toggle */}
-      <div className="flex items-center space-x-2 bg-muted/30 p-3 rounded-lg mb-4 border border-border/50">
+      <div className="flex items-center flex items-center gap-2 bg-muted/30 p-3 rounded-lg mb-4 border border-border/50">
         <Checkbox 
           id="include-accom" 
           checked={includeAccommodation}
@@ -61,7 +65,8 @@ export function TripBudgetTable({ tripTitle, participantCount, rows }: TripBudge
             <tr>
               <th className="py-2.5 px-3">Kategori</th>
               <th className="py-2.5 px-3 hidden xs:table-cell">Detail</th>
-              <th className="py-2.5 px-3 text-right">Subtotal</th>
+              <th className="py-2.5 px-3 text-right">Estimasi</th>
+              <th className="py-2.5 px-3 text-right text-primary">Aktual</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -77,17 +82,57 @@ export function TripBudgetTable({ tripTitle, participantCount, rows }: TripBudge
                 <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">
                   {row.amount_rp > 0 ? formatRupiah(row.amount_rp) : "—"}
                 </td>
+                <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">
+                  {editingRow === row.id && isAdmin ? (
+                    <input
+                      type="number"
+                      className="w-24 text-right bg-background border border-primary rounded px-1.5 py-1 text-sm text-primary focus:outline-none"
+                      value={editValue}
+                      onChange={e => setEditValue(e.target.value)}
+                      onBlur={() => {
+                        const val = parseInt(editValue, 10);
+                        if (!isNaN(val) && val !== row.actual_amount_rp && onUpdateActual) {
+                          onUpdateActual(row.id, val);
+                        }
+                        setEditingRow(null);
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.currentTarget.blur();
+                        } else if (e.key === 'Escape') {
+                          setEditingRow(null);
+                        }
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <div 
+                      className={`inline-block px-2 py-1 rounded cursor-pointer ${isAdmin ? "hover:bg-primary/10 text-primary font-medium" : (row.actual_amount_rp > 0 ? "text-primary font-medium" : "text-muted-foreground")}`}
+                      onClick={() => {
+                        if (isAdmin) {
+                          setEditingRow(row.id);
+                          setEditValue(row.actual_amount_rp > 0 ? String(row.actual_amount_rp) : "");
+                        }
+                      }}
+                    >
+                      {row.actual_amount_rp > 0 ? formatRupiah(row.actual_amount_rp) : (isAdmin ? "+ Aktual" : "—")}
+                    </div>
+                  )}
+                </td>
               </tr>
             ))}
             
             {/* Total Row */}
             {totalRow && (
-              <tr className="bg-muted/50 font-bold">
+              <tr className="bg-muted/50 font-bold border-t-2 border-border/50">
                 <td colSpan={2} className="py-3 px-3">
                   Total <span className="font-normal text-xs text-muted-foreground block xs:inline">({includeAccommodation ? "Termasuk" : "Tanpa"} akomodasi)</span>
                 </td>
-                <td className="py-3 px-3 text-right tabular-nums text-primary whitespace-nowrap">
+                <td className="py-3 px-3 text-right tabular-nums whitespace-nowrap">
                   {formatRupiah(totalRow.amount_rp)}
+                </td>
+                <td className="py-3 px-3 text-right tabular-nums text-primary whitespace-nowrap">
+                  {totalRow.actual_amount_rp > 0 ? formatRupiah(totalRow.actual_amount_rp) : "—"}
                 </td>
               </tr>
             )}
@@ -97,13 +142,25 @@ export function TripBudgetTable({ tripTitle, participantCount, rows }: TripBudge
 
       {/* Per Person Callout */}
       {totalRow && (
-        <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 mb-4 text-center">
-          <p className="text-sm text-muted-foreground mb-1">
-            👤 Per Orang <span className="text-xs">({includeAccommodation ? "termasuk" : "tanpa"} akomodasi)</span>
-          </p>
-          <p className="text-2xl font-bold text-primary">
-            {formatRupiah(perPersonTotal)}
-          </p>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="bg-muted/30 border border-border/50 rounded-xl p-4 text-center">
+            <p className="text-sm text-muted-foreground mb-1">
+              👤 Estimasi / Orang
+            </p>
+            <p className="text-xl font-bold">
+              {formatRupiah(perPersonTotal)}
+            </p>
+          </div>
+          <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 text-center">
+            <p className="text-sm text-primary/70 mb-1">
+              👤 Aktual / Orang
+            </p>
+            <p className="text-xl font-bold text-primary">
+              {totalRow.actual_amount_rp > 0 && participantCount > 0 
+                ? formatRupiah(Math.round(totalRow.actual_amount_rp / participantCount)) 
+                : "—"}
+            </p>
+          </div>
         </div>
       )}
 

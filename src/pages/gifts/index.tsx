@@ -21,10 +21,10 @@ export default function GiftsList() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return "bg-green-500/10 text-green-600 border-green-200";
-      case 'completed': return "bg-blue-500/10 text-blue-600 border-blue-200";
-      case 'cancelled': return "bg-red-500/10 text-red-600 border-red-200";
-      default: return "bg-gray-500/10 text-gray-600 border-gray-200";
+      case 'active': return "bg-success/10 text-success border-success/20";
+      case 'completed': return "bg-info/10 text-info border-info/20";
+      case 'cancelled': return "bg-destructive/10 text-destructive border-destructive/20";
+      default: return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -37,21 +37,21 @@ export default function GiftsList() {
         </div>
         <Link
           to="/community/gifts/new"
-          className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95"
+          className="size-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="size-5" />
         </Link>
       </div>
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-muted-foreground font-medium">Loading gifts...</p>
         </div>
       ) : gifts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-            <GiftIcon className="w-8 h-8 text-muted-foreground" />
+          <div className="size-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+            <GiftIcon className="size-8 text-muted-foreground" />
           </div>
           <h3 className="text-lg font-bold text-foreground mb-1">No gifts found</h3>
           <p className="text-sm text-muted-foreground max-w-[240px]">
@@ -77,7 +77,7 @@ export default function GiftsList() {
                       </Badge>
                       {gift.participant_count && gift.participant_count > 0 && (
                         <div className="flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
-                          <Users className="w-3 h-3" />
+                          <Users className="size-3" />
                           {gift.participant_count}
                         </div>
                       )}
@@ -98,8 +98,8 @@ export default function GiftsList() {
                       </div>
                     </div>
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center group-hover:bg-primary/20 transition-colors self-center">
-                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <div className="size-8 rounded-full bg-muted/50 flex items-center justify-center group-hover:bg-primary/20 transition-colors self-center">
+                    <ChevronRight className="size-5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                 </div>
               </Card>

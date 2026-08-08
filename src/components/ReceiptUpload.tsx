@@ -109,7 +109,7 @@ export const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
 
   return (
     <div className={className}>
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <input 
           type="file" 
           className="hidden" 
@@ -128,9 +128,9 @@ export const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
             disabled={uploading || isScanning}
           >
             {uploading || isScanning ? (
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <Loader2 className="size-4 animate-spin text-primary" />
             ) : (
-              <Upload className="h-4 w-4 text-muted-foreground" />
+              <Upload className="size-4 text-muted-foreground" />
             )}
             <span className="text-xs">
               {uploading ? (isScanning || autoScan ? "Membaca Struk..." : "Sedang Upload...") : label}
@@ -139,8 +139,8 @@ export const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
         ) : (
           <div className="flex items-center justify-between w-full p-2 bg-primary/5 border border-primary/10 rounded-xl">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
+              <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <CheckCircle2 className="size-4 text-primary" />
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">File Terupload</span>
@@ -151,10 +151,10 @@ export const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
               type="button"
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-colors"
+              className="size-8 rounded-lg hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-colors"
               onClick={handleClear}
             >
-              <X className="h-4 w-4" />
+              <X className="size-4" />
             </Button>
           </div>
         )}

@@ -61,7 +61,7 @@ export default function NewActivity() {
     <PageContainer>
       <div className="flex items-center mb-6">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mr-2">
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="size-5" />
         </Button>
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Buat Aktifitas</h1>
@@ -69,8 +69,8 @@ export default function NewActivity() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 pb-20">
-        <div className="space-y-2">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-20">
+        <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-foreground">Nama Kegiatan *</label>
           <input
             type="text"
@@ -83,7 +83,7 @@ export default function NewActivity() {
           />
         </div>
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-foreground">Deskripsi</label>
           <textarea
             name="description"
@@ -96,9 +96,9 @@ export default function NewActivity() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-foreground flex items-center gap-1">
-              <Calendar className="w-4 h-4 text-muted-foreground" /> Tanggal *
+              <Calendar className="size-4 text-muted-foreground" /> Tanggal *
             </label>
             <input
               type="date"
@@ -109,9 +109,9 @@ export default function NewActivity() {
               className="w-full p-3 rounded-xl border border-border bg-card text-foreground"
             />
           </div>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-foreground flex items-center gap-1">
-              <Clock className="w-4 h-4 text-muted-foreground" /> Jam *
+              <Clock className="size-4 text-muted-foreground" /> Jam *
             </label>
             <input
               type="time"
@@ -124,9 +124,9 @@ export default function NewActivity() {
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-foreground flex items-center gap-1">
-            <MapPin className="w-4 h-4 text-muted-foreground" /> Lokasi
+            <MapPin className="size-4 text-muted-foreground" /> Lokasi
           </label>
           <input
             type="text"
@@ -138,9 +138,9 @@ export default function NewActivity() {
           />
         </div>
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-foreground flex items-center gap-1">
-            <Tag className="w-4 h-4 text-muted-foreground" /> Jenis Biaya *
+            <Tag className="size-4 text-muted-foreground" /> Jenis Biaya *
           </label>
           <select
             name="cost_type"
@@ -156,7 +156,7 @@ export default function NewActivity() {
         </div>
 
         {formData.cost_type !== "free" && (
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-foreground">
               {formData.cost_type === "fixed" ? "Harga Per Orang (Rp)" : "Estimasi/Total Biaya Sementara (Rp)"}
             </label>
@@ -173,9 +173,9 @@ export default function NewActivity() {
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-foreground flex items-center gap-1">
-            <Users className="w-4 h-4 text-muted-foreground" /> Batas Peserta (Opsional)
+            <Users className="size-4 text-muted-foreground" /> Batas Peserta (Opsional)
           </label>
           <input
             type="number"
@@ -190,7 +190,7 @@ export default function NewActivity() {
 
         <div className="pt-4">
           <Button type="submit" className="w-full rounded-xl" disabled={loading}>
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Buat Aktifitas"}
+            {loading ? <Loader2 className="size-5 animate-spin" /> : "Buat Aktifitas"}
           </Button>
         </div>
       </form>

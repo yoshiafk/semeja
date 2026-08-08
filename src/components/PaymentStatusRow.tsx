@@ -25,7 +25,7 @@ export function PaymentStatusRow({ member, payment, isAdmin, onToggle }: Payment
       <div className="flex items-center gap-3">
         <div
           className={cn(
-            'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold',
+            'size-8 rounded-full flex items-center justify-center text-xs font-bold',
             isPaid ? 'bg-teal-100 text-teal-700' : 'bg-muted text-muted-foreground'
           )}
         >
@@ -54,7 +54,7 @@ export function PaymentStatusRow({ member, payment, isAdmin, onToggle }: Payment
           <button
             onClick={() => onToggle(member, isPaid)}
             className={cn(
-              'w-7 h-7 rounded-full border flex items-center justify-center transition-colors',
+              'size-7 rounded-full border flex items-center justify-center transition-colors',
               isPaid
                 ? 'bg-teal-500 border-teal-500 text-white hover:bg-teal-600'
                 : 'border-border hover:border-teal-400'

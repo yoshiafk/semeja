@@ -62,7 +62,7 @@ export default function Profile() {
     return (
       <PageContainer>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Loader2 className="size-6 animate-spin text-primary" />
         </div>
       </PageContainer>
     );
@@ -70,10 +70,10 @@ export default function Profile() {
 
   return (
     <PageContainer>
-      <div className="animate-page-in space-y-6">
+      <div className="animate-page-in flex flex-col gap-6">
         {/* Profile Header */}
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+          <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center">
             <span className="text-xl font-bold text-primary">
               {member?.name?.substring(0, 2).toUpperCase()}
             </span>
@@ -102,7 +102,7 @@ export default function Profile() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-primary" />
+                  <Calendar className="size-4 text-primary" />
                   Ringkasan Minggu Ini
                 </CardTitle>
                 <span className="text-xs text-muted-foreground">
@@ -110,7 +110,7 @@ export default function Profile() {
                 </span>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="flex flex-col gap-4">
               {/* Stats Grid */}
               <div className="grid grid-cols-3 gap-3">
                 <StatCard
@@ -145,7 +145,7 @@ export default function Profile() {
               {summary.currentWeek.breakdown && (
                 <div className="bg-muted/30 rounded-2xl p-4 border border-border/10">
                   <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                    <TrendingUp className="h-3 w-3" /> Rincian Jenis Biaya
+                    <TrendingUp className="size-3" /> Rincian Jenis Biaya
                   </h3>
                   <div className="grid grid-cols-1 gap-2.5">
                     <BreakdownRow
@@ -180,17 +180,17 @@ export default function Profile() {
                   <Separator />
                   <div>
                     <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-                      <Receipt className="w-4 h-4" />
+                      <Receipt className="size-4" />
                       Rincian Harian
                     </h3>
-                    <div className="space-y-2">
+                    <div className="flex flex-col gap-2">
                       {summary.currentWeek.dailyBreakdown.map((day, idx) => (
                         <div
                           key={idx}
                           className="flex items-center justify-between p-3 rounded-xl bg-muted/50"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
                               <span className="text-xs font-bold text-primary">
                                 {day.dayName.substring(0, 2)}
                               </span>
@@ -223,7 +223,7 @@ export default function Profile() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  <CheckCircle2 className="size-4 text-primary" />
                   Rekap Minggu Terakhir
                 </CardTitle>
                 <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px]">
@@ -231,13 +231,13 @@ export default function Profile() {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="flex flex-col gap-4">
               <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/50">
-                <div className="space-y-0.5">
+                <div className="flex flex-col gap-0.5">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Periode</p>
                   <p className="text-sm font-semibold">{summary.lastArchivedWeek.weekLabel}</p>
                 </div>
-                <div className="text-right space-y-0.5">
+                <div className="text-right flex flex-col gap-0.5">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Tagihan</p>
                   <p className="text-sm font-bold text-primary">{formatCurrency(summary.lastArchivedWeek.totalCost)}</p>
                 </div>
@@ -245,14 +245,14 @@ export default function Profile() {
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 rounded-xl bg-background border border-border/50 flex items-center gap-3">
-                  <CalendarDays className="w-4 h-4 text-muted-foreground" />
+                  <CalendarDays className="size-4 text-muted-foreground" />
                   <div>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Hari Ikut</p>
                     <p className="text-xs font-semibold">{summary.lastArchivedWeek.daysJoined} Hari</p>
                   </div>
                 </div>
                 <div className="p-3 rounded-xl bg-background border border-border/50 flex items-center gap-3">
-                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                  <TrendingUp className="size-4 text-muted-foreground" />
                   <div>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Rata-rata</p>
                     <p className="text-xs font-semibold">
@@ -272,8 +272,8 @@ export default function Profile() {
         ) : (
           <Card>
             <CardContent className="py-12 text-center">
-              <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-4">
-                <Calendar className="w-8 h-8 text-muted-foreground/40" />
+              <div className="size-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-4">
+                <Calendar className="size-8 text-muted-foreground/40" />
               </div>
               <h3 className="text-base font-semibold text-foreground mb-1">Tidak Ada Jadwal Aktif</h3>
               <p className="text-sm text-muted-foreground max-w-[200px] mx-auto">
@@ -291,7 +291,7 @@ export default function Profile() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-primary" />
+                <TrendingUp className="size-4 text-primary" />
                 Riwayat Partisipasi
               </CardTitle>
             </CardHeader>
@@ -328,7 +328,7 @@ export default function Profile() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
+                <Sparkles className="size-4 text-primary" />
                 Manajemen Semeja
               </CardTitle>
             </CardHeader>
@@ -365,23 +365,23 @@ export default function Profile() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <User className="w-4 h-4 text-primary" />
+              <User className="size-4 text-primary" />
               Akun
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="flex flex-col gap-3">
             {/* Password Setup/Change for Admin */}
             {isAdmin && (
-              <div className="space-y-3">
+              <div className="flex flex-col gap-3">
                 {needsPasswordSetup && (
                   <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <AlertTriangle className="size-4 text-amber-600 flex-shrink-0" />
                     <p className="text-xs text-amber-700">Kamu belum punya password. Atur password untuk keamanan akun admin.</p>
                   </div>
                 )}
-                <div className="p-4 rounded-xl bg-muted/50 space-y-3">
+                <div className="p-4 rounded-xl bg-muted/50 flex flex-col gap-3">
                   <div className="flex items-center gap-2">
-                    <KeyRound className="w-4 h-4 text-primary" />
+                    <KeyRound className="size-4 text-primary" />
                     <span className="text-sm font-medium">{needsPasswordSetup ? 'Atur Password' : 'Ubah Password'}</span>
                   </div>
                   {!needsPasswordSetup && (
@@ -433,9 +433,9 @@ export default function Profile() {
                     }}
                   >
                     {savingPassword ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      <Loader2 className="size-4 animate-spin mr-2" />
                     ) : (
-                      <KeyRound className="w-4 h-4 mr-2" />
+                      <KeyRound className="size-4 mr-2" />
                     )}
                     Simpan Password
                   </Button>
@@ -449,10 +449,10 @@ export default function Profile() {
               onClick={logout}
             >
               <div className="flex items-center gap-3">
-                <LogOut className="w-4 h-4" />
+                <LogOut className="size-4" />
                 <span>Keluar</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              <ChevronRight className="size-4 text-muted-foreground" />
             </Button>
           </CardContent>
         </Card>
@@ -486,7 +486,7 @@ function StatCard({
         }`}
     >
       <Icon
-        className={`w-4 h-4 mb-2 ${variant === "muted" ? "text-muted-foreground" : "text-primary"
+        className={`size-4 mb-2 ${variant === "muted" ? "text-muted-foreground" : "text-primary"
           }`}
       />
       <p className="text-base font-bold text-foreground truncate">{value}</p>
@@ -520,8 +520,8 @@ function BreakdownRow({
   return (
     <div className="flex items-center justify-between group">
       <div className="flex items-center gap-3">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${color}`}>
-          <Icon className="h-4 w-4" />
+        <div className={`size-8 rounded-full flex items-center justify-center shrink-0 ${color}`}>
+          <Icon className="size-4" />
         </div>
         <span className="text-sm font-medium text-foreground">{label}</span>
       </div>
@@ -549,10 +549,10 @@ function AdminLink({
       className="flex flex-col gap-2 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors touch-active border border-transparent hover:border-primary/20"
     >
       <div className="flex items-center justify-between">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Icon className="w-4 h-4 text-primary" />
+        <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Icon className="size-4 text-primary" />
         </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
+        <ChevronRight className="size-4 text-muted-foreground/50" />
       </div>
       <div>
         <p className="text-sm font-semibold text-foreground">{label}</p>

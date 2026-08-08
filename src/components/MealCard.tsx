@@ -76,11 +76,11 @@ export const MealCard = React.memo(({
           <h3 className="text-base font-semibold text-foreground">{dayName}</h3>
           <span className="text-xs text-primary/70 font-medium">{formattedDateStr}</span>
         </div>
-        <Calendar className="h-4 w-4 text-border" />
+        <Calendar className="size-4 text-border" />
       </div>
 
       {/* Card Body */}
-      <div className="p-5 space-y-5">
+      <div className="p-5 flex flex-col gap-5">
         <CourseSelector 
           label="Lauk"
           color="bg-orange-400"
@@ -125,7 +125,7 @@ export const MealCard = React.memo(({
             onClick={() => onUpdateMeal(meal.id, { requires_rice: !meal.requires_rice })}
           >
             {isSaving[`${meal.id}-requires_rice`] ? (
-              <Loader2 className="h-3 w-3 animate-spin mx-auto" />
+              <Loader2 className="size-3 animate-spin mx-auto" />
             ) : (
               meal.requires_rice ? "Ya" : "Tidak"
             )}
@@ -137,7 +137,7 @@ export const MealCard = React.memo(({
 });
 
 const CourseSelector = ({ label, color, items, recipes, onAdd, onRemove, isSaving }: any) => (
-  <div className="space-y-3">
+  <div className="flex flex-col gap-3">
     <div className="flex items-center gap-1.5">
       <div className={cn("w-1.5 h-1.5 rounded-full", color)} />
       <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">{label}</span>
@@ -157,7 +157,7 @@ const CourseSelector = ({ label, color, items, recipes, onAdd, onRemove, isSavin
             onClick={() => onRemove(item.id)}
             className="text-muted-foreground/50 hover:text-rose-500 transition-colors"
           >
-            <X className="h-3 w-3" />
+            <X className="size-3" />
           </button>
         </div>
       ))}
@@ -170,7 +170,7 @@ const CourseSelector = ({ label, color, items, recipes, onAdd, onRemove, isSavin
     <Select value="placeholder" onValueChange={(v) => v !== "placeholder" && onAdd(parseInt(v))}>
       <SelectTrigger className="h-8 w-full bg-secondary/30 border-dashed border-border/50 rounded-lg text-[11px] font-medium hover:bg-secondary/50 hover:border-border transition-all">
         <div className="flex items-center gap-2">
-          <ChefHat className="h-3 w-3 text-muted-foreground/50" />
+          <ChefHat className="size-3 text-muted-foreground/50" />
           <SelectValue placeholder={`Tambah ${label}...`} />
         </div>
       </SelectTrigger>

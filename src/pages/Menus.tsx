@@ -213,7 +213,7 @@ export default function Menus() {
 
   return (
     <PageContainer>
-      <div className="space-y-5 md:space-y-6">
+      <div className="flex flex-col gap-5 md:flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -245,7 +245,7 @@ export default function Menus() {
 
         {/* Search */}
         <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/70" />
             <Input
               placeholder="Cari menu masakan..."
               value={search}
@@ -256,7 +256,7 @@ export default function Menus() {
 
         {loading ? (
           <div className="flex h-[40vh] items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <Loader2 className="size-6 animate-spin text-primary" />
           </div>
         ) : (
           <Tabs defaultValue="lauk" className="w-full">
@@ -345,8 +345,8 @@ export default function Menus() {
               Copy link resep dari Cookpad lalu tentukan jenis hidangannya.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCookpadImport} className="space-y-4 pt-3">
-            <div className="space-y-1.5">
+          <form onSubmit={handleCookpadImport} className="flex flex-col gap-4 pt-3">
+            <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-medium text-muted-foreground">URL Resep</Label>
               <Input 
                 required 
@@ -357,7 +357,7 @@ export default function Menus() {
                 className="h-10 rounded-xl bg-secondary/80 border-border text-sm"
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-medium text-muted-foreground">Kategori</Label>
               <Select value={cookpadCategory} onValueChange={setCookpadCategory}>
                 <SelectTrigger className="h-10 rounded-xl bg-secondary/80 border-border text-sm">
@@ -373,7 +373,7 @@ export default function Menus() {
             <DialogFooter className="pt-2">
               <Button type="submit" disabled={isImporting} className="w-full h-10 rounded-xl text-sm font-semibold">
                 {isImporting ? (
-                  <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Mengimport...</>
+                  <><Loader2 className="mr-1.5 size-4 animate-spin" /> Mengimport...</>
                 ) : (
                   "Import Resep"
                 )}
@@ -393,9 +393,9 @@ export default function Menus() {
             </DialogDescription>
           </DialogHeader>
           {editingRecipe && (
-            <form onSubmit={handleSaveRecipe} className="space-y-5 pt-3">
+            <form onSubmit={handleSaveRecipe} className="flex flex-col gap-5 pt-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">Nama Menu</Label>
                   <Input 
                     required 
@@ -404,7 +404,7 @@ export default function Menus() {
                     className="h-10 rounded-xl bg-secondary/80 border-border text-sm"
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">Kategori</Label>
                   <Select 
                     value={editingRecipe.category} 
@@ -422,7 +422,7 @@ export default function Menus() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Deskripsi</Label>
                 <Input 
                   placeholder="Keterangan singkat..." 
@@ -432,7 +432,7 @@ export default function Menus() {
                 />
               </div>
 
-              <div className="space-y-3">
+              <div className="flex flex-col gap-3">
                 <div className="flex justify-between items-center">
                   <Label className="text-sm font-semibold">Daftar Bahan Makanan</Label>
                   <Button 
@@ -447,7 +447,7 @@ export default function Menus() {
                   </Button>
                 </div>
                 
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   {(editingRecipe.ingredients || []).map((ing, idx) => {
                     const isNewIng = ing.id < 0;
                     return (
@@ -492,7 +492,7 @@ export default function Menus() {
                         </div>
                         <Button 
                           type="button" variant="ghost" size="icon" 
-                          className="h-8 w-8 rounded-lg text-muted-foreground/70 hover:text-red-500 hover:bg-red-50"
+                          className="size-8 rounded-lg text-muted-foreground/70 hover:text-destructive hover:bg-destructive/10"
                           onClick={() => {
                             const newIngs = [...editingRecipe.ingredients];
                             newIngs.splice(idx, 1);
@@ -516,7 +516,7 @@ export default function Menus() {
                 <Button type="button" variant="ghost" className="text-sm text-muted-foreground" onClick={() => setEditingRecipe(null)}>Batal</Button>
                 <Button type="submit" disabled={isSavingEdit} className="h-10 rounded-xl text-sm font-semibold w-full sm:w-auto">
                   {isSavingEdit ? (
-                    <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Menyimpan...</>
+                    <><Loader2 className="mr-1.5 size-4 animate-spin" /> Menyimpan...</>
                   ) : editingRecipe.id === 0 ? (
                     "Tambah Menu"
                   ) : (
@@ -538,14 +538,14 @@ export default function Menus() {
               Masukkan jumlah porsi asli resep ini. Semua jumlah bahan akan dibagi dengan angka ini untuk mendapatkan jumlah per 1 porsi.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 pt-3">
-            <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
-              <p className="text-sm font-medium text-amber-800">{normalizeDialogRecipe?.name}</p>
-              <p className="text-xs text-amber-600 mt-1">
+          <div className="flex flex-col gap-4 pt-3">
+            <div className="p-3 bg-warning/10 rounded-xl border border-warning/30">
+              <p className="text-sm font-medium text-warning">{normalizeDialogRecipe?.name}</p>
+              <p className="text-xs text-warning/80 mt-1">
                 {normalizeDialogRecipe?.ingredients?.length || 0} bahan akan dinormalisasi
               </p>
             </div>
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-medium text-muted-foreground">Jumlah Porsi Asli</Label>
               <Input 
                 type="number" 
@@ -568,7 +568,7 @@ export default function Menus() {
                 className="h-10 rounded-xl text-sm font-semibold"
               >
                 {isSavingEdit ? (
-                  <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Menyimpan...</>
+                  <><Loader2 className="mr-1.5 size-4 animate-spin" /> Menyimpan...</>
                 ) : (
                   "Normalisasi"
                 )}

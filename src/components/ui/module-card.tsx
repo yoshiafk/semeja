@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 import type { LucideIcon } from "lucide-react";
 
 interface ModuleCardProps {
@@ -24,9 +25,9 @@ export function ModuleCard({
   className,
 }: ModuleCardProps) {
   const content = (
-    <div
+    <Card
       className={cn(
-        "relative flex flex-col items-center justify-center p-6 rounded-2xl border bg-card text-card-foreground transition-all duration-200",
+        "relative flex flex-col items-center justify-center p-6 rounded-2xl transition-all duration-200",
         !disabled && "touch-scale hover:shadow-lg hover:border-primary/20 cursor-pointer",
         disabled && "opacity-60 cursor-not-allowed",
         className
@@ -49,13 +50,13 @@ export function ModuleCard({
       {/* Icon */}
       <div
         className={cn(
-          "w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-colors",
+          "size-14 rounded-2xl flex items-center justify-center mb-4 transition-colors",
           disabled ? "bg-muted" : "bg-primary/10"
         )}
       >
         <Icon
           className={cn(
-            "w-7 h-7",
+            "size-7",
             disabled ? "text-muted-foreground" : "text-primary"
           )}
         />
@@ -68,7 +69,7 @@ export function ModuleCard({
       <p className="text-xs text-muted-foreground text-center leading-relaxed">
         {description}
       </p>
-    </div>
+    </Card>
   );
 
   if (disabled) {

@@ -150,14 +150,14 @@ function RecipeDetailCard({
         {/* Icon */}
         <div
           className={cn(
-            "w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors",
+            "size-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors",
             isProtein ? "bg-orange-100" : "bg-emerald-100"
           )}
         >
           {isProtein ? (
-            <Drumstick className="w-5 h-5 text-orange-600" />
+            <Drumstick className="size-5 text-orange-600" />
           ) : (
-            <Leaf className="w-5 h-5 text-emerald-600" />
+            <Leaf className="size-5 text-emerald-600" />
           )}
         </div>
 
@@ -184,17 +184,17 @@ function RecipeDetailCard({
           {/* Quick Stats */}
           <div className="flex items-center gap-3 mt-2">
             <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              <Clock className="w-3 h-3" />
+              <Clock className="size-3" />
               {recipe.estimasi_waktu} min
             </span>
             {recipe.kalori_estimasi > 0 && (
               <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                <Flame className="w-3 h-3" />
+                <Flame className="size-3" />
                 {recipe.kalori_estimasi * portions} kcal
               </span>
             )}
             <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              <PackageOpen className="w-3 h-3" />
+              <PackageOpen className="size-3" />
               {recipe.ingredients?.length || 0} bahan
             </span>
           </div>
@@ -202,9 +202,9 @@ function RecipeDetailCard({
 
         <div className="flex-shrink-0 pt-1">
           {expanded ? (
-            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            <ChevronUp className="size-4 text-muted-foreground" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            <ChevronDown className="size-4 text-muted-foreground" />
           )}
         </div>
       </button>
@@ -247,10 +247,10 @@ function RecipeDetailCard({
               <ChefHat className="w-3.5 h-3.5 text-primary" />
               Cara Memasak
             </h5>
-            <div className="space-y-2.5">
+            <div className="flex flex-col gap-2.5">
               {recipe.steps?.map((step) => (
                 <div key={step.id} className="flex gap-2.5">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-[11px] font-bold flex items-center justify-center">
+                  <span className="flex-shrink-0 size-6 rounded-full bg-primary/10 text-primary text-[11px] font-bold flex items-center justify-center">
                     {step.step_number}
                   </span>
                   <p className="text-xs text-foreground/80 leading-relaxed pt-0.5">
@@ -295,8 +295,8 @@ function BumbuDasarCard({
     <div className={cn("rounded-2xl border overflow-hidden transition-all duration-300", style.bg, style.border, expanded && "shadow-md")}>
       <button onClick={() => setExpanded(!expanded)} className="w-full text-left p-3.5 touch-active">
         <div className="flex items-center gap-3">
-          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", `bg-white/60`)}>
-            <ChefHat className={cn("w-5 h-5", style.icon)} />
+          <div className={cn("size-10 rounded-xl flex items-center justify-center", `bg-white/60`)}>
+            <ChefHat className={cn("size-5", style.icon)} />
           </div>
           <div className="flex-1 min-w-0">
             <h4 className={cn("text-sm font-bold", style.text)}>{bumbu.name}</h4>
@@ -309,7 +309,7 @@ function BumbuDasarCard({
             </div>
           </div>
           <div className="flex-shrink-0">
-            {expanded ? <ChevronUp className="w-4 h-4 opacity-50" /> : <ChevronDown className="w-4 h-4 opacity-50" />}
+            {expanded ? <ChevronUp className="size-4 opacity-50" /> : <ChevronDown className="size-4 opacity-50" />}
           </div>
         </div>
       </button>
@@ -318,7 +318,7 @@ function BumbuDasarCard({
         <div className="px-3.5 pb-3.5 animate-page-in">
           <div className="rounded-xl bg-white/60 p-3 mb-3">
             <p className="text-[11px] text-muted-foreground mb-2.5">{bumbu.description}</p>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               {bumbu.ingredients?.map((ing) => (
                 <div key={ing.id} className="flex items-center justify-between text-xs">
                   <span className="text-foreground/80">{ing.name}</span>
@@ -332,14 +332,14 @@ function BumbuDasarCard({
 
           <div className="rounded-xl bg-white/60 p-3 mb-2">
             <h5 className="text-xs font-bold text-foreground mb-1.5 flex items-center gap-1">
-              <ChefHat className="w-3 h-3" /> Cara Membuat
+              <ChefHat className="size-3" /> Cara Membuat
             </h5>
             <p className="text-[11px] text-foreground/70 leading-relaxed">{bumbu.cara_membuat}</p>
           </div>
 
           <div className="rounded-xl bg-white/60 p-3">
             <h5 className="text-xs font-bold text-foreground mb-1.5 flex items-center gap-1">
-              <Lightbulb className="w-3 h-3" /> Penyimpanan
+              <Lightbulb className="size-3" /> Penyimpanan
             </h5>
             <p className="text-[11px] text-foreground/70 leading-relaxed">{bumbu.tips_penyimpanan}</p>
           </div>
@@ -364,9 +364,9 @@ function PortionSelector({
       <button
         onClick={() => onChange(Math.max(1, value - 1))}
         disabled={value <= 1 || disabled}
-        className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary disabled:opacity-30 transition-all touch-active"
+        className="size-9 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary disabled:opacity-30 transition-all touch-active"
       >
-        <Minus className="w-4 h-4" />
+        <Minus className="size-4" />
       </button>
       <div className="w-16 text-center">
         <span className="text-2xl font-extrabold text-foreground tabular-nums">{value}</span>
@@ -375,9 +375,9 @@ function PortionSelector({
       <button
         onClick={() => onChange(Math.min(10, value + 1))}
         disabled={value >= 10 || disabled}
-        className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary disabled:opacity-30 transition-all touch-active"
+        className="size-9 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary disabled:opacity-30 transition-all touch-active"
       >
-        <Plus className="w-4 h-4" />
+        <Plus className="size-4" />
       </button>
     </div>
   );
@@ -541,7 +541,7 @@ export default function BekalSehat() {
     return (
       <PageContainer>
         <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Loader2 className="size-6 animate-spin text-primary" />
         </div>
       </PageContainer>
     );
@@ -551,8 +551,8 @@ export default function BekalSehat() {
     return (
       <PageContainer>
         <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-          <div className="w-20 h-20 rounded-3xl bg-emerald-100 flex items-center justify-center mb-4">
-            <Salad className="w-10 h-10 text-emerald-500" />
+          <div className="size-20 rounded-3xl bg-emerald-100 flex items-center justify-center mb-4">
+            <Salad className="size-10 text-emerald-500" />
           </div>
           <h2 className="text-lg font-bold text-foreground mb-2">Belum Ada Menu Bekal</h2>
           <p className="text-sm text-muted-foreground max-w-xs">
@@ -634,7 +634,7 @@ export default function BekalSehat() {
             >
               <CalendarClock className="w-3.5 h-3.5" />
               Minggu Depan
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              <span className="absolute -top-1 -right-1 size-2 rounded-full bg-blue-500 animate-pulse" />
             </button>
           </div>
         )}
@@ -643,7 +643,7 @@ export default function BekalSehat() {
         {selectedPlan?.status === 'upcoming' && (
           <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
             <div className="flex items-start gap-2.5">
-              <CalendarClock className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <CalendarClock className="size-4 text-blue-600 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-xs font-bold text-blue-800">
                   Menu Minggu Depan — mulai {selectedPlan.start_date ? new Date(selectedPlan.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' }) : ''}
@@ -661,10 +661,10 @@ export default function BekalSehat() {
         <div className="mb-6">
           <div className="flex items-center gap-2.5 mb-1.5">
             <div className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br",
+              "size-10 rounded-xl flex items-center justify-center bg-gradient-to-br",
               selectedPlan?.status === 'upcoming' ? "from-blue-400 to-indigo-500" : "from-emerald-400 to-teal-500"
             )}>
-              <Salad className="w-5 h-5 text-white" />
+              <Salad className="size-5 text-white" />
             </div>
             <div>
               <h1 className="text-xl font-extrabold text-foreground leading-tight">Bekal Sehat</h1>
@@ -680,8 +680,8 @@ export default function BekalSehat() {
         <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-primary/5 to-emerald-50 border border-primary/10">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Users className="w-4 h-4 text-primary" />
+              <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Users className="size-4 text-primary" />
               </div>
               <div>
                 <p className="text-sm font-bold text-foreground">
@@ -700,7 +700,7 @@ export default function BekalSehat() {
                 onClick={handleLeave}
                 disabled={joining}
               >
-                {joining ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <UserMinus className="w-3 h-3 mr-1" />}
+                {joining ? <Loader2 className="size-3 animate-spin mr-1" /> : <UserMinus className="size-3 mr-1" />}
                 Keluar
               </Button>
             ) : (
@@ -710,7 +710,7 @@ export default function BekalSehat() {
                 onClick={handleJoin}
                 disabled={joining}
               >
-                {joining ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <UserPlus className="w-3 h-3 mr-1" />}
+                {joining ? <Loader2 className="size-3 animate-spin mr-1" /> : <UserPlus className="size-3 mr-1" />}
                 Gabung
               </Button>
             )}
@@ -749,7 +749,7 @@ export default function BekalSehat() {
         {/* ── Day Selector ────────────────────────────────────────── */}
         <div className="mb-5">
           <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
+            <Sparkles className="size-4 text-primary" />
             Menu 7 Hari
           </h2>
           <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
@@ -791,7 +791,7 @@ export default function BekalSehat() {
 
         {/* ── Daily Menu ──────────────────────────────────────────── */}
         {currentDay && (
-          <div className="mb-8 space-y-3 stagger-1">
+          <div className="mb-8 flex flex-col gap-3 stagger-1">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-bold text-foreground">
                 {currentDay.day_name}, {formatDayDate(selectedPlan.start_date, currentDay.day_number)}
@@ -810,14 +810,14 @@ export default function BekalSehat() {
         {bumbuDasar.length > 0 && (
           <div className="mb-8">
             <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-              <ChefHat className="w-4 h-4 text-primary" />
+              <ChefHat className="size-4 text-primary" />
               Bumbu Dasar — Persiapan Mingguan
             </h2>
             <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
               Siapkan 3 bumbu dasar ini di awal minggu. Satu kali prep, pakai sepanjang minggu! 
               Takaran di bawah sudah disesuaikan untuk <strong>{portions} porsi</strong>.
             </p>
-            <div className="space-y-3">
+            <div className="flex flex-col gap-3">
               {bumbuDasar.map((bumbu) => (
                 <BumbuDasarCard
                   key={bumbu.id}
@@ -835,7 +835,7 @@ export default function BekalSehat() {
           <Card className="mb-8 overflow-hidden">
             <CardHeader className="bg-muted/30 border-b pb-4">
               <CardTitle className="text-sm flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-primary" />
+                <BarChart3 className="size-4 text-primary" />
                 Ringkasan Mingguan ({portions} porsi)
               </CardTitle>
             </CardHeader>
@@ -864,7 +864,7 @@ export default function BekalSehat() {
               </div>
 
               {/* Per-day mini overview */}
-              <div className="p-4 space-y-3">
+              <div className="p-4 flex flex-col gap-3">
                 {selectedPlan.days.map((day) => (
                   <div key={day.id} className="flex items-start sm:items-center gap-3 text-xs">
                     <span className="font-bold text-muted-foreground w-12 pt-1 sm:pt-0">{day.day_name?.slice(0, 3)}</span>

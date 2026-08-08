@@ -40,10 +40,10 @@ export function NameEntry() {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background px-6">
-      <div className="w-full max-w-sm text-center space-y-8">
+      <div className="w-full max-w-sm text-center flex flex-col gap-8">
         {/* Logo & Branding */}
-        <div className="space-y-4">
-          <div className="mx-auto w-20 h-20 animate-page-in animate-float">
+        <div className="flex flex-col gap-4">
+          <div className="mx-auto size-20 animate-page-in animate-float">
             <picture>
               <source srcSet="/logo.webp" type="image/webp" />
               <img src="/logo.png" alt="Semeja" className="w-full h-full object-contain" />
@@ -51,7 +51,7 @@ export function NameEntry() {
           </div>
           <div className="animate-page-in stagger-1">
             <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center justify-center gap-2">
-              Halo! <Sparkles className="h-5 w-5 text-accent animate-gentle-pulse" />
+              Halo! <Sparkles className="size-5 text-accent animate-gentle-pulse" />
             </h1>
             <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
               Siapa nih yang mau gabung aktivitas bareng?
@@ -60,7 +60,7 @@ export function NameEntry() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-3 animate-page-in stagger-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3 animate-page-in stagger-2">
           <Input
             placeholder="Ketik nama kamu..."
             value={name}
@@ -72,7 +72,7 @@ export function NameEntry() {
           />
 
           {showPassword && (
-            <div className="space-y-2 animate-page-in">
+            <div className="flex flex-col gap-2 animate-page-in">
               <Input
                 type="password"
                 placeholder="Masukkan password..."
@@ -106,12 +106,12 @@ export function NameEntry() {
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 size-4 animate-spin" />
                 Tunggu sebentar...
               </>
             ) : (
               <>
-                <LogIn className="mr-2 h-4 w-4" />
+                <LogIn className="mr-2 size-4" />
                 Gabung Sekarang
               </>
             )}

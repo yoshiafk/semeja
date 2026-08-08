@@ -23,19 +23,19 @@ export default function ActivitiesPage() {
           <p className="text-sm text-muted-foreground">Ikuti kegiatan seru warga Semeja</p>
         </div>
         <Button onClick={handleCreateNew} size="sm" className="rounded-xl">
-          <Plus className="w-4 h-4 mr-1" />
+          <Plus className="size-4 mr-1" />
           Buat
         </Button>
       </div>
 
       {loading ? (
         <div className="flex justify-center p-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Loader2 className="size-6 animate-spin text-primary" />
         </div>
       ) : activities.length === 0 ? (
         <div className="text-center p-8 border border-border/50 rounded-2xl bg-card">
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-            <Calendar className="w-6 h-6 text-primary" />
+          <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+            <Calendar className="size-6 text-primary" />
           </div>
           <h3 className="font-semibold text-foreground mb-1">Belum ada aktifitas</h3>
           <p className="text-sm text-muted-foreground">Pantau terus untuk kegiatan seru selanjutnya!</p>
@@ -74,23 +74,23 @@ function ActivityCard({ activity, onClick }: { activity: Activity; onClick: () =
         </span>
       </div>
 
-      <div className="space-y-2 text-sm text-muted-foreground">
+      <div className="flex flex-col gap-2 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 shrink-0 text-muted-foreground/70" />
+          <Calendar className="size-4 shrink-0 text-muted-foreground/70" />
           <span>{format(dateObj, "EEEE, d MMM yyyy", { locale: id })}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 shrink-0 text-muted-foreground/70" />
+          <Clock className="size-4 shrink-0 text-muted-foreground/70" />
           <span>{activity.time.substring(0, 5)} WIB</span>
         </div>
         {activity.location && (
           <div className="flex items-start gap-2">
-            <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-muted-foreground/70" />
+            <MapPin className="size-4 shrink-0 mt-0.5 text-muted-foreground/70" />
             <span className="line-clamp-2 leading-tight">{activity.location}</span>
           </div>
         )}
         <div className="flex items-center gap-2 pt-2 mt-2 border-t border-border/40">
-          <Users className="w-4 h-4 shrink-0 text-muted-foreground/70" />
+          <Users className="size-4 shrink-0 text-muted-foreground/70" />
           <span className="font-medium text-foreground">
             {activity.participant_count || 0} orang
             {activity.guests_count_total ? ` (+${activity.guests_count_total} tamu)` : ""}

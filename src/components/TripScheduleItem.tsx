@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapPin, ExternalLink } from "lucide-react";
+import { MapPin, ExternalLink, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ScheduleItem, ActivityType } from "@/types/trip";
 
@@ -31,9 +31,11 @@ const ACTIVITY_COLORS: Record<ActivityType, string> = {
 interface TripScheduleItemProps {
   item: ScheduleItem;
   isLast?: boolean;
+  isAdmin?: boolean;
+  onToggleDone?: (itemId: number, isDone: boolean) => Promise<void>;
 }
 
-export function TripScheduleItem({ item, isLast = false }: TripScheduleItemProps) {
+export function TripScheduleItem({ item, isLast = false, isAdmin, onToggleDone }: TripScheduleItemProps) {
   const [expandedNotes, setExpandedNotes] = useState(false);
   const Icon = ACTIVITY_ICONS[item.activity_type] ?? MapPin;
   const colorClass = ACTIVITY_COLORS[item.activity_type] ?? "text-gray-500 bg-gray-100";
@@ -61,19 +63,20 @@ export function TripScheduleItem({ item, isLast = false }: TripScheduleItemProps
       </div>
 
       {/* Type icon */}
-      <div className={cn("w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center mt-0.5", colorClass)}>
-        <Icon className="w-4 h-4" />
+      <div className={cn("size-8 flex-shrink-0 rounded-lg flex items-center justify-center mt-0.5", colorClass)}>
+        <Icon className="size-4" />
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className={cn("flex-1 min-w-0 transition-opacity", item.is_done && "opacity-60")}>
         <div className="flex items-start justify-between gap-2">
           {/* Name + badges */}
           <div className="flex-1 min-w-0">
             <p className={cn(
               "text-sm leading-snug pr-1",
               item.is_highlight ? "font-bold text-foreground" : "font-medium text-foreground/90",
-              item.is_optional && "opacity-70"
+              item.is_optional && "opacity-70",
+              item.is_done && "line-through text-muted-foreground"
             )}>
               {item.name}
             </p>
@@ -81,7 +84,7 @@ export function TripScheduleItem({ item, isLast = false }: TripScheduleItemProps
             {/* Location + area */}
             {(item.location || item.area) && (
               <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                <MapPin className="w-3 h-3 flex-shrink-0" />
+                <MapPin className="size-3 flex-shrink-0" />
                 <span className="truncate">
                   {item.location || item.area}
                   {item.location && item.area && ` · ${item.area}`}
@@ -145,22 +148,42 @@ export function TripScheduleItem({ item, isLast = false }: TripScheduleItemProps
             )}
           </div>
 
-          {/* Maps button */}
-          {item.maps_url && (
-            <button
-              onClick={handleMapsClick}
-              className={cn(
-                "flex-shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-lg border text-xs font-medium",
-                "text-blue-600 bg-blue-50 border-blue-200",
-                "hover:bg-blue-100 active:scale-95 transition-all duration-150",
-                "min-w-[44px] min-h-[44px] items-center justify-center"
-              )}
-              aria-label={`Buka ${item.name} di Maps`}
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">Maps</span>
-            </button>
-          )}
+          {/* Actions (Maps & Checkbox) */}
+          <div className="flex flex-col gap-2 items-end">
+            {item.maps_url && (
+              <button
+                onClick={handleMapsClick}
+                className={cn(
+                  "flex-shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-lg border text-xs font-medium",
+                  "text-blue-600 bg-blue-50 border-blue-200",
+                  "hover:bg-blue-100 active:scale-95 transition-all duration-150",
+                  "min-w-[44px] min-h-[44px] items-center justify-center"
+                )}
+                aria-label={`Buka ${item.name} di Maps`}
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span className="hidden xs:inline">Maps</span>
+              </button>
+            )}
+            
+            {isAdmin && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onToggleDone) onToggleDone(item.id, !item.is_done);
+                }}
+                className={cn(
+                  "flex-shrink-0 size-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 active:scale-90",
+                  item.is_done 
+                    ? "bg-primary border-primary text-primary-foreground" 
+                    : "border-muted-foreground/30 hover:border-primary/50 bg-background"
+                )}
+                aria-label={item.is_done ? "Tandai belum selesai" : "Tandai selesai"}
+              >
+                {item.is_done && <Check className="size-4" strokeWidth={3} />}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

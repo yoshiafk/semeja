@@ -135,7 +135,7 @@ export default function Dashboard() {
     return (
       <PageContainer>
         <div className="flex h-[60vh] items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Loader2 className="size-6 animate-spin text-primary" />
         </div>
       </PageContainer>
     );
@@ -144,9 +144,9 @@ export default function Dashboard() {
   if (!plan) {
     return (
       <PageContainer>
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-3 px-8">
-          <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center">
-            <CalendarDays className="h-6 w-6 text-muted-foreground/70" />
+        <div className="flex flex-col items-center justify-center h-[60vh] text-center flex flex-col gap-3 px-8">
+          <div className="size-14 rounded-2xl bg-muted flex items-center justify-center">
+            <CalendarDays className="size-6 text-muted-foreground/70" />
           </div>
           <div>
             <h2 className="text-lg font-semibold text-foreground">Belum ada menu pekan ini</h2>
@@ -163,9 +163,9 @@ export default function Dashboard() {
 
   return (
     <PageContainer>
-      <div className="space-y-5">
+      <div className="flex flex-col gap-5">
         {/* Page Header — compact on mobile, expanded on desktop */}
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">Menu Mingguan</h1>
@@ -233,13 +233,13 @@ export default function Dashboard() {
                 </div>
 
                 {/* Menu Content */}
-                <div className="px-4 py-3 space-y-2.5">
+                <div className="px-4 py-3 flex flex-col gap-2.5">
                   {/* Main Course */}
                   <div className="flex items-start gap-2.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0" />
                     <div className="min-w-0 flex-1">
                       <span className="text-[10px] text-muted-foreground/70 font-medium uppercase tracking-wide">Lauk</span>
-                      <div className="space-y-0.5">
+                      <div className="flex flex-col gap-0.5">
                         {meal.items?.filter(i => i.category === 'main').length > 0 ? (
                           meal.items.filter(i => i.category === 'main').map((it, idx) => (
                             <p key={idx} className="text-sm font-medium text-foreground leading-snug">{it.custom_name}</p>
@@ -256,7 +256,7 @@ export default function Dashboard() {
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
                     <div className="min-w-0 flex-1">
                       <span className="text-[10px] text-muted-foreground/70 font-medium uppercase tracking-wide">Sayur</span>
-                      <div className="space-y-0.5">
+                      <div className="flex flex-col gap-0.5">
                         {meal.items?.filter(i => i.category === 'second').length > 0 ? (
                           meal.items.filter(i => i.category === 'second').map((it, idx) => (
                             <p key={idx} className="text-sm font-medium text-foreground leading-snug">{it.custom_name}</p>
@@ -273,7 +273,7 @@ export default function Dashboard() {
                     <div className="w-1.5 h-1.5 rounded-full bg-violet-400 mt-1.5 shrink-0" />
                     <div className="min-w-0 flex-1">
                       <span className="text-[10px] text-muted-foreground/70 font-medium uppercase tracking-wide">Dessert</span>
-                      <div className="space-y-0.5">
+                      <div className="flex flex-col gap-0.5">
                         {meal.items?.filter(i => i.category === 'dessert').length > 0 ? (
                           meal.items.filter(i => i.category === 'dessert').map((it, idx) => (
                             <p key={idx} className="text-sm font-medium text-foreground leading-snug">{it.custom_name}</p>

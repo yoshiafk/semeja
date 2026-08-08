@@ -67,6 +67,7 @@ export const api = {
   get: <T>(path: string) => request<T>(path, { method: 'GET' }),
   post: <T>(path: string, body?: any) => request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
   put: <T>(path: string, body?: any) => request<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
+  patch: <T>(path: string, body?: any) => request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 };
 
@@ -382,5 +383,9 @@ import type { TripSummary, TripDetail } from '@/types/trip';
 
 export const getTrips = () => api.get<TripSummary[]>('/trips');
 export const getTripDetail = (slug: string) => api.get<TripDetail>(`/trips/${slug}`);
+export const toggleTripScheduleItem = (slug: string, itemId: number, isDone: boolean) => 
+  api.patch<{ id: number, is_done: boolean }>(`/trips/${slug}/schedule/${itemId}/toggle`, { is_done: isDone });
+export const updateTripBudgetActual = (slug: string, rowId: number, actualAmount: number) => 
+  api.patch<{ id: number, actual_amount_rp: number }>(`/trips/${slug}/budget/${rowId}`, { actual_amount_rp: actualAmount });
 
 
