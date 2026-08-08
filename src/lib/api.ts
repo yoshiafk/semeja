@@ -376,3 +376,11 @@ export const joinBekalPlan = (planId: number, data: { member_id: number; portion
 export const leaveBekalPlan = (planId: number, data: { member_id: number }) => api.post<{ message: string }>(`/bekal-sehat/plans/${planId}/leave`, data);
 export const generateBekalPlan = () => api.post<BekalPlan>('/bekal-sehat/plans/generate');
 
+// ── Trips Module ──────────────────────────────────────────────────────────
+
+import type { TripSummary, TripDetail } from '@/types/trip';
+
+export const getTrips = () => api.get<TripSummary[]>('/trips');
+export const getTripDetail = (slug: string) => api.get<TripDetail>(`/trips/${slug}`);
+
+

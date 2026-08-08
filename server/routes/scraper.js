@@ -199,41 +199,37 @@ async function findOrCreateIngredient(client, name, unit) {
  * Update meal_ingredients for all meals using a specific recipe
  */
 async function propagateToMeals(client, recipeId) {
-  // Find all meals that use this recipe
-  const { rows: affectedMeals } = await client.query(
-    `SELECT id, 
-       CASE WHEN main_course_recipe_id = $1 THEN 'main' END as main_type,
-       CASE WHEN second_course_recipe_id = $1 THEN 'second' END as second_type,
-       CASE WHEN dessert_recipe_id = $1 THEN 'dessert' END as dessert_type
-     FROM meals 
-     WHERE main_course_recipe_id = $1 
-        OR second_course_recipe_id = $1 
-        OR dessert_recipe_id = $1`,
+  // Find all meal items that use this recipe
+  const { rows: affectedItems } = await client.query(
+    `SELECT meal_id as id, category as type
+     FROM meal_menu_items 
+     WHERE recipe_id = $1`,
     [recipeId]
   );
   
   const updatedMealIds = [];
   
-  for (const meal of affectedMeals) {
-    const mealTypes = [meal.main_type, meal.second_type, meal.dessert_type].filter(Boolean);
+  for (const item of affectedItems) {
+    const mealId = item.id;
+    const mealType = item.type;
     
-    for (const mealType of mealTypes) {
-      // Delete existing ingredients for this meal type
-      await client.query(
-        'DELETE FROM meal_ingredients WHERE meal_id = $1 AND meal_type = $2',
-        [meal.id, mealType]
-      );
-      
-      // Copy fresh from recipe_ingredients
-      await client.query(
-        `INSERT INTO meal_ingredients (meal_id, ingredient_id, quantity_per_person, unit, meal_type)
-         SELECT $1, ingredient_id, quantity_per_person, custom_unit, $2
-         FROM recipe_ingredients WHERE recipe_id = $3`,
-        [meal.id, mealType, recipeId]
-      );
+    // Delete existing ingredients for this meal type
+    await client.query(
+      'DELETE FROM meal_ingredients WHERE meal_id = $1 AND meal_type = $2',
+      [mealId, mealType]
+    );
+    
+    // Copy fresh from recipe_ingredients
+    await client.query(
+      `INSERT INTO meal_ingredients (meal_id, ingredient_id, quantity_per_person, unit, meal_type)
+       SELECT $1, ingredient_id, quantity_per_person, custom_unit, $2
+       FROM recipe_ingredients WHERE recipe_id = $3`,
+      [mealId, mealType, recipeId]
+    );
+    
+    if (!updatedMealIds.includes(mealId)) {
+      updatedMealIds.push(mealId);
     }
-    
-    updatedMealIds.push(meal.id);
   }
   
   return updatedMealIds;

@@ -82,6 +82,10 @@ const Profile = lazy(() => import("@/pages/Profile"));
 // Bekal Sehat Module
 const BekalSehat = lazy(() => import("@/pages/BekalSehat"));
 
+// Trips Module
+const TripsList = lazy(() => import("@/pages/trips/index"));
+const TripDetailView = lazy(() => import("@/pages/trips/detail"));
+
 const PageLoader = () => (
   <div className="flex h-[60vh] items-center justify-center">
     <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -171,6 +175,10 @@ function App() {
 
               {/* ── Bekal Sehat Module ──────────────────────── */}
               <Route path="/bekal-sehat" element={<BekalSehat />} />
+
+              {/* ── Trips Module ─────────────────────────────── */}
+              <Route path="/trips" element={<TripsList />} />
+              <Route path="/trips/:slug" element={<TripDetailView />} />
 
               {/* Legacy redirects */}
               <Route path="/members"      element={<Navigate to="/community/members" />} />

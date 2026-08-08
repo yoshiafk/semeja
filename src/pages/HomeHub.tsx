@@ -3,15 +3,24 @@ import { Link } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ModuleCard } from "@/components/ui/module-card";
-import { UtensilsCrossed, Activity, Users, Sparkles, ClipboardList, Carrot, Gift, Salad } from "lucide-react";
-import { getTodayParticipation } from "@/lib/api";
+import { UtensilsCrossed, Activity, Users, Sparkles, ClipboardList, Carrot, Gift, Salad, Map } from "lucide-react";
+import { getTodayParticipation, getTrips } from "@/lib/api";
+import type { TripSummary } from "@/types/trip";
+import { TripCountdownBanner } from "@/components/TripCountdownBanner";
 
 export default function HomeHub() {
   const { member, isAdmin } = useMember();
   const [todayCount, setTodayCount] = useState(0);
+  const [latestTrip, setLatestTrip] = useState<TripSummary | null>(null);
 
   useEffect(() => {
     getTodayParticipation().then(({ count }) => setTodayCount(count));
+    getTrips().then(trips => {
+      if (trips && trips.length > 0) {
+        const upcoming = trips.find(t => t.status !== "done") || trips[0];
+        setLatestTrip(upcoming);
+      }
+    }).catch(console.error);
   }, []);
 
   // Get greeting based on time of day
@@ -93,6 +102,51 @@ export default function HomeHub() {
             href="/bekal-sehat"
           />
         </div>
+
+        {/* Perjalanan (Trips) Module - Full Width */}
+        {latestTrip ? (
+          <div className="mt-4">
+            <Link to={`/trips/${latestTrip.slug}`} className="block group relative border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow active:scale-[0.98]">
+              <div className="h-28 bg-gradient-to-r from-emerald-500 to-purple-600 relative p-4 flex flex-col justify-end">
+                <div className="absolute inset-0 bg-black/10 mix-blend-overlay transition-opacity group-hover:opacity-0"></div>
+                <div className="absolute top-3 right-3">
+                  <TripCountdownBanner startDate={latestTrip.start_date} endDate={latestTrip.end_date} status={latestTrip.status} className="bg-white/95 backdrop-blur-sm shadow-sm" />
+                </div>
+                <h2 className="text-white font-bold text-xl relative z-10 flex items-center gap-1.5">
+                  <Map className="w-5 h-5 opacity-90" />
+                  {latestTrip.title}
+                </h2>
+                <p className="text-white/90 text-sm relative z-10 flex items-center gap-1.5 mt-0.5">
+                  <span>{new Date(latestTrip.start_date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} – {new Date(latestTrip.end_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
+                  <span className="opacity-70">·</span>
+                  <span>{latestTrip.participant_count} orang</span>
+                </p>
+                {/* Timeline Progress */}
+                {(() => {
+                  const now = new Date();
+                  const start = new Date(latestTrip.start_date + "T00:00:00");
+                  const end = new Date(latestTrip.end_date + "T23:59:59");
+                  let progress = 0;
+                  if (now > end) progress = 100;
+                  else if (now > start) {
+                    progress = Math.min(100, Math.max(0, ((now.getTime() - start.getTime()) / (end.getTime() - start.getTime())) * 100));
+                  }
+                  return (
+                    <div className="w-full h-1.5 bg-white/20 rounded-full mt-3 relative z-10 overflow-hidden">
+                      <div className="h-full bg-white rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+                    </div>
+                  );
+                })()}
+              </div>
+            </Link>
+          </div>
+        ) : (
+          <div className="mt-4">
+             <Link to="/trips" className="block p-4 rounded-2xl bg-muted/50 border hover:bg-muted transition-colors text-center text-muted-foreground text-sm font-medium">
+               + Rencanakan Perjalanan Baru
+             </Link>
+          </div>
+        )}
 
         {/* Additional Quick Actions for Admin */}
         <div className="mt-8">

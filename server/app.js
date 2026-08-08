@@ -24,6 +24,7 @@ const mealActualsRouter = require('./routes/meal-actuals');
 const mealPreviewRouter = require('./routes/meal-preview');
 const paymentsRouter = require('./routes/payments');
 const bekalSehatRouter = require('./routes/bekal-sehat');
+const tripsRouter = require('./routes/trips');
 const { autoArchiveMiddleware } = require('./lib/auto-archive');
 const { pool } = require('./db');
 
@@ -87,6 +88,7 @@ app.use('/api/attachments', attachmentsRouter);
 app.use('/api/ocr', ocrRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/bekal-sehat', bekalSehatRouter);
+app.use('/api/trips', tripsRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -117,7 +119,8 @@ async function doEnsureDB() {
         `);
         const { rows: bekalCheck } = await client.query("SELECT 1 FROM bekal_recipe_pool WHERE name = 'Tahu Kecap Manis'");
         const { rows: ikanCheck } = await client.query("SELECT 1 FROM bekal_recipe_pool WHERE name ILIKE '%ikan%' OR name ILIKE '%nangka%' LIMIT 1");
-        return rows.length > 0 && bekalCheck.length > 0 && ikanCheck.length === 0;
+        const { rows: tripCheck } = await client.query("SELECT 1 FROM trips WHERE slug = 'semarang-jogja-2026'");
+        return rows.length > 0 && bekalCheck.length > 0 && ikanCheck.length === 0 && tripCheck.length > 0;
       } catch (e) {
         return false;
       }

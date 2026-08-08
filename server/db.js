@@ -102,18 +102,6 @@ async function initDB(retries = 3) {
       -- Ensure meals has menu categories
       ALTER TABLE meals ADD COLUMN IF NOT EXISTS requires_rice BOOLEAN DEFAULT FALSE;
 
-      -- DROP legacy menu columns if they exist (migrated to meal_menu_items)
-      ALTER TABLE meals DROP COLUMN IF EXISTS main_course_menu;
-      ALTER TABLE meals DROP COLUMN IF EXISTS second_course_menu;
-      ALTER TABLE meals DROP COLUMN IF EXISTS dessert_menu;
-      ALTER TABLE meals DROP COLUMN IF EXISTS main_course_recipe_id;
-      ALTER TABLE meals DROP COLUMN IF EXISTS second_course_recipe_id;
-      ALTER TABLE meals DROP COLUMN IF EXISTS dessert_recipe_id;
-
-      ALTER TABLE meals DROP COLUMN IF EXISTS lunch_menu;
-      ALTER TABLE meals DROP COLUMN IF EXISTS lunch_recipe_id;
-      ALTER TABLE meals DROP COLUMN IF EXISTS dinner_menu;
-      ALTER TABLE meals DROP COLUMN IF EXISTS dinner_recipe_id;
       ALTER TABLE meals ADD COLUMN IF NOT EXISTS requires_rice BOOLEAN DEFAULT false;
       
       -- Migrate day names to Indonesian
@@ -148,26 +136,41 @@ async function initDB(retries = 3) {
       -- Migration: Move existing meal columns to meal_menu_items if table was empty
       DO $$
       BEGIN
-        IF NOT EXISTS (SELECT 1 FROM meal_menu_items LIMIT 1) THEN
-          -- Migrate Main Course
-          INSERT INTO meal_menu_items (meal_id, recipe_id, custom_name, category, sort_order)
-          SELECT id, main_course_recipe_id, main_course_menu, 'main', 0
-          FROM meals 
-          WHERE main_course_menu != '' OR main_course_recipe_id IS NOT NULL;
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'meals' AND column_name = 'main_course_recipe_id') THEN
+          IF NOT EXISTS (SELECT 1 FROM meal_menu_items LIMIT 1) THEN
+            -- Migrate Main Course
+            EXECUTE 'INSERT INTO meal_menu_items (meal_id, recipe_id, custom_name, category, sort_order)
+            SELECT id, main_course_recipe_id, main_course_menu, ''main'', 0
+            FROM meals 
+            WHERE main_course_menu != '''' OR main_course_recipe_id IS NOT NULL';
 
-          -- Migrate Second Course
-          INSERT INTO meal_menu_items (meal_id, recipe_id, custom_name, category, sort_order)
-          SELECT id, second_course_recipe_id, second_course_menu, 'second', 0
-          FROM meals 
-          WHERE second_course_menu != '' OR second_course_recipe_id IS NOT NULL;
+            -- Migrate Second Course
+            EXECUTE 'INSERT INTO meal_menu_items (meal_id, recipe_id, custom_name, category, sort_order)
+            SELECT id, second_course_recipe_id, second_course_menu, ''second'', 0
+            FROM meals 
+            WHERE second_course_menu != '''' OR second_course_recipe_id IS NOT NULL';
 
-          -- Migrate Dessert
-          INSERT INTO meal_menu_items (meal_id, recipe_id, custom_name, category, sort_order)
-          SELECT id, dessert_recipe_id, dessert_menu, 'dessert', 0
-          FROM meals 
-          WHERE dessert_menu != '' OR dessert_recipe_id IS NOT NULL;
+            -- Migrate Dessert
+            EXECUTE 'INSERT INTO meal_menu_items (meal_id, recipe_id, custom_name, category, sort_order)
+            SELECT id, dessert_recipe_id, dessert_menu, ''dessert'', 0
+            FROM meals 
+            WHERE dessert_menu != '''' OR dessert_recipe_id IS NOT NULL';
+          END IF;
         END IF;
       END $$;
+
+      -- DROP legacy menu columns if they exist (migrated to meal_menu_items)
+      ALTER TABLE meals DROP COLUMN IF EXISTS main_course_menu;
+      ALTER TABLE meals DROP COLUMN IF EXISTS second_course_menu;
+      ALTER TABLE meals DROP COLUMN IF EXISTS dessert_menu;
+      ALTER TABLE meals DROP COLUMN IF EXISTS main_course_recipe_id;
+      ALTER TABLE meals DROP COLUMN IF EXISTS second_course_recipe_id;
+      ALTER TABLE meals DROP COLUMN IF EXISTS dessert_recipe_id;
+      
+      ALTER TABLE meals DROP COLUMN IF EXISTS lunch_menu;
+      ALTER TABLE meals DROP COLUMN IF EXISTS lunch_recipe_id;
+      ALTER TABLE meals DROP COLUMN IF EXISTS dinner_menu;
+      ALTER TABLE meals DROP COLUMN IF EXISTS dinner_recipe_id;
 
       CREATE TABLE IF NOT EXISTS participations (
         id SERIAL PRIMARY KEY,
@@ -509,6 +512,94 @@ async function initDB(retries = 3) {
       CREATE INDEX IF NOT EXISTS idx_reactions_plan ON plan_reactions(plan_id);
       CREATE INDEX IF NOT EXISTS idx_reactions_meal ON plan_reactions(meal_id);
       CREATE INDEX IF NOT EXISTS idx_payments_plan ON payment_records(meal_plan_id);
+
+      -- ── Trips Module ─────────────────────────────────────────────────
+
+      CREATE TABLE IF NOT EXISTS trips (
+        id                SERIAL PRIMARY KEY,
+        slug              VARCHAR(100) NOT NULL UNIQUE,
+        title             VARCHAR(200) NOT NULL,
+        subtitle          VARCHAR(300) DEFAULT '',
+        start_date        DATE NOT NULL,
+        end_date          DATE NOT NULL,
+        participant_count INTEGER DEFAULT 0,
+        transport         TEXT DEFAULT '',
+        pace              VARCHAR(100) DEFAULT '',
+        status            VARCHAR(20) DEFAULT 'upcoming',
+        cover_city        VARCHAR(100) DEFAULT '',
+        created_by        INTEGER REFERENCES members(id) ON DELETE SET NULL,
+        created_at        TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS trip_hotels (
+        id         SERIAL PRIMARY KEY,
+        trip_id    INTEGER REFERENCES trips(id) ON DELETE CASCADE,
+        name       VARCHAR(200) NOT NULL,
+        city       VARCHAR(100) NOT NULL,
+        address    TEXT NOT NULL,
+        maps_url   TEXT DEFAULT '',
+        check_in   DATE NOT NULL,
+        check_out  DATE NOT NULL,
+        sort_order INTEGER DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS trip_hotel_distances (
+        id          SERIAL PRIMARY KEY,
+        hotel_id    INTEGER REFERENCES trip_hotels(id) ON DELETE CASCADE,
+        destination VARCHAR(200) NOT NULL,
+        distance_km VARCHAR(20) NOT NULL,
+        duration    VARCHAR(50) NOT NULL,
+        sort_order  INTEGER DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS trip_days (
+        id           SERIAL PRIMARY KEY,
+        trip_id      INTEGER REFERENCES trips(id) ON DELETE CASCADE,
+        day_number   INTEGER NOT NULL,
+        date         DATE NOT NULL,
+        label        VARCHAR(100) NOT NULL,
+        city         VARCHAR(50) NOT NULL,
+        area_note    TEXT DEFAULT '',
+        warning_note TEXT DEFAULT '',
+        UNIQUE(trip_id, day_number)
+      );
+
+      CREATE TABLE IF NOT EXISTS trip_schedule_items (
+        id               SERIAL PRIMARY KEY,
+        day_id           INTEGER REFERENCES trip_days(id) ON DELETE CASCADE,
+        time_start       VARCHAR(10) NOT NULL,
+        time_end         VARCHAR(10) DEFAULT '',
+        name             VARCHAR(300) NOT NULL,
+        activity_type    VARCHAR(30) NOT NULL,
+        location         TEXT DEFAULT '',
+        area             VARCHAR(200) DEFAULT '',
+        maps_url         TEXT DEFAULT '',
+        notes            TEXT DEFAULT '',
+        opening_hours    VARCHAR(200) DEFAULT '',
+        is_highlight     BOOLEAN DEFAULT false,
+        is_cash_only     BOOLEAN DEFAULT false,
+        requires_booking BOOLEAN DEFAULT false,
+        is_optional      BOOLEAN DEFAULT false,
+        sort_order       INTEGER DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS trip_budget_rows (
+        id               SERIAL PRIMARY KEY,
+        trip_id          INTEGER REFERENCES trips(id) ON DELETE CASCADE,
+        category         VARCHAR(200) NOT NULL,
+        detail           VARCHAR(300) DEFAULT '',
+        amount_rp        INTEGER DEFAULT 0,
+        is_accommodation BOOLEAN DEFAULT false,
+        is_total_row     BOOLEAN DEFAULT false,
+        sort_order       INTEGER DEFAULT 0
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_trips_slug ON trips(slug);
+      CREATE INDEX IF NOT EXISTS idx_trip_days_trip ON trip_days(trip_id);
+      CREATE INDEX IF NOT EXISTS idx_trip_schedule_day ON trip_schedule_items(day_id);
+      CREATE INDEX IF NOT EXISTS idx_trip_hotels_trip ON trip_hotels(trip_id);
+      CREATE INDEX IF NOT EXISTS idx_trip_hotel_distances_hotel ON trip_hotel_distances(hotel_id);
+      CREATE INDEX IF NOT EXISTS idx_trip_budget_trip ON trip_budget_rows(trip_id);
     `);
     console.log('Database schema initialized');
   } finally {

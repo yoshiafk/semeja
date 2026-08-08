@@ -4,6 +4,7 @@ const { seedBekalSehat } = require('./seed-bekal');
 const { seedBekalPool } = require('./seed-bekal-pool');
 const { appendBekalPool } = require('./migrate-bekal-pool');
 const { generateWeeklyPlan, getNextMonday } = require('./auto-generate-bekal');
+const { seedTripSemarangJogja } = require('./scripts/seed-trip-semarang-jogja');
 
 const SUPERADMIN_NAME = process.env.SUPERADMIN_NAME || 'Admin';
 const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD || 'admin123';
@@ -37,6 +38,13 @@ async function seed() {
       await appendBekalPool();
     } catch (err) {
       console.warn('Bekal pool migration failed, skipping:', err.message);
+    }
+
+    // Seed trip semarang-jogja (idempotent — ON CONFLICT DO NOTHING)
+    try {
+      await seedTripSemarangJogja();
+    } catch (err) {
+      console.warn('Trip semarang-jogja seeding failed, skipping:', err.message);
     }
 
     // Auto-generate first plan if none exists

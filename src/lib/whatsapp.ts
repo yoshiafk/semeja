@@ -227,9 +227,105 @@ export function formatWeeklyShoppingList(data: {
   ].join('\n');
 }
 
-// ─── Helper ───────────────────────────────────────────────────
-
 export function shareToWhatsApp(message: string): void {
   const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
   window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+// ─── 6. Trip Day Schedule ─────────────────────────────────────
+// Share a single day's itinerary schedule to WhatsApp
+
+import type { TripDay } from '@/types/trip';
+
+const CITY_EMOJI: Record<string, string> = {
+  semarang: '🟢',
+  yogyakarta: '🟣',
+  transit: '🚌',
+};
+
+const TYPE_EMOJI: Record<string, string> = {
+  food: '🍽️',
+  attraction: '🏛️',
+  transit: '🚌',
+  hotel: '🏨',
+  event: '🎭',
+  shopping: '🛍️',
+  leisure: '☀️',
+};
+
+export function formatTripDayWhatsApp(day: TripDay, tripTitle: string): string {
+  const cityEmoji = CITY_EMOJI[day.city] ?? '📍';
+  const lines: string[] = [
+    `📅 *Hari ${day.day_number} — ${day.label}*`,
+    `${cityEmoji} ${day.city === 'transit' ? 'Transit' : day.city.charAt(0).toUpperCase() + day.city.slice(1)} | ${tripTitle}`,
+  ];
+
+  if (day.warning_note) {
+    lines.push('', `⚠️ _${day.warning_note}_`);
+  }
+  if (day.area_note) {
+    lines.push('', `ℹ️ ${day.area_note}`);
+  }
+
+  lines.push('', '---');
+
+  for (const item of day.schedule) {
+    const typeEmoji = TYPE_EMOJI[item.activity_type] ?? '•';
+    let line = `${item.time_start}  ${typeEmoji}  *${item.name}*`;
+    if (item.area) line += ` _(${item.area})_`;
+    lines.push(line);
+
+    const extras: string[] = [];
+    if (item.opening_hours) extras.push(`🕐 ${item.opening_hours}`);
+    if (item.is_cash_only) extras.push('💵 Cash only');
+    if (item.requires_booking) extras.push('📌 Booking dulu!');
+    if (item.notes) extras.push(`   ${item.notes}`);
+    if (extras.length) lines.push(...extras.map(e => `   ${e}`));
+  }
+
+  lines.push('', `_Dibagikan dari Semeja App_`);
+  return lines.join('\n');
+}
+
+// ─── 7. Trip Budget Summary ───────────────────────────────────
+
+import type { TripBudgetRow } from '@/types/trip';
+
+export function formatTripBudgetWhatsApp(
+  tripTitle: string,
+  participantCount: number,
+  budgetRows: TripBudgetRow[],
+  includeAccommodation: boolean,
+): string {
+  const displayRows = budgetRows.filter(r => {
+    if (r.is_total_row) return false;
+    if (!includeAccommodation && r.is_accommodation) return false;
+    return true;
+  });
+
+  const totalRow = budgetRows.find(r => r.is_total_row && r.is_accommodation === includeAccommodation);
+
+  const rowLines = displayRows.map(r => {
+    const amt = r.amount_rp > 0 ? formatRupiah(r.amount_rp) : '—';
+    return `• ${r.category}: *${amt}*`;
+  });
+
+  const totalLine = totalRow
+    ? `💰 *Total: ${formatRupiah(totalRow.amount_rp)}* (${participantCount} orang)`
+    : '';
+
+  const perPersonLine = totalRow
+    ? `👤 Per orang: *${formatRupiah(Math.round(totalRow.amount_rp / participantCount))}*`
+    : '';
+
+  return [
+    `💼 *Estimasi Budget — ${tripTitle}*`,
+    '',
+    rowLines.join('\n'),
+    '',
+    totalLine,
+    perPersonLine,
+    '',
+    '_Dibagikan dari Semeja App_',
+  ].filter(Boolean).join('\n');
 }
