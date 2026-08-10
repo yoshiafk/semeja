@@ -25,6 +25,36 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ── POST /api/trips — Create a new trip (Admin) ─────────────────────────
+router.post('/', requireAuth, requireAdmin, async (req, res) => {
+  const { title, subtitle, start_date, end_date, transport, pace, cover_city } = req.body;
+  if (!title || !start_date || !end_date) return res.status(400).json({ error: 'Missing required fields' });
+
+  // Generate slug
+  const baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const timestamp = Date.now().toString().slice(-4);
+  const slug = `${baseSlug}-${timestamp}`;
+
+  try {
+    const { rows } = await pool.query(`
+      INSERT INTO trips (slug, title, subtitle, start_date, end_date, participant_count, transport, pace, cover_city, status, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'upcoming', $10)
+      RETURNING *
+    `, [
+      slug, title, subtitle || '', start_date, end_date, 
+      participant_count || 1,
+      JSON.stringify(transport || []), pace || '', cover_city || '', req.user.id
+    ]);
+
+    const trip = rows[0];
+    trip.transport = (() => { try { return JSON.parse(trip.transport); } catch { return []; } })();
+    res.status(201).json(trip);
+  } catch (err) {
+    console.error('Error creating trip:', err);
+    res.status(500).json({ error: 'Failed to create trip' });
+  }
+});
+
 // ── GET /api/trips/:slug — full trip detail ───────────────────────────────
 router.get('/:slug', async (req, res) => {
   const { slug } = req.params;
@@ -100,7 +130,22 @@ router.get('/:slug', async (req, res) => {
       ORDER BY sort_order
     `, [tripId]);
 
-    res.json({ ...trip, hotels, days, budget: budgetRows });
+    // Participants
+    const { rows: participantRows } = await pool.query(`
+      SELECT m.id, m.name, '' as avatar_url, tp.joined_at
+      FROM trip_participations tp
+      JOIN members m ON tp.member_id = m.id
+      WHERE tp.trip_id = $1
+      ORDER BY tp.joined_at ASC
+    `, [tripId]);
+
+    res.json({
+      ...trip,
+      hotels,
+      days,
+      budget: budgetRows,
+      participants: participantRows
+    });
   } catch (err) {
     console.error('Error fetching trip detail:', err);
     res.status(500).json({ error: 'Failed to fetch trip detail' });
@@ -156,7 +201,43 @@ router.put('/:slug', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-// ── PATCH /api/trips/:slug/schedule/:itemId/toggle — Toggle done status ──
+// ── PUT /api/trips/:slug — Edit a trip (Admin) ────────────────────────────
+router.put('/:slug', requireAuth, requireAdmin, async (req, res) => {
+  const { slug } = req.params;
+  const { title, subtitle, start_date, end_date, participant_count, transport, pace, cover_city, status } = req.body;
+
+  try {
+    const { rows } = await pool.query(`
+      UPDATE trips
+      SET title = COALESCE($1, title),
+          subtitle = COALESCE($2, subtitle),
+          start_date = COALESCE($3, start_date),
+          end_date = COALESCE($4, end_date),
+          participant_count = COALESCE($5, participant_count),
+          transport = COALESCE($6, transport),
+          pace = COALESCE($7, pace),
+          cover_city = COALESCE($8, cover_city),
+          status = COALESCE($9, status)
+      WHERE slug = $10
+      RETURNING *
+    `, [
+      title, subtitle, start_date, end_date, participant_count,
+      transport ? JSON.stringify(transport) : null, 
+      pace, cover_city, status, slug
+    ]);
+
+    if (rows.length === 0) return res.status(404).json({ error: 'Trip not found' });
+
+    const trip = rows[0];
+    trip.transport = (() => { try { return JSON.parse(trip.transport); } catch { return []; } })();
+    res.json(trip);
+  } catch (err) {
+    console.error('Error updating trip:', err);
+    res.status(500).json({ error: 'Failed to update trip' });
+  }
+});
+
+// ── PATCH /api/trips/:slug/schedule/:itemId/toggle — toggle schedule item done status ─────────
 router.patch('/:slug/schedule/:itemId/toggle', requireAuth, async (req, res) => {
   const { slug, itemId } = req.params;
   const { is_done } = req.body;
@@ -207,4 +288,142 @@ router.patch('/:slug/budget/:rowId', requireAuth, requireAdmin, async (req, res)
   }
 });
 
+// ── POST /api/trips/:slug/budget — Add new budget row ─────────
+router.post('/:slug/budget', requireAuth, requireAdmin, async (req, res) => {
+  const { slug } = req.params;
+  const { category, detail, amount_rp, is_accommodation } = req.body;
+
+  if (!category) {
+    return res.status(400).json({ error: 'category is required' });
+  }
+
+  try {
+    // get trip id
+    const tripRes = await pool.query('SELECT id FROM trips WHERE slug = $1', [slug]);
+    if (tripRes.rows.length === 0) return res.status(404).json({ error: 'Trip not found' });
+    const tripId = tripRes.rows[0].id;
+
+    // get max sort_order
+    const sortRes = await pool.query('SELECT MAX(sort_order) as max_sort FROM trip_budget_rows WHERE trip_id = $1 AND is_total_row = false', [tripId]);
+    const nextSort = (sortRes.rows[0].max_sort || 0) + 1;
+
+    const { rows } = await pool.query(`
+      INSERT INTO trip_budget_rows (trip_id, category, detail, amount_rp, is_accommodation, is_total_row, sort_order)
+      VALUES ($1, $2, $3, $4, $5, false, $6)
+      RETURNING *
+    `, [tripId, category, detail || '', amount_rp || 0, is_accommodation || false, nextSort]);
+
+    // Now recalculate total row
+    // Get all current non-total rows
+    const { rows: allRows } = await pool.query('SELECT amount_rp, is_accommodation FROM trip_budget_rows WHERE trip_id = $1 AND is_total_row = false', [tripId]);
+    
+    // We update both total rows: with accom and without accom
+    let totalWith = 0;
+    let totalWithout = 0;
+    allRows.forEach(r => {
+      totalWith += r.amount_rp;
+      if (!r.is_accommodation) totalWithout += r.amount_rp;
+    });
+
+    await pool.query('UPDATE trip_budget_rows SET amount_rp = $1 WHERE trip_id = $2 AND is_total_row = true AND is_accommodation = true', [totalWith, tripId]);
+    await pool.query('UPDATE trip_budget_rows SET amount_rp = $1 WHERE trip_id = $2 AND is_total_row = true AND is_accommodation = false', [totalWithout, tripId]);
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('Error adding budget row:', err);
+    res.status(500).json({ error: 'Failed to add budget' });
+  }
+});
+
 module.exports = router;
+
+// ── POST /api/trips/:slug/join — Join a trip ─────────
+router.post('/:slug/join', requireAuth, async (req, res) => {
+  const { slug } = req.params;
+  const { member_id } = req.body;
+  
+  if (!member_id) return res.status(400).json({ error: 'member_id required' });
+
+  try {
+    const { rows: tripRows } = await pool.query('SELECT id FROM trips WHERE slug = $1', [slug]);
+    if (tripRows.length === 0) return res.status(404).json({ error: 'Trip not found' });
+    const tripId = tripRows[0].id;
+
+    await pool.query(
+      'INSERT INTO trip_participations (trip_id, member_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [tripId, member_id]
+    );
+
+    // Update participant_count cache
+    await pool.query('UPDATE trips SET participant_count = (SELECT count(*) FROM trip_participations WHERE trip_id = $1) WHERE id = $1', [tripId]);
+
+    res.json({ message: 'Joined trip successfully' });
+  } catch (err) {
+    console.error('Error joining trip:', err);
+    res.status(500).json({ error: 'Failed to join trip' });
+  }
+});
+
+// ── POST /api/trips/:slug/leave — Leave a trip ─────────
+router.post('/:slug/leave', requireAuth, async (req, res) => {
+  const { slug } = req.params;
+  const { member_id } = req.body;
+  
+  if (!member_id) return res.status(400).json({ error: 'member_id required' });
+
+  try {
+    const { rows: tripRows } = await pool.query('SELECT id FROM trips WHERE slug = $1', [slug]);
+    if (tripRows.length === 0) return res.status(404).json({ error: 'Trip not found' });
+    const tripId = tripRows[0].id;
+
+    await pool.query(
+      'DELETE FROM trip_participations WHERE trip_id = $1 AND member_id = $2',
+      [tripId, member_id]
+    );
+
+    // Update participant_count cache
+    await pool.query('UPDATE trips SET participant_count = (SELECT count(*) FROM trip_participations WHERE trip_id = $1) WHERE id = $1', [tripId]);
+
+    res.json({ message: 'Left trip successfully' });
+  } catch (err) {
+    console.error('Error leaving trip:', err);
+    res.status(500).json({ error: 'Failed to leave trip' });
+  }
+});
+
+// ── PUT /api/trips/:slug/participants — Admin bulk update participants ─────────
+router.put('/:slug/participants', requireAuth, requireAdmin, async (req, res) => {
+  const { slug } = req.params;
+  const { member_ids } = req.body;
+  
+  if (!Array.isArray(member_ids)) return res.status(400).json({ error: 'member_ids must be an array' });
+
+  try {
+    const { rows: tripRows } = await pool.query('SELECT id FROM trips WHERE slug = $1', [slug]);
+    if (tripRows.length === 0) return res.status(404).json({ error: 'Trip not found' });
+    const tripId = tripRows[0].id;
+
+    await pool.query('BEGIN');
+    
+    // Clear existing
+    await pool.query('DELETE FROM trip_participations WHERE trip_id = $1', [tripId]);
+    
+    // Insert new
+    for (const memberId of member_ids) {
+      await pool.query(
+        'INSERT INTO trip_participations (trip_id, member_id) VALUES ($1, $2)',
+        [tripId, memberId]
+      );
+    }
+    
+    // Update participant_count cache
+    await pool.query('UPDATE trips SET participant_count = $2 WHERE id = $1', [tripId, member_ids.length]);
+    
+    await pool.query('COMMIT');
+    res.json({ message: 'Participants updated' });
+  } catch (err) {
+    await pool.query('ROLLBACK');
+    console.error('Error updating participants:', err);
+    res.status(500).json({ error: 'Failed to update participants' });
+  }
+});

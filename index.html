@@ -5,7 +5,7 @@
     <link rel="icon" type="image/webp" href="/logo.webp" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-    <meta name="theme-color" content="#14a38b" />
+    <meta name="theme-color" content="#177c63" />
     <meta name="description" content="Semeja - Super App untuk Coliving. Makan bareng dan aktivitas seru bersama penghuni rumah." />
     
     <!-- PWA Manifest -->
@@ -18,12 +18,23 @@
     <meta name="apple-mobile-web-app-title" content="Semeja" />
     <link rel="apple-touch-icon" href="/logo-192.webp" />
     
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <!-- Inter variable font loaded via @fontsource-variable/inter (self-hosted) -->
     
     <!-- Preload critical routes (will be populated by Vite) -->
     <link rel="modulepreload" href="/src/main.tsx" />
     
+    <!-- Anti-FOUC: Apply theme class before React renders -->
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('semeja-theme') || 'system';
+          var isDark = theme === 'dark' ||
+            (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) document.documentElement.classList.add('dark');
+        } catch(e) {}
+      })();
+    </script>
+
     <title>Semeja</title>
   </head>
   <body>

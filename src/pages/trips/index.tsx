@@ -1,16 +1,20 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Users, Calendar, Train } from "lucide-react";
+import { Users, Calendar, Train, Plus } from "lucide-react";
 import { getTrips } from "@/lib/api";
-import type { TripSummary } from "@/types/trip";
+import type { TripSummary, TripDetail } from "@/types/trip";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { TripCountdownBlock } from "@/components/TripCountdownBanner";
 import { Button } from "@/components/ui/button";
+import { TripFormDialog } from "@/components/TripFormDialog";
+import { useMember } from "@/hooks/useMember";
 
 export default function TripsList() {
+  const { isAdmin } = useMember();
   const [trips, setTrips] = useState<TripSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   useEffect(() => {
     getTrips()
@@ -19,9 +23,28 @@ export default function TripsList() {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleCreate = async (data: Partial<TripDetail>) => {
+    try {
+      const { createTrip } = await import("@/lib/api");
+      await createTrip({ ...data, slug: data.title!.toLowerCase().replace(/\s+/g, '-') });
+      const updatedList = await getTrips();
+      setTrips(updatedList);
+    } catch (err) {
+      console.error("Failed to create trip:", err);
+    }
+  };
+
   return (
     <PageContainer>
-      <PageHeader title="Perjalanan" backTo={-1} />
+      <PageHeader 
+        title="Perjalanan" 
+        backTo={-1} 
+        action={isAdmin ? (
+          <Button size="icon" variant="ghost" className="rounded-full bg-primary/10 hover:bg-primary/20 text-primary" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="size-5" />
+          </Button>
+        ) : undefined}
+      />
       
       <div className="flex flex-col gap-4">
         {loading ? (
@@ -87,6 +110,12 @@ export default function TripsList() {
           ))
         )}
       </div>
+
+      <TripFormDialog 
+        open={isCreateOpen} 
+        onOpenChange={setIsCreateOpen} 
+        onSave={handleCreate} 
+      />
     </PageContainer>
   );
 }

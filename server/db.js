@@ -531,6 +531,14 @@ async function initDB(retries = 3) {
         created_at        TIMESTAMP DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS trip_participations (
+        id         SERIAL PRIMARY KEY,
+        trip_id    INTEGER REFERENCES trips(id) ON DELETE CASCADE,
+        member_id  INTEGER REFERENCES members(id) ON DELETE CASCADE,
+        joined_at  TIMESTAMP DEFAULT NOW(),
+        UNIQUE(trip_id, member_id)
+      );
+
       CREATE TABLE IF NOT EXISTS trip_hotels (
         id         SERIAL PRIMARY KEY,
         trip_id    INTEGER REFERENCES trips(id) ON DELETE CASCADE,

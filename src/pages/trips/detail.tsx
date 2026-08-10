@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Share } from "lucide-react";
-import { getTripDetail } from "@/lib/api";
+import { Share, Edit2, LogIn, LogOut } from "lucide-react";
+import { getTripDetail, updateTrip, joinTrip, leaveTrip } from "@/lib/api";
 import type { TripDetail } from "@/types/trip";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TripDaySelector } from "@/components/TripDaySelector";
@@ -12,17 +12,20 @@ import { shareToWhatsApp } from "@/lib/whatsapp";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { TripFormDialog } from "@/components/TripFormDialog";
 import { useMember } from "@/hooks/useMember";
 
 export default function TripDetailView() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isAdmin } = useMember();
+  const { isAdmin, member } = useMember();
   
   const currentTab = searchParams.get("tab") || "itinerary";
   
   const [trip, setTrip] = useState<TripDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
   
   const [activeDay, setActiveDay] = useState<number>(1);
   
@@ -93,11 +96,54 @@ export default function TripDetailView() {
     }
   };
 
+  const handleAddBudget = async (data: { category: string, detail?: string, amount_rp?: number, is_accommodation?: boolean }) => {
+    if (!slug) return;
+    try {
+      const { createTripBudget } = await import("@/lib/api");
+      await createTripBudget(slug, data);
+      // Re-fetch to get correct sort orders and total rows
+      const newData = await getTripDetail(slug);
+      setTrip(newData);
+    } catch (err) {
+      console.error("Failed to add budget row:", err);
+    }
+  };
+
   const handleShareTrip = () => {
     if (!trip) return;
     const url = window.location.href;
     const msg = `Yuk cek itinerary *${trip.title}* di Semeja!\n\n${url}`;
     shareToWhatsApp(msg);
+  };
+
+  const handleEditTrip = async (data: Partial<TripDetail>) => {
+    if (!slug) return;
+    try {
+      await updateTrip(slug, data);
+      const newData = await getTripDetail(slug);
+      setTrip(newData);
+    } catch (err) {
+      console.error("Failed to update trip:", err);
+    }
+  };
+
+  const handleJoinLeave = async () => {
+    if (!slug || !member || !trip) return;
+    setIsJoining(true);
+    try {
+      const isParticipating = trip.participants?.some(p => p.id === member.id);
+      if (isParticipating) {
+        await leaveTrip(slug, member.id);
+      } else {
+        await joinTrip(slug, member.id);
+      }
+      const newData = await getTripDetail(slug);
+      setTrip(newData);
+    } catch (err) {
+      console.error("Failed to join/leave trip:", err);
+    } finally {
+      setIsJoining(false);
+    }
   };
 
   const handleTabChange = (value: string) => {
@@ -121,18 +167,53 @@ export default function TripDetailView() {
         title={trip.title} 
         backTo="/trips"
         action={
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleShareTrip} 
-            className="rounded-full size-10 bg-muted/50 hover:bg-muted border border-border/50 transition-colors"
-          >
-            <Share className="size-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setIsEditOpen(true)}
+                className="rounded-full size-10 bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+              >
+                <Edit2 className="size-5" />
+              </Button>
+            )}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleShareTrip} 
+              className="rounded-full size-10 bg-muted/50 hover:bg-muted border border-border/50 transition-colors"
+            >
+              <Share className="size-5" />
+            </Button>
+          </div>
         }
       />
 
       <div className="max-w-3xl mx-auto w-full flex flex-col" ref={scrollContainerRef}>
+        {/* Join/Leave Action Bar */}
+        <div className="px-4 md:px-0 mb-4 flex items-center justify-between">
+          <div className="text-sm font-medium">
+            <span className="text-foreground">{trip.participants?.length || trip.participant_count}</span>
+            <span className="text-muted-foreground"> orang ikut</span>
+          </div>
+          {member && (
+            <Button 
+              variant={trip.participants?.some(p => p.id === member.id) ? "outline" : "default"}
+              size="sm"
+              className="rounded-xl h-9"
+              onClick={handleJoinLeave}
+              disabled={isJoining}
+            >
+              {trip.participants?.some(p => p.id === member.id) ? (
+                <><LogOut className="size-4 mr-1.5" /> Batal Ikut</>
+              ) : (
+                <><LogIn className="size-4 mr-1.5" /> Ikut Trip</>
+              )}
+            </Button>
+          )}
+        </div>
+
         <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full mb-6">
           <TabsList className="grid w-full grid-cols-3 rounded-xl p-1 bg-muted/50 border">
             <TabsTrigger 
@@ -213,9 +294,10 @@ export default function TripDetailView() {
               <TripBudgetTable 
                 rows={trip.budget} 
                 tripTitle={trip.title}
-                participantCount={trip.participant_count}
+                participantCount={trip.participants?.length || trip.participant_count}
                 isAdmin={isAdmin}
                 onUpdateActual={handleUpdateActual}
+                onAddBudget={handleAddBudget}
               />
             ) : (
               <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-2xl border border-dashed">
@@ -225,6 +307,13 @@ export default function TripDetailView() {
           </div>
         )}
       </div>
+
+      <TripFormDialog 
+        open={isEditOpen} 
+        onOpenChange={setIsEditOpen} 
+        trip={trip}
+        onSave={handleEditTrip} 
+      />
     </PageContainer>
   );
 }

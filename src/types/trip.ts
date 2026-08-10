@@ -71,6 +71,13 @@ export interface TripBudgetRow {
   is_total_row: boolean;
 }
 
+export interface TripParticipant {
+  id: number;
+  name: string;
+  avatar_url: string;
+  joined_at: string;
+}
+
 export interface TripSummary {
   id: number;
   slug: string;
@@ -89,4 +96,5 @@ export interface TripDetail extends TripSummary {
   hotels: TripHotel[];
   days: TripDay[];
   budget: TripBudgetRow[];
+  participants: TripParticipant[];
 }

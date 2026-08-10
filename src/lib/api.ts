@@ -379,7 +379,7 @@ export const generateBekalPlan = () => api.post<BekalPlan>('/bekal-sehat/plans/g
 
 // ── Trips Module ──────────────────────────────────────────────────────────
 
-import type { TripSummary, TripDetail } from '@/types/trip';
+import type { TripSummary, TripDetail, TripBudgetRow } from '@/types/trip';
 
 export const getTrips = () => api.get<TripSummary[]>('/trips');
 export const getTripDetail = (slug: string) => api.get<TripDetail>(`/trips/${slug}`);
@@ -387,5 +387,13 @@ export const toggleTripScheduleItem = (slug: string, itemId: number, isDone: boo
   api.patch<{ id: number, is_done: boolean }>(`/trips/${slug}/schedule/${itemId}/toggle`, { is_done: isDone });
 export const updateTripBudgetActual = (slug: string, rowId: number, actualAmount: number) => 
   api.patch<{ id: number, actual_amount_rp: number }>(`/trips/${slug}/budget/${rowId}`, { actual_amount_rp: actualAmount });
+export const createTripBudget = (slug: string, data: { category: string, detail?: string, amount_rp?: number, is_accommodation?: boolean }) => 
+  api.post<TripBudgetRow>(`/trips/${slug}/budget`, data);
+
+export const createTrip = (data: Partial<TripDetail>) => api.post<TripSummary>('/trips', data);
+export const updateTrip = (slug: string, data: Partial<TripDetail>) => api.put<TripSummary>(`/trips/${slug}`, data);
+export const joinTrip = (slug: string, memberId: number) => api.post<{ message: string }>(`/trips/${slug}/join`, { member_id: memberId });
+export const leaveTrip = (slug: string, memberId: number) => api.post<{ message: string }>(`/trips/${slug}/leave`, { member_id: memberId });
+export const updateTripParticipants = (slug: string, memberIds: number[]) => api.put<{ message: string }>(`/trips/${slug}/participants`, { member_ids: memberIds });
 
 
