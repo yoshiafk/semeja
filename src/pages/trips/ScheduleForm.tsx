@@ -166,9 +166,10 @@ export default function ScheduleForm() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto p-4 space-y-6 mt-2">
-        {/* Inti */}
-        <div className="bg-card border rounded-3xl p-5 shadow-sm space-y-5">
+      <main className="max-w-5xl mx-auto p-4 mt-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+          {/* Inti */}
+          <div className="bg-card border rounded-3xl p-5 shadow-sm space-y-5">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-2 rounded-xl bg-primary/10 text-primary">
               <Clock className="size-4" />
@@ -340,6 +341,7 @@ export default function ScheduleForm() {
               <Switch checked={isOptional} onCheckedChange={setIsOptional} />
             </div>
           </div>
+        </div>
         </div>
       </main>
     </div>
