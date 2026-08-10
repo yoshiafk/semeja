@@ -59,7 +59,7 @@ export function TripBudgetTable({ tripTitle, participantCount, rows, isAdmin, on
       </div>
 
       {/* Table */}
-      <div className="border rounded-xl overflow-hidden mb-5">
+      <div className="border rounded-xl overflow-x-auto mb-5">
         <table className="w-full text-sm text-left">
           <thead className="bg-muted/50 text-muted-foreground text-xs uppercase font-medium">
             <tr>
