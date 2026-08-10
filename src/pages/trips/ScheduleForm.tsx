@@ -59,8 +59,8 @@ export default function ScheduleForm() {
           const item = res.days.flatMap((d: any) => d.schedule).find((s: any) => s.id === parseInt(itemId!));
           if (item) {
             setDayId(item.day_id);
-            setTimeStart(item.time_start);
-            setTimeEnd(item.time_end || "");
+            setTimeStart(item.time_start ? item.time_start.replace('.', ':').substring(0, 5) : "");
+            setTimeEnd(item.time_end ? item.time_end.replace('.', ':').substring(0, 5) : "");
             setName(item.name);
             setActivityType(item.activity_type);
             setLocation(item.location || "");
