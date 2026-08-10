@@ -109,36 +109,18 @@ async function doEnsureDB() {
   let lockAcquired = false;
   try {
     client = await pool.connect();
-    
-    // Fast-path check
-    const checkFastPath = async () => {
-      try {
-        const { rows } = await client.query(`
-          SELECT 1 FROM information_schema.columns 
-          WHERE table_name = 'bekal_recipe_pool' AND column_name = 'is_bumbu_free'
-        `);
-        const { rows: bekalCheck } = await client.query("SELECT 1 FROM bekal_recipe_pool WHERE name = 'Tahu Kecap Manis'");
-        const { rows: ikanCheck } = await client.query("SELECT 1 FROM bekal_recipe_pool WHERE name ILIKE '%ikan%' OR name ILIKE '%nangka%' LIMIT 1");
-        const { rows: tripCheck } = await client.query("SELECT 1 FROM trips WHERE slug = 'semarang-jogja-2026'");
-        const { rows: partCheck } = await client.query("SELECT 1 FROM information_schema.tables WHERE table_name = 'trip_participations'");
-        return rows.length > 0 && bekalCheck.length > 0 && ikanCheck.length === 0 && tripCheck.length > 0 && partCheck.length > 0;
-      } catch (e) {
-        return false;
-      }
-    };
 
-    if (await checkFastPath()) return;
-
-    // Fast path failed, try to acquire distributed lock (key: 12345) to prevent concurrent lambda seeds
+    // Acquire lock to ensure only one instance runs initDB/seed
     const { rows: lockRows } = await client.query('SELECT pg_try_advisory_lock(12345) as acquired');
     lockAcquired = lockRows[0].acquired;
 
     if (!lockAcquired) {
       console.log('Another instance is initializing the DB. Waiting for it to finish...');
-      // Wait for up to 10 seconds for the other instance to finish seeding
-      for (let i = 0; i < 10; i++) {
-        await new Promise(res => setTimeout(res, 1000));
-        if (await checkFastPath()) {
+      // Wait for up to 10 seconds for the lock to be released
+      for (let i = 0; i < 20; i++) {
+        await new Promise(res => setTimeout(res, 500));
+        const { rows: checkLock } = await client.query('SELECT objid FROM pg_locks WHERE locktype = $1 AND objid = 12345', ['advisory']);
+        if (checkLock.length === 0) {
           console.log('DB initialized by another instance.');
           return;
         }
@@ -146,9 +128,29 @@ async function doEnsureDB() {
       throw new Error('Database initialization lock timeout. Another process took too long.');
     }
 
-    // Full heavy init (fallback)
-    console.log('Running full DB initialization and seed...');
+    // Always run initDB (schema migrations) when we have the lock
+    console.log('Running DB schema migrations...');
     await initDB();
+
+    // Check if we need to seed data
+    const checkFastPath = async () => {
+      try {
+        const { rows } = await client.query('SELECT count(*) as count FROM members');
+        const { rows: bekalCheck } = await client.query("SELECT 1 FROM bekal_recipe_pool WHERE name = 'Tahu Kecap Manis'");
+        const { rows: ikanCheck } = await client.query("SELECT 1 FROM bekal_recipe_pool WHERE name ILIKE '%ikan%' OR name ILIKE '%nangka%' LIMIT 1");
+        const { rows: tripCheck } = await client.query("SELECT 1 FROM trips WHERE slug = 'semarang-jogja-2026'");
+        return rows.length > 0 && bekalCheck.length > 0 && ikanCheck.length === 0 && tripCheck.length > 0;
+      } catch (e) {
+        return false;
+      }
+    };
+
+    if (await checkFastPath()) {
+      console.log('Seed data already present. Bypassing seed.');
+      return;
+    }
+
+    console.log('Running DB seed...');
     await seed();
 
   } catch (e) {

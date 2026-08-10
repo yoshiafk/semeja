@@ -1,5 +1,6 @@
 import { DesktopSidebar } from "./DesktopSidebar";
 import { MobileNav } from "./MobileNav";
+import { UniversalFAB } from "./UniversalFAB";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import React from "react";
 
@@ -15,6 +16,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             {children}
           </main>
           <MobileNav />
+          <UniversalFAB />
         </div>
       </SidebarProvider>
     </TooltipProvider>

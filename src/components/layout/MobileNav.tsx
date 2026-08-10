@@ -22,7 +22,7 @@ import { useState } from "react";
 // ── Tab definitions ─────────────────────────────────────────────────────────
 const mainTabs = [
   { to: "/",              icon: Home,           label: "Home",    module: null },
-  { to: "/meals",         icon: UtensilsCrossed, label: "Makan",  module: "module-meals" },
+  { to: "/meals",         icon: UtensilsCrossed, label: "Buka Puasa",  module: "module-meals" },
   { to: "/finance/costs", icon: Wallet,          label: "Finance", module: "module-finance" },
   { to: "/trips",         icon: Map,             label: "Trips",   module: "module-trips" },
 ];

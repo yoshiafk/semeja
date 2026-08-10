@@ -602,6 +602,16 @@ async function initDB(retries = 3) {
         sort_order       INTEGER DEFAULT 0
       );
 
+      CREATE TABLE IF NOT EXISTS trip_packing_items (
+        id SERIAL PRIMARY KEY,
+        trip_id INTEGER REFERENCES trips(id) ON DELETE CASCADE,
+        category VARCHAR(50) DEFAULT 'Pribadi',
+        item_name VARCHAR(255) NOT NULL,
+        is_checked BOOLEAN DEFAULT false,
+        assignee_id INTEGER REFERENCES members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE INDEX IF NOT EXISTS idx_trips_slug ON trips(slug);
       CREATE INDEX IF NOT EXISTS idx_trip_days_trip ON trip_days(trip_id);
       CREATE INDEX IF NOT EXISTS idx_trip_schedule_day ON trip_schedule_items(day_id);

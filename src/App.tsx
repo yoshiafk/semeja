@@ -84,6 +84,7 @@ const BekalSehat = lazy(() => import("@/pages/BekalSehat"));
 // Trips Module
 const TripsList = lazy(() => import("@/pages/trips/index"));
 const TripDetailView = lazy(() => import("@/pages/trips/detail"));
+const ScheduleForm = lazy(() => import("@/pages/trips/ScheduleForm"));
 
 const PageLoader = () => (
   <div className="flex h-[60vh] items-center justify-center">
@@ -177,6 +178,8 @@ function App() {
               {/* ── Trips Module ─────────────────────────────── */}
               <Route path="/trips" element={<TripsList />} />
               <Route path="/trips/:slug" element={<TripDetailView />} />
+              <Route path="/trips/:slug/schedule/new" element={isAdmin ? <ScheduleForm /> : <Navigate to="/trips" />} />
+              <Route path="/trips/:slug/schedule/:itemId/edit" element={isAdmin ? <ScheduleForm /> : <Navigate to="/trips" />} />
 
               {/* Legacy redirects */}
               <Route path="/members"      element={<Navigate to="/community/members" />} />

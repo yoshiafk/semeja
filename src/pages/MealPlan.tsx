@@ -3,7 +3,7 @@ import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Archive, Trash2, LayoutGrid, MessageCircle, Send } from "lucide-react";
+import { Loader2, Plus, Archive, Trash2, LayoutGrid, MessageCircle, Send, Wand2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { formatDate, formatDayName, formatShortDate } from "@/lib/utils";
@@ -118,6 +118,19 @@ export default function MealPlanPage() {
   const updateMeal = async (mealId: number, updates: Partial<Meal>) => {
     if (!activePlan) return;
     
+    const meal = activePlan.meals.find(m => m.id === mealId);
+    if (!meal) return;
+
+    // Optimistic UI: Update state immediately
+    const previousPlan = activePlan;
+    setActivePlan(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        meals: prev.meals.map(m => m.id === mealId ? { ...m, ...updates } : m)
+      };
+    });
+
     setIsSaving(prev => {
       const next = { ...prev };
       Object.keys(updates).forEach(k => next[`${mealId}-${k}`] = true);
@@ -125,21 +138,12 @@ export default function MealPlanPage() {
     });
     
     try {
-      const meal = activePlan.meals.find(m => m.id === mealId);
-      if (!meal) return;
-
       const updateData = { ...meal, ...updates };
       await api.put(`/meals/${mealId}`, updateData);
-      
-      setActivePlan(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          meals: prev.meals.map(m => m.id === mealId ? { ...m, ...updates } : m)
-        };
-      });
     } catch (err) {
       console.error(err);
+      toast.error("Gagal menyimpan perubahan. Mengembalikan data semula.");
+      setActivePlan(previousPlan); // Revert
     } finally {
       setIsSaving(prev => {
         const next = { ...prev };
@@ -160,6 +164,43 @@ export default function MealPlanPage() {
       toast.error("Gagal mengarsipkan: " + (err?.message || err));
     } finally {
       setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleAutoFill = async () => {
+    if (!activePlan || recipes.length === 0) return;
+    setIsUpdatingStatus(true);
+    let changed = false;
+    
+    // Create a shuffled copy of Lauk recipes
+    const laukRecipes = recipes.filter(r => r.category === 'Lauk').sort(() => 0.5 - Math.random());
+    let laukIndex = 0;
+
+    for (const meal of activePlan.meals) {
+      if (meal.items.length === 0) {
+        const recipe = laukRecipes[laukIndex % laukRecipes.length];
+        if (recipe) {
+          const newItem: MealMenuItem = {
+            id: Math.random(), // Temporary ID for UI
+            recipe_id: recipe.id,
+            custom_name: recipe.name,
+            category: 'main',
+            sort_order: 0
+          };
+          // Optimistically update
+          await updateMeal(meal.id, { items: [newItem] });
+          changed = true;
+          laukIndex++;
+        }
+      }
+    }
+    
+    setIsUpdatingStatus(false);
+    if (changed) {
+      toast.success("Jadwal kosong berhasil diisi otomatis! 🪄");
+      fetchData(); // Sync with real DB IDs
+    } else {
+      toast.info("Semua hari sudah memiliki menu.");
     }
   };
 
@@ -239,14 +280,14 @@ export default function MealPlanPage() {
       <div className="flex flex-col gap-6 pb-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-border/50">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">Atur Rencana Makan</h1>
-            <p className="text-sm text-muted-foreground/70 mt-0.5">Pilih resep untuk kalkulasi otomatis bahan & biaya.</p>
+          <div className="flex flex-col gap-1.5">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">Atur Jadwal Buka Puasa</h1>
+            <p className="text-sm text-muted-foreground/70">Pilih resep untuk kalkulasi otomatis bahan & biaya.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Select value={activePlan?.id.toString()} onValueChange={(v) => setActivePlan(plans.find(p => p.id.toString() === v) || null)}>
               <SelectTrigger className="h-9 w-[180px] bg-secondary border-border/50 rounded-lg font-medium text-xs shadow-none">
-                <SelectValue placeholder="Pilih Pekan" />
+                <SelectValue placeholder="Pilih Jadwal" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-border/50">
                 {plans.map(p => (
@@ -352,8 +393,14 @@ export default function MealPlanPage() {
               </Button>
             )}
 
-            <Button onClick={() => setIsCreateDialogOpen(true)} className="h-9 px-4 rounded-lg text-xs font-semibold shadow-none bg-primary hover:bg-primary/90 gap-1.5 ml-auto">
-              <Plus className="h-3.5 w-3.5 stroke-[2.5px]" /> Rencana Baru
+            {activePlan && (
+              <Button onClick={handleAutoFill} disabled={isUpdatingStatus || recipes.length === 0} className="h-9 px-4 rounded-lg text-xs font-semibold shadow-none bg-accent text-accent-foreground hover:bg-accent/80 gap-1.5 ml-auto">
+                <Wand2 className="h-3.5 w-3.5 stroke-[2.5px]" /> Pilih Otomatis 🪄
+              </Button>
+            )}
+
+            <Button onClick={() => setIsCreateDialogOpen(true)} className="h-9 px-4 rounded-lg text-xs font-semibold shadow-none bg-primary hover:bg-primary/90 gap-1.5">
+              <Plus className="h-3.5 w-3.5 stroke-[2.5px]" /> Jadwal Baru
             </Button>
           </div>
         </div>
@@ -377,7 +424,7 @@ export default function MealPlanPage() {
             <div className="size-14 rounded-2xl bg-muted flex items-center justify-center">
               <LayoutGrid className="size-6 text-muted-foreground/70" />
             </div>
-            <p className="text-sm text-muted-foreground/70 font-medium">Belum ada perencanaan untuk pekan ini</p>
+            <p className="text-sm text-muted-foreground/70 font-medium">Belum ada jadwal buka puasa pekan ini</p>
           </div>
         )}
       </div>
@@ -424,7 +471,7 @@ export default function MealPlanPage() {
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="w-[95vw] max-w-md rounded-2xl p-6 border-border/50">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground">Buat Rencana Baru</DialogTitle>
+            <DialogTitle className="text-lg font-bold text-foreground">Susun Jadwal Buka Puasa Baru</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground/70">
               Pilih tanggal mulai untuk jadwal 7 hari ke depan
             </DialogDescription>
@@ -445,7 +492,7 @@ export default function MealPlanPage() {
               Batal
             </Button>
             <Button disabled={isCreatingPlan} className="flex-1 h-11 rounded-xl font-semibold shadow-none" onClick={createNewPlan}>
-              {isCreatingPlan ? <><Loader2 className="mr-2 size-4 animate-spin" /> Membuat...</> : "Buat Jadwal"}
+              {isCreatingPlan ? <><Loader2 className="mr-2 size-4 animate-spin" /> Membuat...</> : "Buat Jadwal Buka Puasa"}
             </Button>
           </DialogFooter>
         </DialogContent>

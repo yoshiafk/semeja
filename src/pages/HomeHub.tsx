@@ -5,7 +5,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { ModuleCard } from "@/components/ui/module-card";
 import {
   UtensilsCrossed, Activity, Users, Sparkles, ClipboardList,
-  Carrot, Gift, Salad, Map, ArrowRight, CalendarDays, Wallet,
+  Carrot, Salad, Map, ArrowRight, CalendarDays, Wallet,
 } from "lucide-react";
 import { getTodayParticipation, getTrips } from "@/lib/api";
 import type { TripSummary } from "@/types/trip";
@@ -80,56 +80,82 @@ export default function HomeHub() {
           </div>
         </div>
 
-        {/* ── Main Module Cards ──────────────────────────────── */}
+        {/* ── Briefing Harian ─────────────────────────────────── */}
         <div>
-          <SectionLabel icon={Sparkles} label="Modul Utama" />
-          <div className="grid grid-cols-2 gap-3 mt-3">
-            <ModuleCard
-              icon={UtensilsCrossed}
-              title="Makan Bareng"
-              description="Lihat menu dan gabung makan hari ini"
-              href="/meals"
-              stat={todayCount > 0 ? `${todayCount} orang ikut` : undefined}
-              badge={todayCount > 0 ? `${todayCount} ikut` : undefined}
-              badgeVariant="count"
-            />
-            <ModuleCard
-              icon={Wallet}
-              title="Keuangan"
-              description="Ringkasan biaya dan tagihan mingguan"
-              href="/finance/costs"
-            />
-            <ModuleCard
-              icon={Activity}
-              title="Aktivitas"
-              description="Olahraga dan kegiatan bareng"
-              href="/activities"
-            />
-            <ModuleCard
-              icon={Gift}
-              title="Gift Pooling"
-              description="Split the cost for gifts together"
-              href="/community/gifts"
-            />
-          </div>
-        </div>
-
-        {/* ── Trip Card (full width) ─────────────────────────── */}
-        <div>
-          <SectionLabel icon={Map} label="Perjalanan" />
-          <div className="mt-3">
+          <SectionLabel icon={Sparkles} label="Briefing Harian" />
+          <div className="flex flex-col gap-3 mt-3">
             {latestTrip ? (
-              <TripCard trip={latestTrip} />
+              <Link to={`/trips/${latestTrip.slug}`} className="block transition-transform active:scale-[0.98]">
+                <TripCountdownBanner startDate={latestTrip.start_date} endDate={latestTrip.end_date} status={latestTrip.status} />
+              </Link>
             ) : (
-              <Link
-                to="/trips"
-                className="flex items-center justify-center gap-2 p-4 rounded-2xl bg-muted/50 border border-dashed border-border hover:bg-muted transition-colors text-muted-foreground text-sm font-semibold"
-              >
-                <Map className="size-4" />
-                Rencanakan Perjalanan Baru
-                <ArrowRight className="size-4" />
+              <Link to="/trips" className="flex items-center gap-4 p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/15 transition-colors">
+                <div className="p-3 bg-indigo-500/20 rounded-xl text-indigo-600 dark:text-indigo-400">
+                  <Map className="size-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-indigo-700 dark:text-indigo-400 text-sm">Rencana Perjalanan</h3>
+                  <p className="text-xs text-indigo-600/80 dark:text-indigo-400/80 font-medium mt-0.5">
+                    Belum ada perjalanan aktif. Rencanakan sekarang!
+                  </p>
+                </div>
+                <ArrowRight className="size-4 text-indigo-500 ml-auto opacity-50" />
               </Link>
             )}
+            
+            {todayCount > 0 ? (
+              <Link to="/meals" className="flex items-center gap-4 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/15 transition-colors">
+                <div className="p-3 bg-orange-500/20 rounded-xl text-orange-600 dark:text-orange-400">
+                  <UtensilsCrossed className="size-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-orange-700 dark:text-orange-400 text-sm">Buka Puasa Bersama</h3>
+                  <p className="text-xs text-orange-600/80 dark:text-orange-400/80 font-medium mt-0.5">
+                    Nanti makan bareng {todayCount} orang! Jangan lupa cek menu.
+                  </p>
+                </div>
+                <ArrowRight className="size-4 text-orange-500 ml-auto opacity-50" />
+              </Link>
+            ) : (
+              <Link to="/meals" className="flex items-center gap-4 p-4 rounded-2xl bg-muted/50 border border-border/50 hover:bg-muted transition-colors">
+                <div className="p-3 bg-muted rounded-xl text-muted-foreground">
+                  <UtensilsCrossed className="size-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-foreground text-sm">Buka Puasa</h3>
+                  <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                    Belum ada yang RSVP makan hari ini.
+                  </p>
+                </div>
+                <ArrowRight className="size-4 text-muted-foreground ml-auto opacity-50" />
+              </Link>
+            )}
+
+            <Link to="/finance/costs" className="flex items-center gap-4 p-4 rounded-2xl bg-green-500/10 border border-green-500/20 hover:bg-green-500/15 transition-colors">
+              <div className="p-3 bg-green-500/20 rounded-xl text-green-600 dark:text-green-400">
+                <Wallet className="size-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-green-700 dark:text-green-400 text-sm">Keuangan & Patungan</h3>
+                <p className="text-xs text-green-600/80 dark:text-green-400/80 font-medium mt-0.5">
+                  Cek tagihan atau catat pengeluaran baru.
+                </p>
+              </div>
+              <ArrowRight className="size-4 text-green-500 ml-auto opacity-50" />
+            </Link>
+            
+            <Link to="/activities" className="flex items-center gap-4 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/15 transition-colors">
+              <div className="p-3 bg-blue-500/20 rounded-xl text-blue-600 dark:text-blue-400">
+                <Activity className="size-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-blue-700 dark:text-blue-400 text-sm">Aktivitas Bersama</h3>
+                <p className="text-xs text-blue-600/80 dark:text-blue-400/80 font-medium mt-0.5">
+                  Bagi tugas harian atau kegiatan lainnya.
+                </p>
+              </div>
+              <ArrowRight className="size-4 text-blue-500 ml-auto opacity-50" />
+            </Link>
           </div>
         </div>
 
@@ -193,69 +219,6 @@ function SectionLabel({
         {label}
       </span>
     </div>
-  );
-}
-
-function TripCard({ trip }: { trip: TripSummary }) {
-  const now = new Date();
-  const start = new Date(trip.start_date + "T00:00:00");
-  const end = new Date(trip.end_date + "T23:59:59");
-  let progress = 0;
-  if (now > end) progress = 100;
-  else if (now > start) {
-    progress = Math.min(100, ((now.getTime() - start.getTime()) / (end.getTime() - start.getTime())) * 100);
-  }
-
-  return (
-    <Link
-      to={`/trips/${trip.slug}`}
-      className="block group relative rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm hover:shadow-md hover:border-[color:var(--module-trips)] transition-all duration-300 module-trips"
-    >
-      {/* Gradient accent bar */}
-      <div
-        className="absolute inset-x-0 top-0 h-0.5 opacity-60"
-        style={{ background: "linear-gradient(to right, var(--module-trips), transparent)" }}
-      />
-
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl module-icon-bg flex items-center justify-center shrink-0">
-              <Map className="size-5 module-text stroke-[1.8px]" />
-            </div>
-            <div>
-              <h2 className="font-bold text-[15px] text-foreground leading-tight">{trip.title}</h2>
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                <span>
-                  {new Date(trip.start_date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
-                  {" – "}
-                  {new Date(trip.end_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
-                </span>
-                <span className="opacity-40">·</span>
-                <span>{trip.participant_count} orang</span>
-              </p>
-            </div>
-          </div>
-          <div className="shrink-0">
-            <TripCountdownBanner
-              startDate={trip.start_date}
-              endDate={trip.end_date}
-              status={trip.status}
-            />
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        {progress > 0 && (
-          <div className="mt-4 w-full h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${progress}%`, background: "var(--module-trips)" }}
-            />
-          </div>
-        )}
-      </div>
-    </Link>
   );
 }
 

@@ -92,9 +92,19 @@ export interface TripSummary {
   cover_city: string;
 }
 
+export interface TripPackingItem {
+  id: number;
+  category: string;
+  item_name: string;
+  is_checked: boolean;
+  assignee_id: number | null;
+  assignee_name?: string;
+}
+
 export interface TripDetail extends TripSummary {
   hotels: TripHotel[];
   days: TripDay[];
   budget: TripBudgetRow[];
-  participants: TripParticipant[];
+  participants: { id: number; name: string; avatar_url: string; joined_at: string }[];
+  packing: TripPackingItem[];
 }

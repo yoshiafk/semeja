@@ -149,91 +149,91 @@ async function seedTripSemarangJogja() {
     });
     await insertItems(d1, [
       {
-        time_start: '09.00', time_end: '11.00',
-        name: 'Tiba di Semarang, perjalanan ke hotel',
-        activity_type: 'transit',
-        location: 'Stasiun → Djajanti House', area: 'Transit',
-        notes: 'Istirahat sejenak, titip koper jika kamar belum siap',
+        time_start: '04.00', time_end: '05.00',
+        name: 'Tiba di Stasiun Semarang Tawang',
+        activity_type: 'transport',
+        location: 'Stasiun Tawang', area: 'Transit',
+        notes: 'Istirahat sejenak setelah perjalanan malam. Bisa titip barang sementara di loker stasiun atau langsung ke penginapan transit Sleep & Sleep Capsule.'
       },
       {
-        time_start: '11.30',
-        name: 'Sarapan: Soto Bokoran',
+        time_start: '05.30', time_end: '06.30',
+        name: 'Sarapan Pagi: Warung Makan Bu Dar / Gule Kambing Bustaman',
         activity_type: 'food',
-        location: 'Jl. Plampitan No.55', area: 'Kota Lama',
-        maps_url: 'https://www.google.com/maps/place/Soto+Bokoran/data=!4m2!3m1!1s0x2e708b54fea79601:0x70de81d1e30e49ae',
-        opening_hours: 'Buka 06.00–14.00',
-        notes: 'Singgah sebelum museum',
-        is_highlight: true,
+        location: 'Area Stasiun / Kota Lama', area: 'Kota Lama',
+        notes: 'Warung Bu Dar tepat di depan stasiun buka jam 4 pagi. Alternatif Gule Bustaman buka jam 5 pagi.',
+        is_highlight: true
       },
       {
-        time_start: '13.00',
+        time_start: '06.30', time_end: '08.30',
+        name: 'Morning Walk & Foto di Kota Lama',
+        activity_type: 'activity',
+        location: 'Kota Lama Semarang', area: 'Kota Lama',
+        notes: 'Waktu terbaik untuk foto-foto di area Blenduk Church dan Gedung Marba sebelum jalanan ramai dan cuaca panas.'
+      },
+      {
+        time_start: '08.30', time_end: '10.00',
+        name: 'Ngopi Pagi & Santai',
+        activity_type: 'food',
+        location: 'Tekodeko Koffiehuis / Noms Kopi', area: 'Kota Lama',
+        notes: 'Ngopi pagi sambil menunggu waktu early check-in.'
+      },
+      {
+        time_start: '10.00', time_end: '13.00',
+        name: 'Early Check-in & Istirahat di Djajanti House',
+        activity_type: 'hotel',
+        location: 'Djajanti House', area: 'Hotel',
+        notes: 'Mandi dan tidur sejenak memulihkan tenaga.'
+      },
+      {
+        time_start: '13.00', time_end: '15.00',
         name: 'Museum Kota Lama',
         activity_type: 'attraction',
         location: 'Jl. K.H. Agus Salim No.1a', area: 'Kota Lama',
         maps_url: 'https://www.google.com/maps/place/Museum+Kota+Lama/data=!4m2!3m1!1s0x2e70f3440cad0335:0xeb5fca3a7a7dea9c',
         opening_hours: 'Buka Selasa-Minggu 09.00–15.30',
-        notes: 'Tutup Senin',
-        is_highlight: true,
+        is_highlight: true
       },
       {
-        time_start: '15.00',
-        name: 'Blenduk Church + Rumah Akar + Siwil Art',
-        activity_type: 'attraction',
-        location: 'Jl. Letjen Suprapto', area: 'Kota Lama',
-        maps_url: 'https://www.google.com/maps/place/Blenduk+Church/data=!4m2!3m1!1s0x2e70f34349b8e345:0x8fd1c780aa92f074',
-        notes: 'Semua berdekatan, jalan kaki',
-      },
-      {
-        time_start: '16.00',
-        name: 'Gedung Marba',
-        activity_type: 'attraction',
-        location: 'Jl. Letjen Suprapto', area: 'Kota Lama',
-        maps_url: 'https://www.google.com/maps/place/Gedung+Marba+(+Martak+-+Bajunaid+)+-+History+of+Yemeni+Bussinesman+-+%D8%B1%D8%AC%D9%84+%0A%D8%A3%D8%B9%D9%85%D8%A7%D9%84+%D9%8A%D9%85%D9%86%D9%8A+-+in+Semarang%E2%80%AD/data=!4m2!3m1!1s0x2e70f3683fa0766b:0x677729a78e5c5ec5',
-        notes: 'Persis di samping area Blenduk, foto-foto',
-      },
-      {
-        time_start: '17.00',
-        name: 'Pasar Barang Antik Kota Lama',
+        time_start: '15.00', time_end: '16.30',
+        name: 'Pasar Barang Antik Kota Lama & Siwil Art',
         activity_type: 'shopping',
         location: 'Jl. Letjen Suprapto No.32', area: 'Kota Lama',
-        maps_url: 'https://www.google.com/maps/place/Pasar+Barang+Antik+Kota+Lama/data=!4m2!3m1!1s0x2e70f3564f4e21a7:0x23b629f6d552013d',
-        notes: 'Sambil nunggu golden hour',
+        notes: 'Berburu barang antik dan souvenir unik.'
       },
       {
-        time_start: '18.00',
+        time_start: '17.00', time_end: '18.30',
+        name: 'Slow Coffee Bar: Dharma Boutique Roastery',
+        activity_type: 'food',
+        location: 'Wotgantul Barat', area: 'Pecinan',
+        notes: 'Ngopi sore interaktif dengan barista di roastery legendaris Semarang.',
+        is_highlight: true
+      },
+      {
+        time_start: '18.30', time_end: '20.00',
         name: 'Makan malam: Spiegel All Day Bar & Dining',
         activity_type: 'food',
         location: 'Jl. Letjen Suprapto No.34', area: 'Kota Lama',
         maps_url: 'https://www.google.com/maps/place/Spiegel+All+Day+Bar+%26+Dining/data=!4m2!3m1!1s0x2e70f35645b5ee07:0xc16b477d1b7f7bd4',
         opening_hours: 'Buka 10.00–01.00',
         notes: 'Gedung kolonial estetik',
-        is_highlight: true,
+        is_highlight: true
       },
       {
-        time_start: '20.00',
+        time_start: '20.00', time_end: '21.30',
         name: 'Semarang Chinatown / Pecinan',
         activity_type: 'leisure',
         location: 'Kauman, Semarang Tengah', area: 'Pusat Kota',
         maps_url: 'https://www.google.com/maps/place/Semarang+Chinatown/data=!4m2!3m1!1s0x2e70f4aab14d29ab:0xbe7ff6928f077887',
         notes: 'Ramai khas Minggu malam 18.00–22.00',
-        is_highlight: true,
+        is_highlight: true
       },
       {
-        time_start: '21.30',
-        name: 'Es Teh Tik (nightcap santai)',
-        activity_type: 'food',
-        location: 'Taman Srigunting', area: 'Kota Lama',
-        maps_url: 'https://www.google.com/maps/place/Es+Teh+Tik/data=!4m2!3m1!1s0x2e70f3e2d93d695f:0xccf043625b20db38',
-        opening_hours: 'Buka dari 09.00 (Minggu)',
-        notes: 'Kembali ke Kota Lama',
-      },
-      {
-        time_start: '22.00',
+        time_start: '21.30', time_end: '',
         name: 'Kembali ke Djajanti House',
         activity_type: 'transit',
         area: 'Hotel',
-        notes: '±4 km dari Kota Lama',
-      },
+        notes: 'Istirahat penuh.'
+      }
     ]);
 
     // ── Day 2 — Senin, 17 Agustus · HUT RI ──────────────────────────────

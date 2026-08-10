@@ -139,12 +139,22 @@ router.get('/:slug', async (req, res) => {
       ORDER BY tp.joined_at ASC
     `, [tripId]);
 
+    // Packing list
+    const { rows: packingRows } = await pool.query(`
+      SELECT p.id, p.category, p.item_name, p.is_checked, p.assignee_id, m.name as assignee_name
+      FROM trip_packing_items p
+      LEFT JOIN members m ON p.assignee_id = m.id
+      WHERE p.trip_id = $1
+      ORDER BY p.id ASC
+    `, [tripId]);
+
     res.json({
       ...trip,
       hotels,
       days,
       budget: budgetRows,
-      participants: participantRows
+      participants: participantRows,
+      packing: packingRows
     });
   } catch (err) {
     console.error('Error fetching trip detail:', err);
@@ -263,6 +273,100 @@ router.patch('/:slug/schedule/:itemId/toggle', requireAuth, async (req, res) => 
   }
 });
 
+// ── POST /api/trips/:slug/schedule — Add new schedule item ─────────
+router.post('/:slug/schedule', requireAuth, requireAdmin, async (req, res) => {
+  const { slug } = req.params;
+  const {
+    day_id, time_start, time_end, name, activity_type, location, area,
+    maps_url, notes, opening_hours, is_highlight, is_cash_only,
+    requires_booking, is_optional, sort_order
+  } = req.body;
+
+  if (!day_id || !time_start || !name || !activity_type) {
+    return res.status(400).json({ error: 'day_id, time_start, name, and activity_type are required' });
+  }
+
+  try {
+    const { rows: tripCheck } = await pool.query('SELECT id FROM trips WHERE slug = $1', [slug]);
+    if (tripCheck.length === 0) return res.status(404).json({ error: 'Trip not found' });
+
+    const { rows } = await pool.query(
+      `INSERT INTO trip_schedule_items (
+        day_id, time_start, time_end, name, activity_type, location, area,
+        maps_url, notes, opening_hours, is_highlight, is_cash_only,
+        requires_booking, is_optional, sort_order
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+      ) RETURNING *`,
+      [
+        day_id, time_start, time_end || '', name, activity_type, location || '', area || '',
+        maps_url || '', notes || '', opening_hours || '', Boolean(is_highlight), Boolean(is_cash_only),
+        Boolean(requires_booking), Boolean(is_optional), sort_order || 0
+      ]
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Error adding schedule item:', err);
+    res.status(500).json({ error: 'Failed to add schedule item' });
+  }
+});
+
+// ── PUT /api/trips/:slug/schedule/:itemId — Update schedule item ─────────
+router.put('/:slug/schedule/:itemId', requireAuth, requireAdmin, async (req, res) => {
+  const { itemId } = req.params;
+  const {
+    time_start, time_end, name, activity_type, location, area,
+    maps_url, notes, opening_hours, is_highlight, is_cash_only,
+    requires_booking, is_optional, sort_order
+  } = req.body;
+
+  if (!time_start || !name || !activity_type) {
+    return res.status(400).json({ error: 'time_start, name, and activity_type are required' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `UPDATE trip_schedule_items
+       SET time_start = $1, time_end = $2, name = $3, activity_type = $4,
+           location = $5, area = $6, maps_url = $7, notes = $8,
+           opening_hours = $9, is_highlight = $10, is_cash_only = $11,
+           requires_booking = $12, is_optional = $13, sort_order = $14
+       WHERE id = $15
+       RETURNING *`,
+      [
+        time_start, time_end || '', name, activity_type, location || '', area || '',
+        maps_url || '', notes || '', opening_hours || '', Boolean(is_highlight), Boolean(is_cash_only),
+        Boolean(requires_booking), Boolean(is_optional), sort_order || 0, itemId
+      ]
+    );
+
+    if (rows.length === 0) return res.status(404).json({ error: 'Schedule item not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Error updating schedule item:', err);
+    res.status(500).json({ error: 'Failed to update schedule item' });
+  }
+});
+
+// ── DELETE /api/trips/:slug/schedule/:itemId — Delete schedule item ─────────
+router.delete('/:slug/schedule/:itemId', requireAuth, requireAdmin, async (req, res) => {
+  const { itemId } = req.params;
+
+  try {
+    const { rowCount } = await pool.query(
+      'DELETE FROM trip_schedule_items WHERE id = $1',
+      [itemId]
+    );
+
+    if (rowCount === 0) return res.status(404).json({ error: 'Schedule item not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting schedule item:', err);
+    res.status(500).json({ error: 'Failed to delete schedule item' });
+  }
+});
+
+
 // ── PATCH /api/trips/:slug/budget/:rowId — Update actual budget ─────────
 router.patch('/:slug/budget/:rowId', requireAuth, requireAdmin, async (req, res) => {
   const { slug, rowId } = req.params;
@@ -332,6 +436,63 @@ router.post('/:slug/budget', requireAuth, requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('Error adding budget row:', err);
     res.status(500).json({ error: 'Failed to add budget' });
+  }
+});
+
+// ── PACKING LIST ───────────────────────────────────────────────────────────────
+
+router.post('/:slug/packing', requireAuth, requireAdmin, async (req, res) => {
+  const { slug } = req.params;
+  const { category, item_name, assignee_id } = req.body;
+  if (!item_name) return res.status(400).json({ error: 'item_name is required' });
+
+  try {
+    const { rows: tripRows } = await pool.query('SELECT id FROM trips WHERE slug = $1', [slug]);
+    if (tripRows.length === 0) return res.status(404).json({ error: 'Trip not found' });
+    const tripId = tripRows[0].id;
+
+    const { rows } = await pool.query(`
+      INSERT INTO trip_packing_items (trip_id, category, item_name, assignee_id)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `, [tripId, category || 'Pribadi', item_name, assignee_id || null]);
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Error adding packing item:', err);
+    res.status(500).json({ error: 'Failed to add packing item' });
+  }
+});
+
+router.put('/:slug/packing/:itemId', requireAuth, async (req, res) => {
+  const { itemId } = req.params;
+  const { is_checked, assignee_id } = req.body;
+  try {
+    // If only one field is provided, COALESCE preserves the other
+    const { rows } = await pool.query(`
+      UPDATE trip_packing_items
+      SET is_checked = COALESCE($1, is_checked),
+          assignee_id = CASE WHEN $2::integer = -1 THEN NULL ELSE COALESCE($2, assignee_id) END
+      WHERE id = $3
+      RETURNING *
+    `, [is_checked, assignee_id !== undefined ? (assignee_id === null ? -1 : assignee_id) : null, itemId]);
+    
+    if (rows.length === 0) return res.status(404).json({ error: 'Item not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Error updating packing item:', err);
+    res.status(500).json({ error: 'Failed to update packing item' });
+  }
+});
+
+router.delete('/:slug/packing/:itemId', requireAuth, requireAdmin, async (req, res) => {
+  const { itemId } = req.params;
+  try {
+    await pool.query('DELETE FROM trip_packing_items WHERE id = $1', [itemId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting packing item:', err);
+    res.status(500).json({ error: 'Failed to delete packing item' });
   }
 });
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { MapPin, ExternalLink, Check, Clock } from "lucide-react";
+import { Link } from "react-router-dom";
+import { MapPin, ExternalLink, Check, Clock, Pencil, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ScheduleItem, ActivityType } from "@/types/trip";
 
@@ -30,19 +31,38 @@ const ACTIVITY_COLORS: Record<ActivityType, string> = {
 
 interface TripScheduleItemProps {
   item: ScheduleItem;
+  slug: string;
   isLast?: boolean;
   isAdmin?: boolean;
   onToggleDone?: (itemId: number, isDone: boolean) => Promise<void>;
+  onDeleted?: (itemId: number) => void;
 }
 
-export function TripScheduleItem({ item, isLast = false, isAdmin, onToggleDone }: TripScheduleItemProps) {
+export function TripScheduleItem({ item, slug, isLast = false, isAdmin, onToggleDone, onDeleted }: TripScheduleItemProps) {
   const [expandedNotes, setExpandedNotes] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const Icon = ACTIVITY_ICONS[item.activity_type] ?? MapPin;
   const colorClass = ACTIVITY_COLORS[item.activity_type] ?? "text-gray-500 bg-gray-100 ring-gray-100";
 
   const handleMapsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     window.open(item.maps_url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(`Hapus agenda "${item.name}"?`)) return;
+    setIsDeleting(true);
+    try {
+      const { deleteTripScheduleItem } = await import("@/lib/api");
+      await deleteTripScheduleItem(slug, item.id);
+      if (onDeleted) onDeleted(item.id);
+    } catch (err) {
+      console.error("Failed to delete schedule item:", err);
+      setIsDeleting(false);
+      const { toast } = await import("sonner");
+      toast.error("Gagal menghapus jadwal");
+    }
   };
 
   return (
@@ -87,21 +107,27 @@ export function TripScheduleItem({ item, isLast = false, isAdmin, onToggleDone }
             </p>
 
             {/* Location & Opening Hours */}
-            {(item.location || item.area || item.opening_hours) && (
+            {(item.location || item.area || item.opening_hours || item.maps_url) && (
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
-                {(item.location || item.area) && (
+                {(item.location || item.area || item.maps_url) && (
                   <div className="flex items-center gap-1 min-w-0">
                     <MapPin className="size-3 flex-shrink-0" />
-                    <span className="truncate max-w-[160px] xs:max-w-[200px]">
-                      {item.location || item.area}
-                      {item.location && item.area && ` · ${item.area}`}
-                    </span>
+                    {(item.location || item.area) && (
+                      <span className="truncate max-w-[160px] xs:max-w-[200px]">
+                        {item.location || item.area}
+                        {item.location && item.area && ` · ${item.area}`}
+                      </span>
+                    )}
                     {item.maps_url && (
                       <button
                         onClick={handleMapsClick}
-                        className="ml-1 text-blue-500 hover:text-blue-600 active:scale-95 transition-transform"
+                        className={cn(
+                          "text-blue-500 hover:text-blue-600 active:scale-95 transition-transform flex items-center gap-1",
+                          (item.location || item.area) ? "ml-1" : "ml-0"
+                        )}
                         aria-label={`Buka ${item.name} di Maps`}
                       >
+                        {(!item.location && !item.area) && <span className="font-medium">Lihat di Maps</span>}
                         <ExternalLink className="size-3.5" />
                       </button>
                     )}
@@ -165,23 +191,42 @@ export function TripScheduleItem({ item, isLast = false, isAdmin, onToggleDone }
             )}
           </div>
 
-          {/* Action: Checkbox */}
+          {/* Action: Checkbox & Edit/Delete */}
           {isAdmin && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onToggleDone) onToggleDone(item.id, !item.is_done);
-              }}
-              className={cn(
-                "flex-shrink-0 size-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 active:scale-90 mt-0.5",
-                item.is_done 
-                  ? "bg-primary border-primary text-primary-foreground" 
-                  : "border-muted-foreground/30 hover:border-primary/50 bg-background"
-              )}
-              aria-label={item.is_done ? "Tandai belum selesai" : "Tandai selesai"}
-            >
-              {item.is_done && <Check className="size-4" strokeWidth={3} />}
-            </button>
+            <div className="flex flex-col gap-2 mt-0.5 items-end ml-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onToggleDone) onToggleDone(item.id, !item.is_done);
+                }}
+                className={cn(
+                  "flex-shrink-0 size-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 active:scale-90",
+                  item.is_done 
+                    ? "bg-primary border-primary text-primary-foreground" 
+                    : "border-muted-foreground/30 hover:border-primary/50 bg-background"
+                )}
+                aria-label={item.is_done ? "Tandai belum selesai" : "Tandai selesai"}
+              >
+                {item.is_done && <Check className="size-4" strokeWidth={3} />}
+              </button>
+              
+              <div className="flex items-center gap-1">
+                <Link
+                  to={`/trips/${slug}/schedule/${item.id}/edit`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="size-7 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted-foreground/10 transition-colors"
+                >
+                  <Pencil className="size-3.5" />
+                </Link>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="size-7 rounded-full flex items-center justify-center text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>

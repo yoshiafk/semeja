@@ -9,7 +9,7 @@ export function BottomTabBar() {
 
   const tabs: Array<{ to: string; icon: any; label: string; badge?: string }> = [
     { to: "/", icon: Home, label: "Beranda" },
-    { to: "/meals", icon: UtensilsCrossed, label: "Makan" },
+    { to: "/meals", icon: UtensilsCrossed, label: "Buka Puasa" },
     { to: "/activities", icon: Activity, label: "Aktivitas" },
     { to: "/community/gifts", icon: Gift, label: "Gifts" },
     { to: "/profile", icon: User, label: "Profil" },

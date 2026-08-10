@@ -29,7 +29,7 @@ const navGroups = [
     label: "Utama",
     items: [
       { to: "/",              icon: Home,           label: "Beranda",       module: null },
-      { to: "/meals",         icon: UtensilsCrossed, label: "Jadwal Makan", module: "module-meals" },
+      { to: "/meals",         icon: UtensilsCrossed, label: "Jadwal Buka Puasa", module: "module-meals" },
       { to: "/finance/costs", icon: Wallet,          label: "Keuangan",     module: "module-finance" },
       { to: "/trips",         icon: Map,             label: "Perjalanan",   module: "module-trips" },
     ],

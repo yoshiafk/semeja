@@ -5,7 +5,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { useMember } from "@/hooks/useMember";
 import { cn, formatDate, formatDayName, formatShortDate } from "@/lib/utils";
-import { Loader2, Plus, Check, CalendarDays } from "lucide-react";
+import { Loader2, Plus, Check, Moon, Settings } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { PlanStatusBadge } from "@/components/PlanStatusBadge";
@@ -38,14 +38,13 @@ interface MealPlan {
 }
 
 export default function Dashboard() {
-  const { member } = useMember();
+  const { member, isAdmin } = useMember();
   const navigate = useNavigate();
   const [plans, setPlans] = useState<MealPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [plan, setPlan] = useState<MealPlan | null>(null);
   const [participations, setParticipations] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
-  const [togglingMeals, setTogglingMeals] = useState<number[]>([]);
 
   useEffect(() => {
     fetchActivePlans();
@@ -94,26 +93,33 @@ export default function Dashboard() {
   const toggleJoin = async (mealId: number) => {
     if (!member) return;
     const isJoined = participations.includes(mealId);
-    setTogglingMeals(prev => [...prev, mealId]);
+    const prevPlan = plan;
+    
+    // 1. Optimistic Update
+    setParticipations(prev => isJoined ? prev.filter(id => id !== mealId) : [...prev, mealId]);
+    if (plan) {
+      setPlan({
+        ...plan,
+        meals: plan.meals.map(m =>
+          m.id === mealId
+            ? { ...m, participant_count: parseInt(m.participant_count as any) + (isJoined ? -1 : 1) }
+            : m
+        )
+      });
+    }
+
+    // 2. Background API Call
     try {
       if (isJoined) {
         await api.delete(`/participations/${mealId}/${member.id}`);
-        setParticipations(participations.filter((id) => id !== mealId));
       } else {
         await api.post("/participations", { meal_id: mealId, member_id: member.id });
-        setParticipations([...participations, mealId]);
-      }
-      if (plan) {
-        setPlan({
-          ...plan,
-          meals: plan.meals.map(m =>
-            m.id === mealId
-              ? { ...m, participant_count: parseInt(m.participant_count as any) + (isJoined ? -1 : 1) }
-              : m
-          )
-        });
       }
     } catch (err: any) {
+      // 3. Rollback on failure
+      setParticipations(prev => isJoined ? [...prev, mealId] : prev.filter(id => id !== mealId));
+      if (prevPlan) setPlan(prevPlan);
+      
       const code = err?.data?.code;
       if (code === 'RSVP_LOCKED') {
         toast.error('Pendaftaran sudah ditutup', { description: 'Hubungi admin untuk perubahan' });
@@ -126,8 +132,6 @@ export default function Dashboard() {
         toast.error('Gagal mengubah keikutsertaan');
       }
       console.error("Failed to toggle participation:", err);
-    } finally {
-      setTogglingMeals(prev => prev.filter(id => id !== mealId));
     }
   };
 
@@ -146,11 +150,23 @@ export default function Dashboard() {
       <PageContainer>
         <div className="flex flex-col items-center justify-center h-[60vh] text-center flex flex-col gap-3 px-8">
           <div className="size-14 rounded-2xl bg-muted flex items-center justify-center">
-            <CalendarDays className="size-6 text-muted-foreground/70" />
+            <Moon className="size-6 text-muted-foreground/70" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Belum ada menu pekan ini</h2>
-            <p className="text-sm text-muted-foreground/70 mt-1">Tunggu admin buat jadwalnya ya!</p>
+            <h2 className="text-lg font-semibold text-foreground">Belum ada jadwal buka puasa pekan ini</h2>
+            {isAdmin ? (
+              <div className="mt-4 flex flex-col items-center">
+                <Button 
+                  className="rounded-xl px-6"
+                  onClick={() => navigate('/meals/plan')}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Susun Jadwal Buka Puasa
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground/70 mt-1">Tunggu admin buat jadwal buka puasanya ya!</p>
+            )}
           </div>
         </div>
       </PageContainer>
@@ -168,25 +184,38 @@ export default function Dashboard() {
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">Menu Mingguan</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">Jadwal Buka Puasa</h1>
               <p className="text-sm text-muted-foreground/70 mt-0.5">
                 {formatDate(plan.week_start)} — {formatDate(plan.week_end)}
               </p>
             </div>
-            {plans.length > 1 && (
-              <Select value={selectedPlanId || ""} onValueChange={setSelectedPlanId}>
-                <SelectTrigger className="h-9 w-auto gap-1.5 bg-secondary border-border/50 rounded-lg font-medium text-xs text-muted-foreground shadow-none px-3">
-                  <SelectValue placeholder="Pekan" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-border/50">
-                  {plans.map(p => (
-                    <SelectItem key={p.id} value={p.id.toString()} className="text-sm">
-                      {formatDate(p.week_start)} {p.id === plans[0].id ? '(Ini)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-9 w-9 rounded-xl border-border/50 text-muted-foreground hover:text-foreground"
+                  onClick={() => navigate('/meals/plan')}
+                  title="Kelola Jadwal Buka Puasa"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              )}
+              {plans.length > 1 && (
+                <Select value={selectedPlanId || ""} onValueChange={setSelectedPlanId}>
+                  <SelectTrigger className="h-9 w-auto gap-1.5 bg-secondary border-border/50 rounded-lg font-medium text-xs text-muted-foreground shadow-none px-3">
+                    <SelectValue placeholder="Pekan" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/50">
+                    {plans.map(p => (
+                      <SelectItem key={p.id} value={p.id.toString()} className="text-sm">
+                        {formatDate(p.week_start)} {p.id === plans[0].id ? '(Ini)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
 
           {/* Quick Stats Bar */}
@@ -206,7 +235,6 @@ export default function Dashboard() {
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
           {plan.meals.map((meal) => {
             const isJoined = participations.includes(meal.id);
-            const isToggling = togglingMeals.includes(meal.id);
             const isToday = meal.date === today;
             
             return (
@@ -305,12 +333,10 @@ export default function Dashboard() {
                         : "border-border text-muted-foreground hover:bg-primary/5 hover:text-primary hover:border-primary/20",
                       !isJoined && (!meal.items || meal.items.length === 0) && "opacity-50 cursor-not-allowed"
                     )}
-                    disabled={isToggling || (!isJoined && (!meal.items || meal.items.length === 0))}
+                    disabled={(!isJoined && (!meal.items || meal.items.length === 0))}
                     onClick={() => toggleJoin(meal.id)}
                   >
-                    {isToggling ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : isJoined ? (
+                    {isJoined ? (
                       <>
                         <Check className="mr-1.5 h-3.5 w-3.5 stroke-[2.5px]" />
                         Ikut!

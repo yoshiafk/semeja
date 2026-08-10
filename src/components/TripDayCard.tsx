@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, AlertTriangle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TripDay } from "@/types/trip";
 import { TripScheduleItem } from "./TripScheduleItem";
+import { Link } from "react-router-dom";
 import { WhatsAppShareButton } from "./WhatsAppShareButton";
 import { formatTripDayWhatsApp } from "@/lib/whatsapp";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,7 +15,9 @@ interface TripDayCardProps {
   defaultExpanded?: boolean;
   isStandalone?: boolean;
   isAdmin?: boolean;
+  slug?: string;
   onToggleDone?: (itemId: number, isDone: boolean) => Promise<void>;
+  onDeleted?: (itemId: number) => void;
 }
 
 const CITY_COLORS: Record<string, string> = {
@@ -23,7 +26,7 @@ const CITY_COLORS: Record<string, string> = {
   transit: "bg-gradient-to-r from-chart-1 to-chart-2",
 };
 
-export function TripDayCard({ day, tripTitle, defaultExpanded = false, isStandalone = false, isAdmin, onToggleDone }: TripDayCardProps) {
+export function TripDayCard({ day, tripTitle, defaultExpanded = false, isStandalone = false, isAdmin, slug, onToggleDone, onDeleted }: TripDayCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   const dotClass = CITY_COLORS[day.city] || "bg-gray-400";
@@ -51,15 +54,25 @@ export function TripDayCard({ day, tripTitle, defaultExpanded = false, isStandal
           <TripScheduleItem
             key={item.id}
             item={item}
+            slug={slug || ""}
             isLast={idx === day.schedule.length - 1}
             isAdmin={isAdmin}
             onToggleDone={onToggleDone}
+            onDeleted={onDeleted}
           />
         ))}
         {day.schedule.length === 0 && (
           <div className="text-center py-4 text-sm text-muted-foreground italic">
             Belum ada jadwal
           </div>
+        )}
+        {isAdmin && slug && (
+          <Link 
+            to={`/trips/${slug}/schedule/new?dayId=${day.id}`}
+            className="mt-3 w-full py-3 flex items-center justify-center border-2 border-dashed border-primary/30 rounded-xl text-primary font-medium hover:bg-primary/5 hover:border-primary/50 transition-colors"
+          >
+            + Tambah Agenda Baru
+          </Link>
         )}
       </div>
 

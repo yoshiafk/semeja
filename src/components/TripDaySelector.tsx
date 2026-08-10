@@ -3,11 +3,14 @@ import { cn } from "@/lib/utils";
 import type { TripDay, TripCity } from "@/types/trip";
 import { motion } from "framer-motion";
 import { triggerHaptic } from "@/lib/haptics";
+import * as LucideIcons from "lucide-react";
+import { getWeatherIconName, type WeatherData } from "@/lib/weather";
 
 interface TripDaySelectorProps {
   days: TripDay[];
   activeDay: number;
   onSelectDay: (dayNumber: number) => void;
+  weatherData?: WeatherData[];
 }
 
 const DAY_ABBR = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
@@ -17,7 +20,7 @@ function getDayAbbr(dateStr: string): string {
   return DAY_ABBR[d.getDay()];
 }
 
-export function TripDaySelector({ days, activeDay, onSelectDay }: TripDaySelectorProps) {
+export function TripDaySelector({ days, activeDay, onSelectDay, weatherData }: TripDaySelectorProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
 
@@ -53,6 +56,9 @@ export function TripDaySelector({ days, activeDay, onSelectDay }: TripDaySelecto
           <div className="flex gap-1 bg-muted/40 p-1 rounded-xl border border-border/50">
             {group.days.map((day) => {
               const isActive = day.day_number === activeDay;
+              const dateStr = day.date.split("T")[0]; // "2026-08-16"
+              const weatherForDay = weatherData?.find(w => w.time === dateStr);
+              const Icon = weatherForDay ? (LucideIcons[getWeatherIconName(weatherForDay.weathercode) as keyof typeof LucideIcons] as any) : null;
 
               return (
                 <button
@@ -78,12 +84,28 @@ export function TripDaySelector({ days, activeDay, onSelectDay }: TripDaySelecto
                     />
                   )}
 
-                  <span className={cn("text-sm font-bold", isActive ? "text-foreground" : "text-muted-foreground")}>
-                    H{day.day_number}
-                  </span>
-                  <span className={cn("text-[10px] uppercase tracking-wider font-semibold", isActive ? "text-foreground/70" : "text-muted-foreground/70")}>
-                    {getDayAbbr(day.date)}
-                  </span>
+                  {weatherForDay ? (
+                    <>
+                      <div className="mb-0.5 mt-0.5">
+                        <Icon className={cn("w-4 h-4", isActive ? "text-sky-500" : "text-muted-foreground")} />
+                      </div>
+                      <span className={cn("text-xs font-bold leading-none mb-0.5", isActive ? "text-foreground" : "text-muted-foreground")}>
+                        H{day.day_number}
+                      </span>
+                      <span className={cn("text-[9px] font-semibold", isActive ? "text-red-500" : "text-muted-foreground/70")}>
+                        {Math.round(weatherForDay.temperature_2m_max)}°
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className={cn("text-sm font-bold", isActive ? "text-foreground" : "text-muted-foreground")}>
+                        H{day.day_number}
+                      </span>
+                      <span className={cn("text-[10px] uppercase tracking-wider font-semibold", isActive ? "text-foreground/70" : "text-muted-foreground/70")}>
+                        {getDayAbbr(day.date)}
+                      </span>
+                    </>
+                  )}
                 </button>
               );
             })}

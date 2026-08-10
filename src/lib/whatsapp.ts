@@ -59,7 +59,7 @@ export function formatMenuProposal(
   });
 
   return [
-    `🍽️ *Menu Pekan ${weekLabel}*`,
+    `🌙 *Jadwal Buka Puasa ${weekLabel}*`,
     '',
     menuLines.join('\n'),
     '',

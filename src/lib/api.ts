@@ -379,14 +379,43 @@ export const generateBekalPlan = () => api.post<BekalPlan>('/bekal-sehat/plans/g
 
 // ── Trips Module ──────────────────────────────────────────────────────────
 
-import type { TripSummary, TripDetail, TripBudgetRow } from '@/types/trip';
+import type {
+  TripSummary,
+  TripDetail,
+  TripBudgetRow,
+  TripPackingItem
+} from '@/types/trip';
 
 export const getTrips = () => api.get<TripSummary[]>('/trips');
 export const getTripDetail = (slug: string) => api.get<TripDetail>(`/trips/${slug}`);
 export const toggleTripScheduleItem = (slug: string, itemId: number, isDone: boolean) => 
   api.patch<{ id: number, is_done: boolean }>(`/trips/${slug}/schedule/${itemId}/toggle`, { is_done: isDone });
+
+export const addTripScheduleItem = (slug: string, data: any) =>
+  api.post<any>(`/trips/${slug}/schedule`, data);
+
+export const updateTripScheduleItem = (slug: string, itemId: number, data: any) =>
+  api.put<any>(`/trips/${slug}/schedule/${itemId}`, data);
+
+export const deleteTripScheduleItem = (slug: string, itemId: number) =>
+  api.delete<{ success: true }>(`/trips/${slug}/schedule/${itemId}`);
 export const updateTripBudgetActual = (slug: string, rowId: number, actualAmount: number) => 
   api.patch<{ id: number, actual_amount_rp: number }>(`/trips/${slug}/budget/${rowId}`, { actual_amount_rp: actualAmount });
+
+export const deleteTripBudgetRow = (slug: string, rowId: number) =>
+  api.delete<{ success: true }>(`/trips/${slug}/budget/${rowId}`);
+
+// -- Trip Packing List --
+
+export const addTripPackingItem = (slug: string, data: { category: string; item_name: string; assignee_id: number | null }) =>
+  api.post<TripPackingItem>(`/trips/${slug}/packing`, data);
+
+export const updateTripPackingItem = (slug: string, itemId: number, data: { is_checked?: boolean; assignee_id?: number | null }) =>
+  api.put<TripPackingItem>(`/trips/${slug}/packing/${itemId}`, data);
+
+export const deleteTripPackingItem = (slug: string, itemId: number) =>
+  api.delete<{ success: true }>(`/trips/${slug}/packing/${itemId}`);
+
 export const createTripBudget = (slug: string, data: { category: string, detail?: string, amount_rp?: number, is_accommodation?: boolean }) => 
   api.post<TripBudgetRow>(`/trips/${slug}/budget`, data);
 

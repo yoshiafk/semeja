@@ -28,10 +28,10 @@ export function Header() {
   const navItems = [
     { to: "/", icon: Home, label: "Beranda" },
     {
-      label: "Makan",
+      label: "Buka Puasa",
       icon: UtensilsCrossed,
       children: [
-        { to: "/meals",          icon: UtensilsCrossed, label: "Jadwal Makan" },
+        { to: "/meals",          icon: UtensilsCrossed, label: "Jadwal Buka Puasa" },
         { to: "/meals/plan",     icon: ClipboardList,   label: "Atur Jadwal",       adminOnly: true },
         { to: "/meals/menus",    icon: Utensils,        label: "Daftar Resep",       adminOnly: true },
         { to: "/meals/preview",  icon: ScanEye,         label: "Review Belanja",     adminOnly: true },
