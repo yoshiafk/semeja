@@ -13,13 +13,16 @@ router.get('/bumbu-dasar', async (req, res) => {
       'SELECT * FROM bekal_bumbu_dasar ORDER BY id'
     );
 
-    // Fetch ingredients for each bumbu
-    for (const bumbu of bumbuList) {
-      const { rows: ingredients } = await pool.query(
-        'SELECT * FROM bekal_bumbu_ingredients WHERE bumbu_id = $1 ORDER BY sort_order',
-        [bumbu.id]
+    if (bumbuList.length > 0) {
+      const bumbuIds = bumbuList.map(b => b.id);
+      const { rows: allIngredients } = await pool.query(
+        'SELECT * FROM bekal_bumbu_ingredients WHERE bumbu_id = ANY($1::int[]) ORDER BY sort_order',
+        [bumbuIds]
       );
-      bumbu.ingredients = ingredients;
+      
+      bumbuList.forEach(bumbu => {
+        bumbu.ingredients = allIngredients.filter(ing => ing.bumbu_id === bumbu.id);
+      });
     }
 
     res.json(bumbuList);

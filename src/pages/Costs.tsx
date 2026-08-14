@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -113,60 +114,63 @@ export default function Costs() {
   const [manualSearchQuery, setManualSearchQuery] = useState("");
   const [isManualSearchOpen, setIsManualSearchOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchLedgers = async () => {
-      try {
-        setLoading(true);
-        const [allLedgers, ings, membersList] = await Promise.all([
-          api.get<any[]>("/ledgers"),
-          api.get<any[]>("/ingredients"),
-          api.get<any[]>("/members")
-        ]);
-        setLedgers(allLedgers);
-        setAllIngredients(ings);
-        setAllMembers(membersList);
-        
-        if (allLedgers.length > 0) {
-          // Default to the first ledger
-          setActiveLedger(allLedgers[0]);
-        } else {
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
-      }
-    };
-    fetchLedgers();
-  }, []);
+  const { data: initData, isLoading: isLedgersLoading } = useQuery({
+    queryKey: ['costs_init'],
+    queryFn: async () => {
+      const [allLedgers, ings, membersList] = await Promise.all([
+        api.get<any[]>("/ledgers"),
+        api.get<any[]>("/ingredients"),
+        api.get<any[]>("/members")
+      ]);
+      return { allLedgers, ings, membersList };
+    }
+  });
 
+  // Sync initial fetch into local state to keep the rest of the component's mutation logic intact
   useEffect(() => {
-    if (!activeLedger) return;
-    
-    const fetchDetails = async () => {
-      try {
-        setLoading(true);
-        if (activeLedger.type === 'meal_plan') {
-          const summary = await api.get<CostSummary>(`/summary/${activeLedger.reference_id}`);
-          setData(summary);
-          setTripData(null);
-        } else if (activeLedger.type === 'trip') {
-          const { getTripDetailById } = await import("@/lib/api");
-          const trip = await getTripDetailById(activeLedger.reference_id);
-          setTripData(trip);
-          setData(null);
-        } else {
-          setData(null);
-          setTripData(null);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+    if (initData) {
+      setLedgers(initData.allLedgers);
+      if (allIngredients.length === 0) setAllIngredients(initData.ings);
+      if (allMembers.length === 0) setAllMembers(initData.membersList);
+      
+      if (initData.allLedgers.length > 0 && !activeLedger) {
+        setActiveLedger(initData.allLedgers[0]);
       }
-    };
-    fetchDetails();
-  }, [activeLedger]);
+    }
+  }, [initData, activeLedger]);
+
+  const { data: detailsData, isLoading: isDetailsLoading } = useQuery({
+    queryKey: ['ledger_details', activeLedger?.type, activeLedger?.reference_id],
+    queryFn: async () => {
+      if (!activeLedger) return null;
+      if (activeLedger.type === 'meal_plan') {
+        const summary = await api.get<CostSummary>(`/summary/${activeLedger.reference_id}`);
+        return { type: 'meal_plan', summary, trip: null };
+      } else if (activeLedger.type === 'trip') {
+        const { getTripDetailById } = await import("@/lib/api");
+        const trip = await getTripDetailById(activeLedger.reference_id);
+        return { type: 'trip', trip, summary: null };
+      }
+      return { type: 'unknown', summary: null, trip: null };
+    },
+    enabled: !!activeLedger
+  });
+
+  // Sync active ledger data into state
+  useEffect(() => {
+    if (detailsData) {
+      setData(detailsData.summary);
+      setTripData(detailsData.trip);
+    } else {
+      setData(null);
+      setTripData(null);
+    }
+  }, [detailsData]);
+
+  // Aggregate loading states
+  useEffect(() => {
+    setLoading(isLedgersLoading || isDetailsLoading);
+  }, [isLedgersLoading, isDetailsLoading]);
 
   const activePlanId = activeLedger?.type === 'meal_plan' ? activeLedger.reference_id : null;
   const ledgerId = activeLedger?.id || null;

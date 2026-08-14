@@ -74,56 +74,58 @@ router.get('/by-id/:id', async (req, res) => {
       transport: (() => { try { return JSON.parse(tripRows[0].transport); } catch { return []; } })(),
     };
 
-    // Get participants
-    const { rows: participants } = await pool.query(`
-      SELECT m.id, m.name, tp.joined_at
-      FROM trip_participations tp
-      JOIN members m ON tp.member_id = m.id
-      WHERE tp.trip_id = $1
-    `, [id]);
-    trip.participants = participants;
+    // Fetch everything else in parallel
+    const [
+      { rows: participants },
+      { rows: hotels },
+      { rows: distances },
+      { rows: budget },
+      { rows: packing },
+      { rows: days },
+      { rows: scheduleItems }
+    ] = await Promise.all([
+      pool.query(`
+        SELECT m.id, m.name, tp.joined_at
+        FROM trip_participations tp
+        JOIN members m ON tp.member_id = m.id
+        WHERE tp.trip_id = $1
+      `, [id]),
+      pool.query(`
+        SELECT * FROM trip_hotels WHERE trip_id = $1 ORDER BY sort_order ASC, check_in ASC
+      `, [id]),
+      pool.query(`
+        SELECT d.* FROM trip_hotel_distances d
+        JOIN trip_hotels h ON d.hotel_id = h.id
+        WHERE h.trip_id = $1 ORDER BY h.id, d.sort_order ASC
+      `, [id]),
+      pool.query(`
+        SELECT * FROM trip_budget_rows WHERE trip_id = $1 ORDER BY is_total_row ASC, sort_order ASC, id ASC
+      `, [id]),
+      pool.query(`
+        SELECT p.*, m.name as assignee_name 
+        FROM trip_packing_items p
+        LEFT JOIN members m ON p.assignee_id = m.id
+        WHERE p.trip_id = $1 
+        ORDER BY p.category, p.created_at ASC
+      `, [id]),
+      pool.query(`
+        SELECT * FROM trip_days WHERE trip_id = $1 ORDER BY day_number ASC
+      `, [id]),
+      pool.query(`
+        SELECT s.* FROM trip_schedule_items s
+        JOIN trip_days d ON s.day_id = d.id
+        WHERE d.trip_id = $1 ORDER BY d.day_number ASC, s.sort_order ASC, s.time_start ASC
+      `, [id])
+    ]);
 
-    // Get hotel & distances
-    const { rows: hotels } = await pool.query(`
-      SELECT * FROM trip_hotels WHERE trip_id = $1 ORDER BY sort_order ASC, check_in ASC
-    `, [id]);
-    const { rows: distances } = await pool.query(`
-      SELECT d.* FROM trip_hotel_distances d
-      JOIN trip_hotels h ON d.hotel_id = h.id
-      WHERE h.trip_id = $1 ORDER BY h.id, d.sort_order ASC
-    `, [id]);
-    
+    trip.participants = participants;
+    trip.budget = budget;
+    trip.packing_items = packing;
+
     trip.hotels = hotels.map(h => ({
       ...h,
       distances: distances.filter(d => d.hotel_id === h.id)
     }));
-
-    // Get budget rows
-    const { rows: budget } = await pool.query(`
-      SELECT * FROM trip_budget_rows WHERE trip_id = $1 ORDER BY is_total_row ASC, sort_order ASC, id ASC
-    `, [id]);
-    trip.budget = budget;
-
-    // Get packing items
-    const { rows: packing } = await pool.query(`
-      SELECT p.*, m.name as assignee_name 
-      FROM trip_packing_items p
-      LEFT JOIN members m ON p.assignee_id = m.id
-      WHERE p.trip_id = $1 
-      ORDER BY p.category, p.created_at ASC
-    `, [id]);
-    trip.packing_items = packing;
-
-    // Get itinerary days & schedule
-    const { rows: days } = await pool.query(`
-      SELECT * FROM trip_days WHERE trip_id = $1 ORDER BY day_number ASC
-    `, [id]);
-    
-    const { rows: scheduleItems } = await pool.query(`
-      SELECT s.* FROM trip_schedule_items s
-      JOIN trip_days d ON s.day_id = d.id
-      WHERE d.trip_id = $1 ORDER BY d.day_number ASC, s.sort_order ASC, s.time_start ASC
-    `, [id]);
 
     trip.days = days.map(d => ({
       ...d,
@@ -158,21 +160,65 @@ router.get('/:slug', async (req, res) => {
     };
     const tripId = trip.id;
 
-    // Hotels + distances
-    const { rows: hotelRows } = await pool.query(`
-      SELECT h.id, h.name, h.city, h.address, h.maps_url, h.check_in, h.check_out, h.sort_order
-      FROM trip_hotels h
-      WHERE h.trip_id = $1
-      ORDER BY h.sort_order
-    `, [tripId]);
-
-    const { rows: distRows } = await pool.query(`
-      SELECT d.hotel_id, d.destination, d.distance_km, d.duration, d.sort_order
-      FROM trip_hotel_distances d
-      JOIN trip_hotels h ON d.hotel_id = h.id
-      WHERE h.trip_id = $1
-      ORDER BY d.hotel_id, d.sort_order
-    `, [tripId]);
+    // Fetch related models in parallel
+    const [
+      { rows: hotelRows },
+      { rows: distRows },
+      { rows: dayRows },
+      { rows: itemRows },
+      { rows: budgetRows },
+      { rows: participantRows },
+      { rows: packingRows }
+    ] = await Promise.all([
+      pool.query(`
+        SELECT h.id, h.name, h.city, h.address, h.maps_url, h.check_in, h.check_out, h.sort_order
+        FROM trip_hotels h
+        WHERE h.trip_id = $1
+        ORDER BY h.sort_order
+      `, [tripId]),
+      pool.query(`
+        SELECT d.hotel_id, d.destination, d.distance_km, d.duration, d.sort_order
+        FROM trip_hotel_distances d
+        JOIN trip_hotels h ON d.hotel_id = h.id
+        WHERE h.trip_id = $1
+        ORDER BY d.hotel_id, d.sort_order
+      `, [tripId]),
+      pool.query(`
+        SELECT id, day_number, date, label, city, area_note, warning_note
+        FROM trip_days
+        WHERE trip_id = $1
+        ORDER BY day_number
+      `, [tripId]),
+      pool.query(`
+        SELECT s.id, s.day_id, s.time_start, s.time_end, s.name, s.activity_type,
+               s.location, s.area, s.maps_url, s.notes, s.opening_hours,
+               s.is_highlight, s.is_cash_only, s.requires_booking, s.is_optional, s.sort_order, s.is_done
+        FROM trip_schedule_items s
+        JOIN trip_days d ON s.day_id = d.id
+        WHERE d.trip_id = $1
+        ORDER BY d.day_number, s.sort_order
+      `, [tripId]),
+      pool.query(`
+        SELECT id, category, detail, amount_rp, actual_amount_rp, is_accommodation, is_total_row
+        FROM trip_budget_rows
+        WHERE trip_id = $1
+        ORDER BY sort_order
+      `, [tripId]),
+      pool.query(`
+        SELECT m.id, m.name, '' as avatar_url, tp.joined_at
+        FROM trip_participations tp
+        JOIN members m ON tp.member_id = m.id
+        WHERE tp.trip_id = $1
+        ORDER BY tp.joined_at ASC
+      `, [tripId]),
+      pool.query(`
+        SELECT p.id, p.category, p.item_name, p.is_checked, p.assignee_id, m.name as assignee_name
+        FROM trip_packing_items p
+        LEFT JOIN members m ON p.assignee_id = m.id
+        WHERE p.trip_id = $1
+        ORDER BY p.id ASC
+      `, [tripId])
+    ]);
 
     const hotels = hotelRows.map(h => ({
       ...h,
@@ -181,54 +227,10 @@ router.get('/:slug', async (req, res) => {
         .map(d => ({ destination: d.destination, distance_km: d.distance_km, duration: d.duration })),
     }));
 
-    // Days + schedule items
-    const { rows: dayRows } = await pool.query(`
-      SELECT id, day_number, date, label, city, area_note, warning_note
-      FROM trip_days
-      WHERE trip_id = $1
-      ORDER BY day_number
-    `, [tripId]);
-
-    const { rows: itemRows } = await pool.query(`
-      SELECT s.id, s.day_id, s.time_start, s.time_end, s.name, s.activity_type,
-             s.location, s.area, s.maps_url, s.notes, s.opening_hours,
-             s.is_highlight, s.is_cash_only, s.requires_booking, s.is_optional, s.sort_order, s.is_done
-      FROM trip_schedule_items s
-      JOIN trip_days d ON s.day_id = d.id
-      WHERE d.trip_id = $1
-      ORDER BY d.day_number, s.sort_order
-    `, [tripId]);
-
     const days = dayRows.map(d => ({
       ...d,
       schedule: itemRows.filter(i => i.day_id === d.id),
     }));
-
-    // Budget rows
-    const { rows: budgetRows } = await pool.query(`
-      SELECT id, category, detail, amount_rp, actual_amount_rp, is_accommodation, is_total_row
-      FROM trip_budget_rows
-      WHERE trip_id = $1
-      ORDER BY sort_order
-    `, [tripId]);
-
-    // Participants
-    const { rows: participantRows } = await pool.query(`
-      SELECT m.id, m.name, '' as avatar_url, tp.joined_at
-      FROM trip_participations tp
-      JOIN members m ON tp.member_id = m.id
-      WHERE tp.trip_id = $1
-      ORDER BY tp.joined_at ASC
-    `, [tripId]);
-
-    // Packing list
-    const { rows: packingRows } = await pool.query(`
-      SELECT p.id, p.category, p.item_name, p.is_checked, p.assignee_id, m.name as assignee_name
-      FROM trip_packing_items p
-      LEFT JOIN members m ON p.assignee_id = m.id
-      WHERE p.trip_id = $1
-      ORDER BY p.id ASC
-    `, [tripId]);
 
     res.json({
       ...trip,

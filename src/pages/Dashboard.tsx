@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -38,75 +39,71 @@ interface MealPlan {
 }
 
 export default function Dashboard() {
+  const queryClient = useQueryClient();
   const { member, isAdmin } = useMember();
   const navigate = useNavigate();
-  const [plans, setPlans] = useState<MealPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [plan, setPlan] = useState<MealPlan | null>(null);
   const [participations, setParticipations] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const { data: plans = [], isLoading: isPlansLoading } = useQuery({
+    queryKey: ['active_plans'],
+    queryFn: async () => {
+      return await api.get<MealPlan[]>("/meal-plans/active");
+    },
+    enabled: !!member
+  });
 
   useEffect(() => {
-    fetchActivePlans();
-  }, [member]);
+    if (plans.length > 0 && !selectedPlanId) {
+      setSelectedPlanId(plans[0].id.toString());
+    }
+  }, [plans, selectedPlanId]);
+
+  const plan = plans.find(p => p.id.toString() === selectedPlanId) || null;
+
+  const { data: userParts, isLoading: isPartsLoading } = useQuery({
+    queryKey: ['participations', plan?.id],
+    queryFn: async () => {
+      if (!plan || !member) return [];
+      return await api.get<any[]>(`/participations/${plan.id}`);
+    },
+    enabled: !!plan && !!member
+  });
 
   useEffect(() => {
-    if (selectedPlanId) {
-       const selected = plans.find(p => p.id.toString() === selectedPlanId);
-       if (selected) {
-         setPlan(selected);
-         fetchParticipations(selected.id);
-       }
-    }
-  }, [selectedPlanId, plans]);
-
-  const fetchActivePlans = async () => {
-    try {
-      setLoading(true);
-      const activePlans = await api.get<MealPlan[]>("/meal-plans/active");
-      setPlans(activePlans);
-      if (activePlans.length > 0) {
-        setSelectedPlanId(activePlans[0].id.toString());
-      } else {
-        setPlan(null);
-      }
-    } catch (err) {
-      console.error("Failed to fetch plans:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchParticipations = async (planId: number) => {
-    if (!member) return;
-    try {
-      const userParts = await api.get<any[]>(`/participations/${planId}`);
+    if (userParts && member) {
       const mealIds = userParts
-        .filter((p) => p.member_id === member?.id)
+        .filter((p) => p.member_id === member.id)
         .map((p) => p.meal_id);
       setParticipations(mealIds);
-    } catch (err) {
-      console.error("Failed to fetch participations:", err);
     }
-  };
+  }, [userParts, member]);
+
+  const loading = isPlansLoading || isPartsLoading && !plan;
+
 
   const toggleJoin = async (mealId: number) => {
     if (!member) return;
     const isJoined = participations.includes(mealId);
-    const prevPlan = plan;
     
     // 1. Optimistic Update
     setParticipations(prev => isJoined ? prev.filter(id => id !== mealId) : [...prev, mealId]);
-    if (plan) {
-      setPlan({
-        ...plan,
-        meals: plan.meals.map(m =>
-          m.id === mealId
-            ? { ...m, participant_count: parseInt(m.participant_count as any) + (isJoined ? -1 : 1) }
-            : m
-        )
+    queryClient.setQueryData(['active_plans'], (oldPlans: MealPlan[] | undefined) => {
+      if (!oldPlans) return oldPlans;
+      return oldPlans.map(p => {
+        if (p.id.toString() === selectedPlanId) {
+          return {
+            ...p,
+            meals: p.meals.map(m =>
+              m.id === mealId
+                ? { ...m, participant_count: parseInt(m.participant_count as any) + (isJoined ? -1 : 1) }
+                : m
+            )
+          };
+        }
+        return p;
       });
-    }
+    });
 
     // 2. Background API Call
     try {
@@ -115,10 +112,13 @@ export default function Dashboard() {
       } else {
         await api.post("/participations", { meal_id: mealId, member_id: member.id });
       }
+      queryClient.invalidateQueries({ queryKey: ['active_plans'] });
+      queryClient.invalidateQueries({ queryKey: ['participations', plan?.id] });
     } catch (err: any) {
       // 3. Rollback on failure
       setParticipations(prev => isJoined ? [...prev, mealId] : prev.filter(id => id !== mealId));
-      if (prevPlan) setPlan(prevPlan);
+      queryClient.invalidateQueries({ queryKey: ['active_plans'] });
+
       
       const code = err?.data?.code;
       if (code === 'RSVP_LOCKED') {

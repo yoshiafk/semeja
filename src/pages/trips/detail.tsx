@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Share, Edit2, LogIn, LogOut } from "lucide-react";
 import { getTripDetail, updateTrip, joinTrip, leaveTrip, addTripPackingItem, updateTripPackingItem, deleteTripPackingItem } from "@/lib/api";
@@ -26,7 +27,6 @@ export default function TripDetailView() {
   const { isAdmin, member } = useMember();
   
   const [trip, setTrip] = useState<TripDetail | null>(null);
-  const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeDay, setActiveDay] = useState<number>(1);
   const [weatherData, setWeatherData] = useState<WeatherData[]>([]);
@@ -35,49 +35,56 @@ export default function TripDetailView() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const activeTab = searchParams.get("tab") || "itinerary";
 
-  useEffect(() => {
-    if (!slug) return;
-    
-    const fetchLedgerId = async (tripId: number) => {
-      try {
-        const ledgerObj = await api.get<any>(`/ledgers/by-reference/trip/${tripId}`);
-        if (ledgerObj) setLedgerId(ledgerObj.id);
-      } catch (e) {
-        console.error("No ledger found for trip", e);
-      }
-    };
+  const { data: tripData, isLoading: isTripLoading } = useQuery({
+    queryKey: ['trip', slug],
+    queryFn: () => getTripDetail(slug as string),
+    enabled: !!slug
+  });
 
-    getTripDetail(slug)
-      .then(data => {
-        setTrip(data);
-        if (data && data.id) fetchLedgerId(data.id);
-        if (data.days && data.days.length > 0) {
-          setActiveDay(data.days[0].day_number);
-        }
+  const { data: ledgerObj } = useQuery({
+    queryKey: ['ledger_by_trip', tripData?.id],
+    queryFn: () => api.get<any>(`/ledgers/by-reference/trip/${tripData?.id}`).catch(() => null),
+    enabled: !!tripData?.id,
+    retry: false
+  });
+
+  useEffect(() => {
+    if (ledgerObj) {
+      setLedgerId(ledgerObj.id);
+    }
+  }, [ledgerObj]);
+
+  useEffect(() => {
+    if (tripData) {
+      setTrip(tripData);
+      if (tripData.days && tripData.days.length > 0 && activeDay === 1) {
+        setActiveDay(tripData.days[0].day_number);
+      }
+      
+      if (tripData.cover_city && weatherData.length === 0) {
+        const startDate = new Date(tripData.start_date);
+        const today = new Date();
+        const diffDays = Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
         
-        if (data.cover_city) {
-          const startDate = new Date(data.start_date);
-          const today = new Date();
-          const diffDays = Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
-          
-          if (diffDays >= 0 && diffDays <= 16) {
-            geocodeCity(data.cover_city).then(geo => {
-              if (geo) {
-                getWeatherForecast(geo.latitude, geo.longitude).then(forecast => {
-                  const tripDates = forecast.filter(f => {
-                    const fDate = new Date(f.time);
-                    return fDate >= startDate && fDate <= new Date(data.end_date);
-                  });
-                  setWeatherData(tripDates.length > 0 ? tripDates : forecast.slice(0, 3));
-                }).catch(console.error);
-              }
-            }).catch(console.error);
-          }
+        if (diffDays >= 0 && diffDays <= 16) {
+          geocodeCity(tripData.cover_city).then(geo => {
+            if (geo) {
+              getWeatherForecast(geo.latitude, geo.longitude).then(forecast => {
+                const tripDates = forecast.filter(f => {
+                  const fDate = new Date(f.time);
+                  return fDate >= startDate && fDate <= new Date(tripData.end_date);
+                });
+                setWeatherData(tripDates.length > 0 ? tripDates : forecast.slice(0, 3));
+              }).catch(console.error);
+            }
+          }).catch(console.error);
         }
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [slug]);
+      }
+    }
+  }, [tripData]);
+
+  const loading = isTripLoading && !trip;
+
 
   const handleSelectDay = (dayNum: number) => {
     setActiveDay(dayNum);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -13,19 +14,27 @@ import { TripCountdownBanner } from "@/components/TripCountdownBanner";
 
 export default function HomeHub() {
   const { member, isAdmin } = useMember();
-  const [todayCount, setTodayCount] = useState(0);
-  const [latestTrip, setLatestTrip] = useState<TripSummary | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { data: todayCount = 0 } = useQuery({
+    queryKey: ['today_participation'],
+    queryFn: async () => {
+      const { count } = await getTodayParticipation();
+      return count;
+    }
+  });
+
+  const { data: latestTrip } = useQuery({
+    queryKey: ['latest_trip'],
+    queryFn: async () => {
+      const trips = await getTrips();
+      if (trips?.length > 0) {
+        return trips.find((t: TripSummary) => t.status !== "done") || trips[0];
+      }
+      return null;
+    }
+  });
 
   useEffect(() => {
-    getTodayParticipation().then(({ count }) => setTodayCount(count));
-    getTrips().then(trips => {
-      if (trips?.length > 0) {
-        const upcoming = trips.find(t => t.status !== "done") || trips[0];
-        setLatestTrip(upcoming);
-      }
-    }).catch(console.error);
-
     const timer = setInterval(() => setCurrentTime(new Date()), 60_000);
     return () => clearInterval(timer);
   }, []);
