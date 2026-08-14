@@ -46,35 +46,33 @@ router.get('/by-reference/:type/:refId', async (req, res) => {
 router.get('/:id/summary', async (req, res) => {
   const { id } = req.params;
   try {
-    // 1. Get all expenses for this ledger
-    const expensesRes = await pool.query(`
-      SELECT e.id, e.amount, e.paid_by_member_id, e.description, e.category, e.created_at, e.receipt_id,
-             m.name as paid_by_name
-      FROM expenses e
-      LEFT JOIN members m ON e.paid_by_member_id = m.id
-      WHERE e.ledger_id = $1
-      ORDER BY e.created_at DESC
-    `, [id]);
-    
-    // 2. Get all splits for these expenses
-    const splitsRes = await pool.query(`
-      SELECT s.expense_id, s.member_id, s.amount, m.name
-      FROM expense_splits s
-      JOIN expenses e ON s.expense_id = e.id
-      JOIN members m ON s.member_id = m.id
-      WHERE e.ledger_id = $1
-    `, [id]);
-
-    // 3. Get all settlements
-    const settlementsRes = await pool.query(`
-      SELECT s.id, s.payer_id, s.payee_id, s.amount, s.created_at,
-             payer.name as payer_name, payee.name as payee_name
-      FROM settlements s
-      LEFT JOIN members payer ON s.payer_id = payer.id
-      LEFT JOIN members payee ON s.payee_id = payee.id
-      WHERE s.ledger_id = $1
-      ORDER BY s.created_at DESC
-    `, [id]);
+    // Run all ledger summary queries in parallel to reduce latency
+    const [expensesRes, splitsRes, settlementsRes] = await Promise.all([
+      pool.query(`
+        SELECT e.id, e.amount, e.paid_by_member_id, e.description, e.category, e.created_at, e.receipt_id,
+               m.name as paid_by_name
+        FROM expenses e
+        LEFT JOIN members m ON e.paid_by_member_id = m.id
+        WHERE e.ledger_id = $1
+        ORDER BY e.created_at DESC
+      `, [id]),
+      pool.query(`
+        SELECT s.expense_id, s.member_id, s.amount, m.name
+        FROM expense_splits s
+        JOIN expenses e ON s.expense_id = e.id
+        JOIN members m ON s.member_id = m.id
+        WHERE e.ledger_id = $1
+      `, [id]),
+      pool.query(`
+        SELECT s.id, s.payer_id, s.payee_id, s.amount, s.created_at,
+               payer.name as payer_name, payee.name as payee_name
+        FROM settlements s
+        LEFT JOIN members payer ON s.payer_id = payer.id
+        LEFT JOIN members payee ON s.payee_id = payee.id
+        WHERE s.ledger_id = $1
+        ORDER BY s.created_at DESC
+      `, [id])
+    ]);
 
     // 4. Calculate Balances
     // Balance > 0 means the person is owed money

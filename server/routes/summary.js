@@ -275,34 +275,35 @@ router.get('/:mealPlanId', async (req, res) => {
   try {
     const planId = req.params.mealPlanId;
 
-    // 1. Get all meals with participant counts
-    const { rows: meals } = await pool.query(
-      `SELECT m.*, mp.week_start, mp.week_end,
-        (SELECT COUNT(*) FROM participations p WHERE p.meal_id = m.id) as participant_count
-       FROM meals m 
-       JOIN meal_plans mp ON m.meal_plan_id = mp.id
-       WHERE m.meal_plan_id = $1 ORDER BY m.date`,
-      [planId]
-    );
+    // Step 1: Fetch independent data in parallel (meals, rice ingredient, participations)
+    const [mealsRes, riceRowsRes, participationsRes] = await Promise.all([
+      pool.query(
+        `SELECT m.*, mp.week_start, mp.week_end,
+          (SELECT COUNT(*) FROM participations p WHERE p.meal_id = m.id) as participant_count
+         FROM meals m 
+         JOIN meal_plans mp ON m.meal_plan_id = mp.id
+         WHERE m.meal_plan_id = $1 ORDER BY m.date`,
+        [planId]
+      ),
+      pool.query(
+        "SELECT id as ingredient_id, name, unit, price_per_unit, stock_quantity, category FROM ingredients WHERE name = 'Beras' LIMIT 1"
+      ),
+      pool.query(
+        `SELECT p.meal_id, p.member_id, mb.name as member_name
+         FROM participations p
+         JOIN members mb ON p.member_id = mb.id
+         JOIN meals m ON p.meal_id = m.id
+         WHERE m.meal_plan_id = $1`,
+        [planId]
+      )
+    ]);
+
+    const meals = mealsRes.rows;
+    const riceIngredient = riceRowsRes.rows[0];
+    const participations = participationsRes.rows;
 
     const weekStart = meals.length > 0 ? meals[0].week_start : null;
     const weekEnd = meals.length > 0 ? meals[0].week_end : null;
-
-    // 1.5 Get Beras ingredient for auto-rice calculation
-    const { rows: riceRows } = await pool.query(
-      "SELECT id as ingredient_id, name, unit, price_per_unit, stock_quantity, category FROM ingredients WHERE name = 'Beras' LIMIT 1"
-    );
-    const riceIngredient = riceRows[0];
-
-    // 2. Get all participations with member info
-    const { rows: participations } = await pool.query(
-      `SELECT p.meal_id, p.member_id, mb.name as member_name
-       FROM participations p
-       JOIN members mb ON p.member_id = mb.id
-       JOIN meals m ON p.meal_id = m.id
-       WHERE m.meal_plan_id = $1`,
-      [planId]
-    );
 
     const dailyBreakdown = [];
     const memberTotals = {};
@@ -310,28 +311,56 @@ router.get('/:mealPlanId', async (req, res) => {
     let weekTotal = 0;
 
     let manualIngredientRows = [];
-    const mealIds = meals.map(m => m.id);
     let mealMenuItems = [];
-    if (mealIds.length > 0) {
-      const { rows: ingredients } = await pool.query(
-        `SELECT mi.*, i.name, i.unit as base_unit, i.price_per_unit, i.stock_quantity, i.category
-         FROM meal_ingredients mi
-         JOIN ingredients i ON mi.ingredient_id = i.id
-         WHERE mi.meal_id = ANY($1::int[])`,
-        [mealIds]
-      );
-      manualIngredientRows = ingredients;
+    let allPurchases = [];
+    const mealIds = meals.map(m => m.id);
 
-      const { rows: items } = await pool.query(
-        'SELECT * FROM meal_menu_items WHERE meal_id = ANY($1::int[]) ORDER BY sort_order ASC',
-        [mealIds]
-      );
-      mealMenuItems = items;
+    if (mealIds.length > 0) {
+      // Step 2: Fetch data dependent on mealIds in parallel
+      const purchasesQuery = `
+        SELECT p.id, p.total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
+               p.meal_id, i.name as ingredient_name, s.name as supplier_name,
+               FALSE as is_assignment
+        FROM purchases p
+        JOIN ingredients i ON p.ingredient_id = i.id
+        LEFT JOIN suppliers s ON p.supplier_id = s.id
+        WHERE p.meal_id = ANY($1::int[])
+        UNION ALL
+        SELECT p.id, pa.amount as total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
+               pa.meal_id, i.name as ingredient_name, s.name as supplier_name,
+               TRUE as is_assignment
+        FROM purchase_assignments pa
+        JOIN purchases p ON pa.purchase_id = p.id
+        JOIN ingredients i ON p.ingredient_id = i.id
+        LEFT JOIN suppliers s ON p.supplier_id = s.id
+        WHERE pa.meal_id = ANY($1::int[])
+        ORDER BY created_at
+      `;
+
+      const [ingredientsRes, itemsRes, purchasesRes] = await Promise.all([
+        pool.query(
+          `SELECT mi.*, i.name, i.unit as base_unit, i.price_per_unit, i.stock_quantity, i.category
+           FROM meal_ingredients mi
+           JOIN ingredients i ON mi.ingredient_id = i.id
+           WHERE mi.meal_id = ANY($1::int[])`,
+          [mealIds]
+        ),
+        pool.query(
+          'SELECT * FROM meal_menu_items WHERE meal_id = ANY($1::int[]) ORDER BY sort_order ASC',
+          [mealIds]
+        ),
+        pool.query(purchasesQuery, [mealIds]).catch(() => ({ rows: [] })) // catch if columns missing
+      ]);
+
+      manualIngredientRows = ingredientsRes.rows;
+      mealMenuItems = itemsRes.rows;
+      allPurchases = purchasesRes.rows;
     }
 
+    // Step 3: Fetch data dependent on recipe_ids
     const allRecipeIds = [...new Set(mealMenuItems.map(it => it.recipe_id).filter(id => id != null))];
-
     let allRecipeIngredients = [];
+    
     if (allRecipeIds.length > 0) {
       const { rows } = await pool.query(
         `SELECT ri.*, i.price_per_unit, i.stock_quantity, i.category,
@@ -343,33 +372,6 @@ router.get('/:mealPlanId', async (req, res) => {
       );
       allRecipeIngredients = rows;
     }
-    // ----------------------------------------------------------
-
-    // 2.5 Batch fetch all purchases for all meals in this plan to avoid N+1 queries
-    let allPurchases = [];
-    try {
-      const { rows: _allPurchases } = await pool.query(
-        `SELECT p.id, p.total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
-                p.meal_id, i.name as ingredient_name, s.name as supplier_name,
-                FALSE as is_assignment
-         FROM purchases p
-         JOIN ingredients i ON p.ingredient_id = i.id
-         LEFT JOIN suppliers s ON p.supplier_id = s.id
-         WHERE p.meal_id = ANY($1::int[])
-         UNION ALL
-         SELECT p.id, pa.amount as total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
-                pa.meal_id, i.name as ingredient_name, s.name as supplier_name,
-                TRUE as is_assignment
-         FROM purchase_assignments pa
-         JOIN purchases p ON pa.purchase_id = p.id
-         JOIN ingredients i ON p.ingredient_id = i.id
-         LEFT JOIN suppliers s ON p.supplier_id = s.id
-         WHERE pa.meal_id = ANY($1::int[])
-         ORDER BY created_at`,
-        [meals.map(m => m.id)]
-      );
-      allPurchases = _allPurchases;
-    } catch (_e) { /* tables or columns might be missing in older schemas */ }
 
     for (const meal of meals) {
       const pCount = parseInt(meal.participant_count) || 0;
