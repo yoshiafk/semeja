@@ -30,6 +30,8 @@ export interface ScheduleItem {
   is_optional: boolean;
   sort_order: number;
   is_done?: boolean;
+  bill_total_rp?: number;
+  receipt_id?: number | null;
 }
 
 export interface TripDay {

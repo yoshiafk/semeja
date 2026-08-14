@@ -112,7 +112,7 @@ export function TripBudgetTable({ tripTitle, participantCount, rows, isAdmin, on
                   <div className="flex items-center gap-1">
                     <input
                       type="number"
-                      className="w-28 text-right bg-background border border-primary rounded-lg px-2 py-1 text-xs text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-28 text-right bg-background border border-primary rounded-lg px-2 py-1 text-xs text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       value={editValue}
                       onChange={e => setEditValue(e.target.value)}
                       onBlur={() => handleSave(row)}

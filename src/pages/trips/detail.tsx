@@ -4,7 +4,7 @@ import { Share, Edit2, LogIn, LogOut } from "lucide-react";
 import { getTripDetail, updateTrip, joinTrip, leaveTrip, addTripPackingItem, updateTripPackingItem, deleteTripPackingItem } from "@/lib/api";
 import { shareToWhatsApp } from "@/lib/whatsapp";
 import { geocodeCity, getWeatherForecast, type WeatherData } from "@/lib/weather";
-import type { TripDetail } from "@/types/trip";
+import type { TripDetail, ScheduleItem } from "@/types/trip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TripDaySelector } from "@/components/TripDaySelector";
 import { TripDayCard } from "@/components/TripDayCard";
@@ -13,6 +13,7 @@ import { TripBudgetTable } from "@/components/TripBudgetTable";
 import { TripPackingTab } from "@/components/TripPackingTab";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { TripFormDialog } from "@/components/TripFormDialog";
 import { useMember } from "@/hooks/useMember";
@@ -103,6 +104,29 @@ export default function TripDetailView() {
       await toggleTripScheduleItem(slug, itemId, isDone);
     } catch (err) {
       console.error("Failed to toggle item done status:", err);
+      getTripDetail(slug).then(setTrip).catch(console.error);
+    }
+  };
+
+  const handleUpdateScheduleItem = async (itemId: number, data: Partial<ScheduleItem>) => {
+    if (!slug) return;
+    try {
+      setTrip(prev => {
+        if (!prev) return prev;
+        const newDays = prev.days.map(d => {
+          const hasItem = d.schedule.some(s => s.id === itemId);
+          if (!hasItem) return d;
+          return {
+            ...d,
+            schedule: d.schedule.map(s => s.id === itemId ? { ...s, ...data } : s)
+          };
+        });
+        return { ...prev, days: newDays };
+      });
+      const { updateTripScheduleItem } = await import("@/lib/api");
+      await updateTripScheduleItem(slug, itemId, data);
+    } catch (err) {
+      console.error("Failed to update item:", err);
       getTripDetail(slug).then(setTrip).catch(console.error);
     }
   };
@@ -276,11 +300,23 @@ export default function TripDetailView() {
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <div className="px-4 mb-4">
-            <TabsList className="w-full bg-muted/50 rounded-xl p-1 h-auto grid grid-cols-4">
-              <TabsTrigger value="itinerary" className="rounded-lg text-xs py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">Itinerary</TabsTrigger>
-              <TabsTrigger value="hotel" className="rounded-lg text-xs py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">Hotel</TabsTrigger>
-              <TabsTrigger value="budget" className="rounded-lg text-xs py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">Budget</TabsTrigger>
-              <TabsTrigger value="bawaan" className="rounded-lg text-xs py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">Bawaan</TabsTrigger>
+            <TabsList className="relative w-full bg-muted/50 rounded-xl p-1 flex items-center h-auto">
+              {['itinerary', 'hotel', 'budget', 'bawaan'].map(tab => (
+                <TabsTrigger 
+                  key={tab}
+                  value={tab} 
+                  className="relative flex-1 rounded-lg text-xs py-2 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                >
+                  {activeTab === tab && (
+                    <motion.div
+                      layoutId="active-tab"
+                      className="absolute inset-0 bg-background rounded-[8px] shadow-sm"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                    />
+                  )}
+                  <span className="relative z-10 capitalize">{tab === 'bawaan' ? 'Bawaan' : tab === 'hotel' ? 'Hotel' : tab === 'budget' ? 'Budget' : 'Itinerary'}</span>
+                </TabsTrigger>
+              ))}
             </TabsList>
           </div>
 
@@ -300,6 +336,8 @@ export default function TripDetailView() {
                   slug={slug}
                   onToggleDone={handleToggleDone} 
                   onDeleted={handleDeletedItem}
+                  onUpdated={handleUpdateScheduleItem}
+                  onAddBudget={handleAddBudget}
                 />
                 ))}
               </div>

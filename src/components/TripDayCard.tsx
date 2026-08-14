@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, AlertTriangle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { TripDay } from "@/types/trip";
+import type { TripDay, ScheduleItem } from "@/types/trip";
 import { TripScheduleItem } from "./TripScheduleItem";
 import { Link } from "react-router-dom";
 import { WhatsAppShareButton } from "./WhatsAppShareButton";
@@ -18,6 +18,8 @@ interface TripDayCardProps {
   slug?: string;
   onToggleDone?: (itemId: number, isDone: boolean) => Promise<void>;
   onDeleted?: (itemId: number) => void;
+  onUpdated?: (itemId: number, data: Partial<ScheduleItem>) => void;
+  onAddBudget?: (data: { category: string, detail?: string, amount_rp?: number, is_accommodation?: boolean }) => Promise<void>;
 }
 
 const CITY_COLORS: Record<string, string> = {
@@ -26,13 +28,13 @@ const CITY_COLORS: Record<string, string> = {
   transit: "bg-gradient-to-r from-chart-1 to-chart-2",
 };
 
-export function TripDayCard({ day, tripTitle, defaultExpanded = false, isStandalone = false, isAdmin, slug, onToggleDone, onDeleted }: TripDayCardProps) {
+export function TripDayCard({ day, tripTitle, defaultExpanded = false, isStandalone = false, isAdmin, slug, onToggleDone, onDeleted, onUpdated, onAddBudget }: TripDayCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   const dotClass = CITY_COLORS[day.city] || "bg-gray-400";
   
   const content = (
-    <div className={cn("px-4 pb-4", isStandalone ? "pt-4" : "")}>
+    <div className={cn("pt-2", isStandalone ? "px-0" : "px-1")}>
       {/* Banners */}
       {day.warning_note && (
         <div className="mb-3 px-3 py-2.5 rounded-xl bg-warning/10 text-warning-foreground text-sm flex items-start gap-2 border border-warning/20">
@@ -59,6 +61,8 @@ export function TripDayCard({ day, tripTitle, defaultExpanded = false, isStandal
             isAdmin={isAdmin}
             onToggleDone={onToggleDone}
             onDeleted={onDeleted}
+            onUpdated={onUpdated}
+            onAddBudget={onAddBudget}
           />
         ))}
         {day.schedule.length === 0 && (
@@ -89,12 +93,12 @@ export function TripDayCard({ day, tripTitle, defaultExpanded = false, isStandal
 
   if (isStandalone) {
     return (
-      <div className="bg-card border border-border/60 rounded-3xl overflow-hidden shadow-sm animate-page-in">
-        <div className="w-full px-5 py-4 flex items-center justify-between border-b bg-muted/20">
+      <div className="animate-page-in">
+        <div className="sticky top-0 z-20 w-full px-4 py-4 flex items-center justify-between bg-background/95 backdrop-blur-md mb-2">
           <div className="flex items-center gap-3">
-            <div className={cn("w-2.5 h-2.5 rounded-full", dotClass)} />
+            <div className={cn("w-3 h-3 rounded-full shadow-sm", dotClass)} />
             <div>
-              <h3 className="font-bold text-foreground">
+              <h3 className="font-extrabold text-xl text-foreground">
                 H{day.day_number} · {day.label}
               </h3>
             </div>
@@ -106,22 +110,21 @@ export function TripDayCard({ day, tripTitle, defaultExpanded = false, isStandal
   }
 
   return (
-    <div className="bg-card border border-border/60 rounded-3xl overflow-hidden shadow-md mb-6 hover:shadow-lg transition-shadow duration-300" id={`day-${day.day_number}`}>
-      {/* Header (Tap to toggle) */}
+    <div className="mb-8" id={`day-${day.day_number}`}>
+      {/* Header (Sticky & Tap to toggle) */}
       <button
         onClick={() => {
           triggerHaptic("light");
           setExpanded(!expanded);
         }}
-        className="w-full px-5 py-5 flex items-center justify-between text-left touch-active hover:bg-muted/30"
+        className="sticky top-[60px] z-20 w-full px-4 py-3 flex items-center justify-between text-left bg-background/95 backdrop-blur-md touch-active rounded-2xl -mx-4 w-[calc(100%+2rem)]"
       >
         <div className="flex items-center gap-3">
-          <div className={cn("w-2.5 h-2.5 rounded-full", dotClass)} />
+          <div className={cn("w-3 h-3 rounded-full shadow-sm", dotClass)} />
           <div>
-            <h3 className="font-bold text-foreground">
+            <h3 className="font-extrabold text-lg text-foreground">
               H{day.day_number} · {day.label}
             </h3>
-            {/* If there was an area subtitle we'd show it here, currently it's just in the day object but maybe we can derive from schedule or area_note */}
           </div>
         </div>
         {expanded ? (
