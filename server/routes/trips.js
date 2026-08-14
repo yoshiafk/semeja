@@ -598,6 +598,10 @@ router.post('/:slug/join', requireAuth, async (req, res) => {
   
   if (!member_id) return res.status(400).json({ error: 'member_id required' });
 
+  if (req.user.role !== 'admin' && req.user.id !== parseInt(member_id)) {
+    return res.status(403).json({ error: 'Cannot join on behalf of another user' });
+  }
+
   try {
     const { rows: tripRows } = await pool.query('SELECT id FROM trips WHERE slug = $1', [slug]);
     if (tripRows.length === 0) return res.status(404).json({ error: 'Trip not found' });
@@ -624,6 +628,10 @@ router.post('/:slug/leave', requireAuth, async (req, res) => {
   const { member_id } = req.body;
   
   if (!member_id) return res.status(400).json({ error: 'member_id required' });
+
+  if (req.user.role !== 'admin' && req.user.id !== parseInt(member_id)) {
+    return res.status(403).json({ error: 'Cannot leave on behalf of another user' });
+  }
 
   try {
     const { rows: tripRows } = await pool.query('SELECT id FROM trips WHERE slug = $1', [slug]);

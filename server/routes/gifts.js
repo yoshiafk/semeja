@@ -162,6 +162,10 @@ router.post('/:id/join', requireAuth, async (req, res) => {
   
   if (!member_id) return res.status(400).json({ error: 'member_id is required' });
   
+  if (req.user.role !== 'admin' && req.user.id !== parseInt(member_id)) {
+    return res.status(403).json({ error: 'Cannot join on behalf of another user' });
+  }
+
   try {
     const { rows } = await pool.query(`
       INSERT INTO gift_participants (gift_id, member_id, contribution_amount)
@@ -185,6 +189,10 @@ router.post('/:id/leave', requireAuth, async (req, res) => {
   
   if (!member_id) return res.status(400).json({ error: 'member_id is required' });
   
+  if (req.user.role !== 'admin' && req.user.id !== parseInt(member_id)) {
+    return res.status(403).json({ error: 'Cannot leave on behalf of another user' });
+  }
+
   try {
     await pool.query('DELETE FROM gift_participants WHERE gift_id = $1 AND member_id = $2', [id, member_id]);
     res.json({ message: 'Successfully left the gift pooling' });

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const { pool } = require('../db');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 const API_BASE_URL = 'https://food-recipe-api.vercel.app/api';
 
@@ -119,7 +120,7 @@ const parseIngredient = (ingredientString) => {
 };
 
 // POST import external recipe to local database
-router.post('/import', async (req, res) => {
+router.post('/import', requireAuth, requireAdmin, async (req, res) => {
   const { externalId } = req.body;
   if (!externalId) return res.status(400).json({ error: 'externalId is required' });
 

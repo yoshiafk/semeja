@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 // GET all suppliers
 router.get('/', async (req, res) => {
@@ -34,7 +35,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // PUT update supplier
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
   const { name, location, notes } = req.body;
   try {
     const { rows } = await pool.query(
@@ -53,7 +54,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE supplier
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM suppliers WHERE id = $1', [req.params.id]);
     res.json({ deleted: true });

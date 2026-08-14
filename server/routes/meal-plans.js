@@ -243,6 +243,10 @@ router.post('/:id/react', requireAuth, async (req, res) => {
   if (!['join', 'skip', 'unsure'].includes(reaction)) {
     return res.status(400).json({ error: 'reaction must be join, skip, or unsure' });
   }
+  
+  if (req.user.role !== 'admin' && req.user.id !== parseInt(member_id)) {
+    return res.status(403).json({ error: 'Cannot react on behalf of another user' });
+  }
   try {
     await pool.query(
       `INSERT INTO plan_reactions (plan_id, meal_id, member_id, reaction)

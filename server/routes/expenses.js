@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { requireAuth } = require('../middleware/auth');
 
 // Create a new expense with its splits
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   const { ledger_id, paid_by_member_id, amount, description, category, splits } = req.body;
 
   const client = await pool.connect();
@@ -65,7 +66,7 @@ router.get('/ledger/:ledger_id', async (req, res) => {
 });
 
 // Delete an expense
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   try {
     await pool.query('DELETE FROM expenses WHERE id = $1', [id]);

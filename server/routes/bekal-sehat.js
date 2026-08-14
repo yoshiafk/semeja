@@ -316,6 +316,10 @@ router.post('/plans/:id/join', requireAuth, async (req, res) => {
 
   if (!member_id) return res.status(400).json({ error: 'member_id is required' });
 
+  if (req.user.role !== 'admin' && req.user.id !== parseInt(member_id)) {
+    return res.status(403).json({ error: 'Cannot join on behalf of another user' });
+  }
+
   const portionCount = Math.min(10, Math.max(1, parseInt(portions) || 1));
 
   try {
@@ -340,6 +344,10 @@ router.post('/plans/:id/leave', requireAuth, async (req, res) => {
   const { member_id } = req.body;
 
   if (!member_id) return res.status(400).json({ error: 'member_id is required' });
+
+  if (req.user.role !== 'admin' && req.user.id !== parseInt(member_id)) {
+    return res.status(403).json({ error: 'Cannot leave on behalf of another user' });
+  }
 
   try {
     await pool.query(
