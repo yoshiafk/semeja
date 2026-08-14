@@ -7,7 +7,9 @@ const pool = new Pool({
   ssl: isServerless ? { rejectUnauthorized: false } : false,
   max: isServerless ? 5 : 10,
   idleTimeoutMillis: isServerless ? 15_000 : 30_000,
-  connectionTimeoutMillis: isServerless ? 30_000 : 5_000,
+  connectionTimeoutMillis: isServerless ? 10_000 : 5_000,
+  query_timeout: 15000, // Fails query if it takes > 15s (prevents 60s Vercel timeouts on dead TCP conns)
+  statement_timeout: 15000, // PG server-side timeout
 });
 
 pool.on('error', (err) => {
