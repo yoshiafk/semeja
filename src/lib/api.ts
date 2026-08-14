@@ -388,6 +388,7 @@ import type {
 
 export const getTrips = () => api.get<TripSummary[]>('/trips');
 export const getTripDetail = (slug: string) => api.get<TripDetail>(`/trips/${slug}`);
+export const getTripDetailById = (id: number) => api.get<TripDetail>(`/trips/by-id/${id}`);
 export const toggleTripScheduleItem = (slug: string, itemId: number, isDone: boolean) => 
   api.patch<{ id: number, is_done: boolean }>(`/trips/${slug}/schedule/${itemId}/toggle`, { is_done: isDone });
 

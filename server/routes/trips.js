@@ -55,6 +55,88 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// ── GET /api/trips/by-id/:id — Get a specific trip by its numeric ID ────
+router.get('/by-id/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rows: tripRows } = await pool.query(`
+      SELECT id, slug, title, subtitle, start_date, end_date,
+             participant_count, transport, pace, status, cover_city, created_at
+      FROM trips WHERE id = $1
+    `, [id]);
+
+    if (tripRows.length === 0) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    const trip = {
+      ...tripRows[0],
+      transport: (() => { try { return JSON.parse(tripRows[0].transport); } catch { return []; } })(),
+    };
+
+    // Get participants
+    const { rows: participants } = await pool.query(`
+      SELECT m.id, m.name, tp.joined_at
+      FROM trip_participations tp
+      JOIN members m ON tp.member_id = m.id
+      WHERE tp.trip_id = $1
+    `, [id]);
+    trip.participants = participants;
+
+    // Get hotel & distances
+    const { rows: hotels } = await pool.query(`
+      SELECT * FROM trip_hotels WHERE trip_id = $1 ORDER BY sort_order ASC, check_in ASC
+    `, [id]);
+    const { rows: distances } = await pool.query(`
+      SELECT d.* FROM trip_hotel_distances d
+      JOIN trip_hotels h ON d.hotel_id = h.id
+      WHERE h.trip_id = $1 ORDER BY h.id, d.sort_order ASC
+    `, [id]);
+    
+    trip.hotels = hotels.map(h => ({
+      ...h,
+      distances: distances.filter(d => d.hotel_id === h.id)
+    }));
+
+    // Get budget rows
+    const { rows: budget } = await pool.query(`
+      SELECT * FROM trip_budget_rows WHERE trip_id = $1 ORDER BY is_total_row ASC, sort_order ASC, id ASC
+    `, [id]);
+    trip.budget = budget;
+
+    // Get packing items
+    const { rows: packing } = await pool.query(`
+      SELECT p.*, m.name as assignee_name 
+      FROM trip_packing_items p
+      LEFT JOIN members m ON p.assignee_id = m.id
+      WHERE p.trip_id = $1 
+      ORDER BY p.category, p.created_at ASC
+    `, [id]);
+    trip.packing_items = packing;
+
+    // Get itinerary days & schedule
+    const { rows: days } = await pool.query(`
+      SELECT * FROM trip_days WHERE trip_id = $1 ORDER BY day_number ASC
+    `, [id]);
+    
+    const { rows: scheduleItems } = await pool.query(`
+      SELECT s.* FROM trip_schedule_items s
+      JOIN trip_days d ON s.day_id = d.id
+      WHERE d.trip_id = $1 ORDER BY d.day_number ASC, s.sort_order ASC, s.time_start ASC
+    `, [id]);
+
+    trip.days = days.map(d => ({
+      ...d,
+      schedule: scheduleItems.filter(s => s.day_id === d.id)
+    }));
+
+    res.json(trip);
+  } catch (err) {
+    console.error('Error fetching trip by id:', err);
+    res.status(500).json({ error: 'Failed to fetch trip' });
+  }
+});
+
 // ── GET /api/trips/:slug — full trip detail ───────────────────────────────
 router.get('/:slug', async (req, res) => {
   const { slug } = req.params;
@@ -180,7 +262,16 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
       pace || '',
       cover_city || '',
     ]);
-    res.status(201).json(rows[0]);
+    
+    const newTrip = rows[0];
+    
+    // Create ledger for this trip
+    await pool.query(
+      'INSERT INTO ledgers (type, reference_id, title) VALUES ($1, $2, $3)',
+      ['trip', newTrip.id, `Trip ${title}`]
+    );
+
+    res.status(201).json(newTrip);
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'Trip slug already exists' });
     console.error('Error creating trip:', err);

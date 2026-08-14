@@ -3,11 +3,14 @@ const cors = require('cors');
 const compression = require('compression');
 const { initDB } = require('./db');
 const { seed } = require('./seed');
+const { migrate } = require('./scripts/migrate-to-ledgers');
 
 const membersRouter = require('./routes/members');
 const ingredientsRouter = require('./routes/ingredients');
 const recipesRouter = require('./routes/recipes');
 const recipeSearchRouter = require('./routes/recipe-search');
+const ledgersRouter = require('./routes/ledgers');
+const expensesRouter = require('./routes/expenses');
 const mealPlansRouter = require('./routes/meal-plans');
 const mealsRouter = require('./routes/meals');
 const participationsRouter = require('./routes/participations');
@@ -89,6 +92,8 @@ app.use('/api/ocr', ocrRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/bekal-sehat', bekalSehatRouter);
 app.use('/api/trips', tripsRouter);
+app.use('/api/ledgers', ledgersRouter);
+app.use('/api/expenses', expensesRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -131,6 +136,9 @@ async function doEnsureDB() {
     // Always run initDB (schema migrations) when we have the lock
     console.log('Running DB schema migrations...');
     await initDB();
+    
+    console.log('Running DB data migrations...');
+    await migrate();
 
     // Check if we need to seed data
     const checkFastPath = async () => {

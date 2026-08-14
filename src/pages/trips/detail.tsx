@@ -8,8 +8,9 @@ import type { TripDetail, ScheduleItem } from "@/types/trip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TripDaySelector } from "@/components/TripDaySelector";
 import { TripDayCard } from "@/components/TripDayCard";
-import { TripHotelCard } from "@/components/TripHotelCard";
 import { TripBudgetTable } from "@/components/TripBudgetTable";
+import { TripHotelCard } from "@/components/TripHotelCard";
+import { LedgerDashboard } from "@/components/LedgerDashboard";
 import { TripPackingTab } from "@/components/TripPackingTab";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -17,6 +18,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { TripFormDialog } from "@/components/TripFormDialog";
 import { useMember } from "@/hooks/useMember";
+import { api } from "@/lib/api";
 
 export default function TripDetailView() {
   const { slug } = useParams<{ slug: string }>();
@@ -28,15 +30,27 @@ export default function TripDetailView() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeDay, setActiveDay] = useState<number>(1);
   const [weatherData, setWeatherData] = useState<WeatherData[]>([]);
+  const [ledgerId, setLedgerId] = useState<number | null>(null);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const activeTab = searchParams.get("tab") || "itinerary";
 
   useEffect(() => {
     if (!slug) return;
+    
+    const fetchLedgerId = async (tripId: number) => {
+      try {
+        const ledgerObj = await api.get<any>(`/ledgers/by-reference/trip/${tripId}`);
+        if (ledgerObj) setLedgerId(ledgerObj.id);
+      } catch (e) {
+        console.error("No ledger found for trip", e);
+      }
+    };
+
     getTripDetail(slug)
       .then(data => {
         setTrip(data);
+        if (data && data.id) fetchLedgerId(data.id);
         if (data.days && data.days.length > 0) {
           setActiveDay(data.days[0].day_number);
         }
@@ -67,22 +81,6 @@ export default function TripDetailView() {
 
   const handleSelectDay = (dayNum: number) => {
     setActiveDay(dayNum);
-  };
-
-  const handleUpdateActual = async (rowId: number, actualAmount: number) => {
-    if (!slug) return;
-    try {
-      setTrip(prev => {
-        if (!prev) return prev;
-        const newBudget = prev.budget.map(r => r.id === rowId ? { ...r, actual_amount_rp: actualAmount } : r);
-        return { ...prev, budget: newBudget };
-      });
-      const { updateTripBudgetActual } = await import("@/lib/api");
-      await updateTripBudgetActual(slug, rowId, actualAmount);
-    } catch (err) {
-      console.error("Failed to update actual amount:", err);
-      getTripDetail(slug).then(setTrip).catch(console.error);
-    }
   };
 
   const handleToggleDone = async (itemId: number, isDone: boolean) => {
@@ -127,6 +125,22 @@ export default function TripDetailView() {
       await updateTripScheduleItem(slug, itemId, data);
     } catch (err) {
       console.error("Failed to update item:", err);
+      getTripDetail(slug).then(setTrip).catch(console.error);
+    }
+  };
+
+  const handleUpdateActual = async (rowId: number, actualAmount: number) => {
+    if (!slug) return;
+    try {
+      setTrip(prev => {
+        if (!prev) return prev;
+        const newBudget = prev.budget.map(r => r.id === rowId ? { ...r, actual_amount_rp: actualAmount } : r);
+        return { ...prev, budget: newBudget };
+      });
+      const { updateTripBudgetActual } = await import("@/lib/api");
+      await updateTripBudgetActual(slug, rowId, actualAmount);
+    } catch (err) {
+      console.error("Failed to update actual amount:", err);
       getTripDetail(slug).then(setTrip).catch(console.error);
     }
   };
@@ -349,8 +363,9 @@ export default function TripDetailView() {
               </div>
             </TabsContent>
 
-            <TabsContent value="budget" className="mt-0 outline-none">
+            <TabsContent value="budget" className="mt-0 outline-none flex flex-col gap-6">
               <TripBudgetTable rows={trip.budget} tripTitle={trip.title} participantCount={trip.participants?.length || trip.participant_count} isAdmin={isAdmin} onUpdateActual={handleUpdateActual} onAddBudget={handleAddBudget} />
+              {ledgerId ? <LedgerDashboard ledgerId={ledgerId} /> : <div className="text-center p-4">Memuat Ledger...</div>}
             </TabsContent>
 
             <TabsContent value="bawaan" className="mt-0 outline-none">

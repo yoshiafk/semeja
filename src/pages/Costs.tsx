@@ -8,19 +8,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
 import { toast } from "sonner";
 import { exportShoppingListPDF } from "@/lib/pdf-export";
 import { ReceiptUpload } from "@/components/ReceiptUpload";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { OCRReviewDialog } from "@/components/OCRReviewDialog";
 import { DailyRecapCard } from "@/components/DailyRecapCard";
-import { PaymentStatusRow } from "@/components/PaymentStatusRow";
+import { LedgerDashboard } from "@/components/LedgerDashboard";
 import { WhatsAppPreviewDialog } from "@/components/WhatsAppPreviewDialog";
 import { formatWeeklySettlement } from "@/lib/whatsapp";
 import { useMember } from "@/hooks/useMember";
-import type { PaymentRecord } from "@/lib/api";
+import type { TripDetail } from "@/types/trip";
+import { TripBudgetTable } from "@/components/TripBudgetTable";
+
 
 interface CostSummary {
   week_total: number;
@@ -73,14 +73,13 @@ interface CostSummary {
 export default function Costs() {
   const { member, isAdmin } = useMember();
   const [data, setData] = useState<CostSummary | null>(null);
+  const [tripData, setTripData] = useState<TripDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [plans, setPlans] = useState<any[]>([]);
-  const [activePlanId, setActivePlanId] = useState<number | null>(null);
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [ledgers, setLedgers] = useState<any[]>([]);
+  const [activeLedger, setActiveLedger] = useState<any | null>(null);
   const [isWASettlementOpen, setIsWASettlementOpen] = useState(false);
   const [waSettlementMsg, setWaSettlementMsg] = useState('');
 
-  
   const [isPurchaseOpen, setIsPurchaseOpen] = useState(false);
   const [editingPurchaseId, setEditingPurchaseId] = useState<number | null>(null);
   const [selectedIngredient, setSelectedIngredient] = useState<{ id?: number; name: string; qty: number; unit: string } | null>(null);
@@ -115,20 +114,21 @@ export default function Costs() {
   const [isManualSearchOpen, setIsManualSearchOpen] = useState(false);
 
   useEffect(() => {
-    const fetchPlans = async () => {
+    const fetchLedgers = async () => {
       try {
         setLoading(true);
-        const [allPlans, ings, membersList] = await Promise.all([
-          api.get<any[]>("/meal-plans"),
+        const [allLedgers, ings, membersList] = await Promise.all([
+          api.get<any[]>("/ledgers"),
           api.get<any[]>("/ingredients"),
           api.get<any[]>("/members")
         ]);
-        setPlans(allPlans);
+        setLedgers(allLedgers);
         setAllIngredients(ings);
         setAllMembers(membersList);
-        if (allPlans.length > 0) {
-          const active = allPlans.find(p => p.status === 'active') || allPlans[0];
-          setActivePlanId(active.id);
+        
+        if (allLedgers.length > 0) {
+          // Default to the first ledger
+          setActiveLedger(allLedgers[0]);
         } else {
           setLoading(false);
         }
@@ -137,29 +137,39 @@ export default function Costs() {
         setLoading(false);
       }
     };
-    fetchPlans();
+    fetchLedgers();
   }, []);
 
   useEffect(() => {
-    if (!activePlanId) return;
+    if (!activeLedger) return;
     
-    const fetchSummary = async () => {
+    const fetchDetails = async () => {
       try {
         setLoading(true);
-        const [summary, paymentData] = await Promise.all([
-          api.get<CostSummary>(`/summary/${activePlanId}`),
-          api.get<PaymentRecord[]>(`/payments/${activePlanId}`).catch(() => []),
-        ]);
-        setData(summary);
-        setPayments(paymentData);
+        if (activeLedger.type === 'meal_plan') {
+          const summary = await api.get<CostSummary>(`/summary/${activeLedger.reference_id}`);
+          setData(summary);
+          setTripData(null);
+        } else if (activeLedger.type === 'trip') {
+          const { getTripDetailById } = await import("@/lib/api");
+          const trip = await getTripDetailById(activeLedger.reference_id);
+          setTripData(trip);
+          setData(null);
+        } else {
+          setData(null);
+          setTripData(null);
+        }
       } catch (err) {
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
-    fetchSummary();
-  }, [activePlanId]);
+    fetchDetails();
+  }, [activeLedger]);
+
+  const activePlanId = activeLedger?.type === 'meal_plan' ? activeLedger.reference_id : null;
+  const ledgerId = activeLedger?.id || null;
 
   const recordPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -413,53 +423,64 @@ export default function Costs() {
   return (
     <PageContainer>
       <div className="flex flex-col gap-5 md:flex flex-col gap-6">
-        {/* Header + Week Selector */}
-        {plans.length > 0 && (
+        {/* Header + Ledger Selector */}
+        {ledgers.length > 0 && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Perhitungan Biaya</h1>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">Pusat Keuangan</h1>
             <Select 
-              value={activePlanId?.toString()} 
-              onValueChange={(val) => setActivePlanId(parseInt(val))}
+              value={activeLedger?.id?.toString()} 
+              onValueChange={(val) => {
+                const selected = ledgers.find(l => l.id === parseInt(val));
+                setActiveLedger(selected || null);
+              }}
             >
               <SelectTrigger className="w-full sm:w-[260px] h-10 bg-secondary/80 border-border rounded-xl text-sm font-medium">
                 <CalendarDays className="h-3.5 w-3.5 mr-2 text-primary" />
-                <SelectValue placeholder="Pilih Pekan" />
+                <SelectValue placeholder="Pilih Ledger" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-border">
-                <div className="px-2 py-1.5 text-[11px] font-semibold text-muted-foreground/70 mb-0.5">Pekan Aktif</div>
-                {plans.filter(p => p.status === 'active').map((p) => (
-                  <SelectItem key={p.id} value={p.id.toString()} className="text-sm rounded-lg">
-                    {format(new Date(p.week_start), "d MMM", { locale: id })} – {format(new Date(p.week_end), "d MMM yyyy", { locale: id })}
-                    <span className="ml-2 text-[10px] text-success font-semibold bg-success/10 px-1.5 py-0.5 rounded-md">Aktif</span>
+                {ledgers.map((l: any) => (
+                  <SelectItem key={l.id} value={l.id.toString()} className="text-sm rounded-lg">
+                    {l.title}
                   </SelectItem>
                 ))}
-                
-                {plans.some(p => p.status === 'archived') && (
-                  <>
-                    <div className="px-2 py-1.5 mt-1.5 border-t border-border/50 text-[11px] font-semibold text-muted-foreground/70 mb-0.5">Riwayat</div>
-                    {plans.filter(p => p.status === 'archived').map((p) => (
-                      <SelectItem key={p.id} value={p.id.toString()} className="text-sm rounded-lg text-muted-foreground">
-                        {format(new Date(p.week_start), "d MMM", { locale: id })} – {format(new Date(p.week_end), "d MMM yyyy", { locale: id })}
-                      </SelectItem>
-                    ))}
-                  </>
-                )}
               </SelectContent>
             </Select>
           </div>
         )}
 
-        {!data ? (
+        {(!data && !tripData) ? (
           <div className="flex flex-col items-center justify-center h-[50vh] text-center flex flex-col gap-3 bg-secondary rounded-2xl border border-dashed border-border">
             <Receipt className="size-12 text-muted-foreground/50" />
             <div>
               <h2 className="text-base font-semibold text-foreground/90">Belum ada perhitungan biaya</h2>
-              <p className="text-sm text-muted-foreground mt-1">Pilih pekan lain atau hubungi admin untuk membuat jadwal baru.</p>
+              <p className="text-sm text-muted-foreground mt-1">Pilih ledger lain atau hubungi admin untuk membuat jadwal baru.</p>
             </div>
           </div>
         ) : (
           <>
-            {/* Summary Section */}
+            {/* TRIP SECTION */}
+            {activeLedger?.type === 'trip' && tripData && (
+              <div className="flex flex-col gap-6">
+                <TripBudgetTable
+                  rows={tripData.budget}
+                  tripTitle={tripData.title}
+                  participantCount={tripData.participant_count}
+                  isAdmin={isAdmin || false}
+                  onUpdateActual={async () => {}}
+                  onAddBudget={async () => {}}
+                />
+                <div className="flex flex-col gap-2">
+                  <h2 className="text-lg font-bold text-foreground mt-4">Ringkasan Ledger Aktual</h2>
+                  {ledgerId ? <LedgerDashboard ledgerId={ledgerId} /> : <p className="text-sm text-gray-500">Memuat Ledger...</p>}
+                </div>
+              </div>
+            )}
+
+            {/* MEAL PLAN SECTION */}
+            {activeLedger?.type === 'meal_plan' && data && (
+              <div className="flex flex-col gap-6">
+                {/* Summary Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative">
               {(loading || isSaving) && (
                 <div className="absolute inset-0 z-10 bg-white/50 backdrop-blur-[2px] rounded-2xl flex items-center justify-center">
@@ -614,10 +635,7 @@ export default function Costs() {
                         size="sm"
                         className="h-8 px-3 gap-1.5 text-xs font-medium rounded-lg border-success/30 text-success hover:bg-success/10"
                         onClick={() => {
-                          const currentPlan = plans.find(p => p.id === activePlanId);
-                          const wl = currentPlan
-                            ? `${format(new Date(currentPlan.week_start), 'd MMM', { locale: id })} – ${format(new Date(currentPlan.week_end), 'd MMM yyyy', { locale: id })}`
-                            : 'Minggu ini';
+                          const wl = activeLedger?.title || 'Minggu ini';
                           setWaSettlementMsg(formatWeeklySettlement({
                             weekLabel: wl,
                             totalActualCost: data.total_actual_cost,
@@ -632,30 +650,7 @@ export default function Costs() {
                     )}
                   </div>
                   <div className="flex flex-col gap-2">
-                    {data.member_totals
-                      .sort((a, b) => b.total - a.total)
-                      .map(memberData => (
-                        <PaymentStatusRow
-                          key={memberData.member_id}
-                          member={memberData}
-                          payment={payments.find(p => p.member_id === memberData.member_id)}
-                          isAdmin={isAdmin || false}
-                          onToggle={async (m, isPaid) => {
-                            if (isPaid) {
-                              await api.delete(`/payments/${activePlanId}/${m.member_id}`);
-                              setPayments(prev => prev.filter(p => p.member_id !== m.member_id));
-                            } else {
-                              const result = await api.post<PaymentRecord>('/payments', {
-                                meal_plan_id: activePlanId,
-                                member_id: m.member_id,
-                                amount: (m as any).actual_total ?? m.total,
-                              });
-                              setPayments(prev => [...prev.filter(p => p.member_id !== m.member_id), result]);
-                            }
-                          }}
-                        />
-                      ))
-                    }
+                    {ledgerId ? <LedgerDashboard ledgerId={ledgerId} /> : <p className="text-sm text-gray-500">Memuat Ledger...</p>}
                   </div>
                 </div>
               </TabsContent>
@@ -699,8 +694,7 @@ export default function Costs() {
                       size="sm"
                       className="h-8 px-3 gap-1.5 text-xs font-medium rounded-lg border-primary/30 text-primary hover:bg-primary/5"
                     onClick={() => {
-                      const activePlan = plans.find(p => p.id === activePlanId);
-                      if (!activePlan) return;
+                      if (!activeLedger) return;
                       
                       const toastId = toast.loading('Memulai export PDF...', {
                         description: 'Mohon tunggu sebentar'
@@ -709,7 +703,7 @@ export default function Costs() {
                       // Use setTimeout to allow UI to update before heavy PDF generation
                       setTimeout(() => {
                         try {
-                          const weekRange = `${format(new Date(activePlan.week_start), "d MMM", { locale: id })} - ${format(new Date(activePlan.week_end), "d MMM yyyy", { locale: id })}`;
+                          const weekRange = activeLedger?.title || 'Daftar Belanja';
                           
                           exportShoppingListPDF(
                             {
@@ -905,6 +899,8 @@ export default function Costs() {
                 )}
               </TabsContent>
             </Tabs>
+              </div>
+            )}
           </>
         )}
       </div>

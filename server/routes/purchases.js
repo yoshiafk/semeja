@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { syncPurchaseToLedger, removePurchaseFromLedger } = require('../lib/ledger-sync');
 
 // GET purchases (optionally filtered by ingredient_id)
 router.get('/', async (req, res) => {
@@ -196,6 +197,13 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
       console.warn('[price-sync] Failed to update price_per_unit:', syncErr.message);
     }
 
+    // Sync to Ledger
+    try {
+      await syncPurchaseToLedger(newPurchase.id, client);
+    } catch (syncErr) {
+      console.warn('[ledger-sync] Failed to sync to ledger:', syncErr.message);
+    }
+
     await client.query('COMMIT');
 
     // Return the complete record with joined names
@@ -220,6 +228,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
 // DELETE purchase
 router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
+    await removePurchaseFromLedger(req.params.id);
     await pool.query('DELETE FROM purchases WHERE id = $1', [req.params.id]);
     res.json({ deleted: true });
   } catch (err) {
