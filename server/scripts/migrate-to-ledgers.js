@@ -68,7 +68,10 @@ async function migrate() {
       }
 
       // Create ledger for meal plan
-      const title = `Meal Plan Week ${mp.week_start.toISOString().split('T')[0]}`;
+      const weekStartStr = typeof mp.week_start === 'string' 
+        ? mp.week_start.substring(0, 10) 
+        : mp.week_start.toISOString().split('T')[0];
+      const title = `Meal Plan Week ${weekStartStr}`;
       const ledgerRes = await client.query(
         'INSERT INTO ledgers (type, reference_id, title) VALUES ($1, $2, $3) RETURNING id',
         ['meal_plan', mp.id, title]
@@ -167,7 +170,7 @@ async function migrate() {
         await client.query(`
           INSERT INTO settlements (ledger_id, payer_id, payee_id, amount, created_at)
           VALUES ($1, $2, $3, $4, $5)
-        `, [ledgerId, pay.member_id, pay.confirmed_by, pay.amount, pay.paid_at]);
+        `, [ledgerId, pay.member_id, pay.confirmed_by, pay.amount, pay.paid_at || new Date()]);
       }
     }
 
@@ -211,6 +214,7 @@ async function migrate() {
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Migration failed:', err);
+    throw err;
   } finally {
     client.release();
   }

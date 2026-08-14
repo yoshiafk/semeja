@@ -345,6 +345,10 @@ async function initDB(retries = 3) {
         UNIQUE(meal_plan_id, member_id)
       );
 
+      ALTER TABLE payment_records ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP DEFAULT NOW();
+      ALTER TABLE payment_records ADD COLUMN IF NOT EXISTS confirmed_by INTEGER REFERENCES members(id) ON DELETE SET NULL;
+      ALTER TABLE payment_records ADD COLUMN IF NOT EXISTS notes TEXT;
+
       -- ── Bekal Sehat Module ──────────────────────────────────────────
 
       -- Bumbu Dasar library (merah, putih, kuning)
