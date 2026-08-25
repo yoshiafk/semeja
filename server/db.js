@@ -628,6 +628,10 @@ async function initDB(retries = 3) {
       -- Migration: Added columns for Trip CRUD features
       ALTER TABLE trip_schedule_items ADD COLUMN IF NOT EXISTS is_done BOOLEAN DEFAULT false;
       ALTER TABLE trip_budget_rows ADD COLUMN IF NOT EXISTS actual_amount_rp INTEGER DEFAULT 0;
+
+      -- Migration: Bill tracking on schedule items
+      ALTER TABLE trip_schedule_items ADD COLUMN IF NOT EXISTS bill_total_rp INTEGER DEFAULT 0;
+      ALTER TABLE trip_schedule_items ADD COLUMN IF NOT EXISTS receipt_id INTEGER REFERENCES attachments(id) ON DELETE SET NULL;
     `);
     console.log('Database schema initialized');
   } finally {

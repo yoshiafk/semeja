@@ -8,7 +8,7 @@ import { getWeatherIconName, type WeatherData } from "@/lib/weather";
 
 interface TripDaySelectorProps {
   days: TripDay[];
-  activeDay: number;
+  activeDay: number | null;
   onSelectDay: (dayNumber: number) => void;
   weatherData?: WeatherData[];
 }
@@ -55,7 +55,7 @@ export function TripDaySelector({ days, activeDay, onSelectDay, weatherData }: T
           </span>
           <div className="flex gap-1 bg-muted/40 p-1 rounded-xl border border-border/50">
             {group.days.map((day) => {
-              const isActive = day.day_number === activeDay;
+              const isActive = day.day_number === (activeDay ?? days[0]?.day_number);
               const dateStr = day.date.split("T")[0]; // "2026-08-16"
               const weatherForDay = weatherData?.find(w => w.time === dateStr);
               const Icon = weatherForDay ? (LucideIcons[getWeatherIconName(weatherForDay.weathercode) as keyof typeof LucideIcons] as any) : null;

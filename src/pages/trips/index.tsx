@@ -26,7 +26,7 @@ export default function TripsList() {
   const handleCreate = async (data: Partial<TripDetail>) => {
     try {
       const { createTrip } = await import("@/lib/api");
-      await createTrip({ ...data, slug: data.title!.toLowerCase().replace(/\s+/g, '-') });
+      await createTrip({ ...data, slug: data.title!.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') });
       const updatedList = await getTrips();
       setTrips(updatedList);
     } catch (err) {

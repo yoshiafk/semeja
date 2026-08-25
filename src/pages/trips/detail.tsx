@@ -28,7 +28,7 @@ export default function TripDetailView() {
   
   const [trip, setTrip] = useState<TripDetail | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [activeDay, setActiveDay] = useState<number>(1);
+  const [activeDay, setActiveDay] = useState<number | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData[]>([]);
   const [ledgerId, setLedgerId] = useState<number | null>(null);
   
@@ -57,7 +57,7 @@ export default function TripDetailView() {
   useEffect(() => {
     if (tripData) {
       setTrip(tripData);
-      if (tripData.days && tripData.days.length > 0 && activeDay === 1) {
+      if (tripData.days && tripData.days.length > 0 && activeDay === null) {
         setActiveDay(tripData.days[0].day_number);
       }
       
@@ -347,7 +347,7 @@ export default function TripDetailView() {
                 <TripDaySelector days={trip.days} activeDay={activeDay} onSelectDay={handleSelectDay} weatherData={weatherData} />
               </div>
               <div className="flex flex-col gap-6 mt-2">
-                {trip.days.filter(d => d.day_number === activeDay).map(day => (
+                {trip.days.filter(d => d.day_number === (activeDay ?? trip.days[0]?.day_number)).map(day => (
                   <TripDayCard 
                   key={day.id} 
                   day={day} 

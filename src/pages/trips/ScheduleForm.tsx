@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Loader2, Save, MapPin, Clock, AlignLeft } from "lucide-react";
 import { toast } from "sonner";
 import { getTripDetail, addTripScheduleItem, updateTripScheduleItem } from "@/lib/api";
@@ -26,6 +27,7 @@ export default function ScheduleForm() {
   const { slug, itemId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const dayIdParam = searchParams.get("dayId");
   
   const isEditing = Boolean(itemId);
@@ -124,6 +126,8 @@ export default function ScheduleForm() {
         await addTripScheduleItem(slug, payload);
         toast.success("Jadwal berhasil ditambahkan");
       }
+      // Bust the react-query cache so detail page shows fresh data immediately
+      queryClient.invalidateQueries({ queryKey: ['trip', slug] });
       navigate(`/trips/${slug}`);
     } catch (err) {
       console.error("Failed to save schedule:", err);
