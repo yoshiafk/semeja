@@ -124,7 +124,7 @@ export function TripPackingTab({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                   onClick={() => onDeleteItem(item.id)}
                 >
                   <Trash2 className="w-3.5 h-3.5" />

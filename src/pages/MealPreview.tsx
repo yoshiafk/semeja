@@ -252,7 +252,7 @@ export default function MealPreviewPage() {
               {isExpanded && (
                 <div className="divide-y divide-border/30">
                   {/* Column labels */}
-                  <div className="grid grid-cols-[1fr_80px_80px_90px_40px] gap-2 px-4 py-2 bg-muted/20">
+                  <div className="hidden md:grid md:grid-cols-[1fr_80px_80px_90px_40px] gap-2 px-4 py-2 bg-muted/20">
                     <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wide">Bahan</span>
                     <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wide text-right">Perlu</span>
                     <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wide text-right">Stok</span>
@@ -269,7 +269,7 @@ export default function MealPreviewPage() {
                       <div
                         key={ing.ingredient_id}
                         className={cn(
-                          "grid grid-cols-[1fr_80px_80px_90px_40px] gap-2 items-center px-4 py-2.5",
+                          "flex flex-col gap-3 md:grid md:grid-cols-[1fr_80px_80px_90px_40px] md:gap-2 md:items-center px-4 py-3 md:py-2.5",
                           hasOverride && "bg-warning/10",
                           ing.has_enough_stock && "opacity-60"
                         )}
@@ -293,49 +293,61 @@ export default function MealPreviewPage() {
                           </div>
                         </div>
 
-                        {/* Need */}
-                        <p className="text-sm text-right text-foreground tabular-nums">
-                          {ing.shortage.toFixed(2)}<span className="text-muted-foreground text-[11px] ml-0.5">{ing.unit}</span>
-                        </p>
+                        <div className="flex items-center justify-between md:contents">
+                          <div className="flex items-center gap-4 md:contents">
+                            {/* Need */}
+                            <div className="flex flex-col md:block">
+                              <span className="text-[10px] md:hidden uppercase font-semibold text-muted-foreground mb-0.5">Perlu</span>
+                              <p className="text-sm md:text-right text-foreground tabular-nums">
+                                {ing.shortage.toFixed(2)}<span className="text-muted-foreground text-[11px] ml-0.5">{ing.unit}</span>
+                              </p>
+                            </div>
 
-                        {/* Stock */}
-                        <p className="text-sm text-right tabular-nums text-muted-foreground">
-                          {ing.stock_quantity.toFixed(2)}<span className="text-[11px] ml-0.5">{ing.unit}</span>
-                        </p>
+                            {/* Stock */}
+                            <div className="flex flex-col md:block">
+                              <span className="text-[10px] md:hidden uppercase font-semibold text-muted-foreground mb-0.5">Stok</span>
+                              <p className="text-sm md:text-right tabular-nums text-muted-foreground">
+                                {ing.stock_quantity.toFixed(2)}<span className="text-[11px] ml-0.5">{ing.unit}</span>
+                              </p>
+                            </div>
+                          </div>
 
-                        {/* Override input */}
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={localVal}
-                          onChange={e => handleOverrideChange(ing.ingredient_id, e.target.value)}
-                          placeholder={hasOverride ? "disimpan" : "qty/org"}
-                          className={cn(
-                            "h-7 text-xs text-right px-2",
-                            isDirty && "border-warning/30 bg-warning/10 ring-warning/20",
-                            hasOverride && !isDirty && "border-warning/30"
-                          )}
-                        />
+                          <div className="flex items-center gap-2 md:contents">
+                            {/* Override input */}
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={localVal}
+                              onChange={e => handleOverrideChange(ing.ingredient_id, e.target.value)}
+                              placeholder={hasOverride ? "disimpan" : "qty/org"}
+                              className={cn(
+                                "h-7 text-xs text-right px-2 w-24 md:w-auto",
+                                isDirty && "border-warning/30 bg-warning/10 ring-warning/20",
+                                hasOverride && !isDirty && "border-warning/30"
+                              )}
+                            />
 
-                        {/* Reset button */}
-                        <button
-                          onClick={() =>
-                            hasOverride
-                              ? handleDeleteOverride(ing.ingredient_id)
-                              : handleReset(ing.ingredient_id)
-                          }
-                          disabled={!isDirty && !hasOverride}
-                          className={cn(
-                            "flex items-center justify-center size-7 rounded-lg transition-colors",
-                            (isDirty || hasOverride)
-                              ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                              : "text-transparent pointer-events-none"
-                          )}
-                          title={hasOverride ? "Hapus override" : "Reset"}
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        </button>
+                            {/* Reset button */}
+                            <button
+                              onClick={() =>
+                                hasOverride
+                                  ? handleDeleteOverride(ing.ingredient_id)
+                                  : handleReset(ing.ingredient_id)
+                              }
+                              disabled={!isDirty && !hasOverride}
+                              className={cn(
+                                "flex items-center justify-center flex-shrink-0 size-7 rounded-lg transition-colors",
+                                (isDirty || hasOverride)
+                                  ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  : "text-transparent pointer-events-none md:flex"
+                              )}
+                              title={hasOverride ? "Hapus override" : "Reset"}
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}

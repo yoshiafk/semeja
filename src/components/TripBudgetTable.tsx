@@ -5,6 +5,7 @@ import { WhatsAppShareButton } from "./WhatsAppShareButton";
 import { formatTripBudgetWhatsApp } from "@/lib/whatsapp";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Pencil, Check, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -110,9 +111,9 @@ export function TripBudgetTable({ tripTitle, participantCount, rows, isAdmin, on
                 {/* Aktual — inline input or tap-to-edit */}
                 {isEditing ? (
                   <div className="flex items-center gap-1">
-                    <input
+                    <Input
                       type="number"
-                      className="w-28 text-right bg-background border border-primary rounded-lg px-2 py-1 text-xs text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-28 h-7 text-right bg-background border border-primary rounded-lg px-2 py-1 text-xs text-primary focus-visible:ring-primary/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       value={editValue}
                       onChange={e => setEditValue(e.target.value)}
                       onBlur={() => handleSave(row)}
@@ -239,9 +240,9 @@ export function TripBudgetTable({ tripTitle, participantCount, rows, isAdmin, on
           <div className="grid gap-4 py-3">
             <div className="grid gap-1.5">
               <Label htmlFor="category" className="text-xs font-semibold">Kategori *</Label>
-              <input
+              <Input
                 id="category"
-                className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl h-10"
                 placeholder="Cth: Tiket Kereta Jakarta-Smg"
                 value={addCategory}
                 onChange={e => setAddCategory(e.target.value)}
@@ -251,9 +252,9 @@ export function TripBudgetTable({ tripTitle, participantCount, rows, isAdmin, on
             
             <div className="grid gap-1.5">
               <Label htmlFor="detail" className="text-xs font-semibold">Detail Keterangan</Label>
-              <input
+              <Input
                 id="detail"
-                className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl h-10"
                 placeholder="Cth: Rp 200rb/orang x 3"
                 value={addDetail}
                 onChange={e => setAddDetail(e.target.value)}
@@ -262,10 +263,10 @@ export function TripBudgetTable({ tripTitle, participantCount, rows, isAdmin, on
 
             <div className="grid gap-1.5">
               <Label htmlFor="estimasi" className="text-xs font-semibold">Estimasi Total Biaya (Rp)</Label>
-              <input
+              <Input
                 id="estimasi"
                 type="number"
-                className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl h-10"
                 placeholder="Cth: 600000"
                 value={addEstimasi}
                 onChange={e => setAddEstimasi(e.target.value)}

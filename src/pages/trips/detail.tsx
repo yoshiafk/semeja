@@ -19,7 +19,9 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { TripFormDialog } from "@/components/TripFormDialog";
 import { useMember } from "@/hooks/useMember";
+import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function TripDetailView() {
   const { slug } = useParams<{ slug: string }>();
@@ -109,6 +111,7 @@ export default function TripDetailView() {
       await toggleTripScheduleItem(slug, itemId, isDone);
     } catch (err) {
       console.error("Failed to toggle item done status:", err);
+      toast.error("Gagal mengubah status item. Perubahan dibatalkan.");
       getTripDetail(slug).then(setTrip).catch(console.error);
     }
   };
@@ -132,6 +135,7 @@ export default function TripDetailView() {
       await updateTripScheduleItem(slug, itemId, data);
     } catch (err) {
       console.error("Failed to update item:", err);
+      toast.error("Gagal mengupdate item. Perubahan dibatalkan.");
       getTripDetail(slug).then(setTrip).catch(console.error);
     }
   };
@@ -148,6 +152,7 @@ export default function TripDetailView() {
       await updateTripBudgetActual(slug, rowId, actualAmount);
     } catch (err) {
       console.error("Failed to update actual amount:", err);
+      toast.error("Gagal mengupdate pengeluaran aktual. Perubahan dibatalkan.");
       getTripDetail(slug).then(setTrip).catch(console.error);
     }
   };
@@ -161,6 +166,7 @@ export default function TripDetailView() {
       setTrip(newData);
     } catch (err) {
       console.error("Failed to add budget row:", err);
+      toast.error("Gagal menambah budget.");
     }
   };
 
@@ -179,6 +185,7 @@ export default function TripDetailView() {
       setTrip(newData);
     } catch (err) {
       console.error("Failed to update trip:", err);
+      toast.error("Gagal mengupdate trip.");
     }
   };
 
@@ -214,6 +221,7 @@ export default function TripDetailView() {
       getTripDetail(slug).then(setTrip).catch(console.error);
     } catch (err) {
       console.error("Failed to join/leave trip:", err);
+      toast.error("Gagal bergabung/keluar dari trip. Perubahan dibatalkan.");
       setTrip(previousTrip); // Revert on failure
     }
   };
@@ -231,6 +239,7 @@ export default function TripDetailView() {
       setTrip(newData);
     } catch (err) {
       console.error("Failed to add packing item", err);
+      toast.error("Gagal menambah barang bawaan.");
     }
   };
 
@@ -247,6 +256,7 @@ export default function TripDetailView() {
       await updateTripPackingItem(slug, itemId, { is_checked });
     } catch (err) {
       console.error("Failed to toggle schedule item", err);
+      toast.error("Gagal mengubah status barang. Perubahan dibatalkan.");
       const newData = await getTripDetail(slug);
       setTrip(newData);
     }
@@ -271,6 +281,7 @@ export default function TripDetailView() {
       setTrip(newData);
     } catch (err) {
       console.error("Failed to assign packing item", err);
+      toast.error("Gagal menugaskan barang bawaan.");
     }
   };
 
@@ -281,10 +292,39 @@ export default function TripDetailView() {
       setTrip(prev => prev ? { ...prev, packing: prev.packing.filter(p => p.id !== itemId) } : prev);
     } catch (err) {
       console.error("Failed to delete packing item", err);
+      toast.error("Gagal menghapus barang bawaan.");
     }
   };
 
-  if (loading) return <div className="min-h-screen pt-20 text-center text-muted-foreground animate-pulse">Memuat detail perjalanan...</div>;
+  if (loading) return (
+    <PageContainer>
+      <div className="flex flex-col gap-6 w-full max-w-3xl mx-auto">
+        <div className="flex items-center gap-4 py-4">
+          <Skeleton className="size-10 rounded-full" />
+          <div className="flex-1">
+            <Skeleton className="h-6 w-1/3 mb-2" />
+            <Skeleton className="h-4 w-1/4" />
+          </div>
+          <Skeleton className="size-10 rounded-full" />
+        </div>
+        
+        <div className="flex justify-between items-center px-4">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-9 w-28 rounded-xl" />
+        </div>
+        
+        <div className="px-4">
+          <Skeleton className="h-10 w-full rounded-xl" />
+        </div>
+        
+        <div className="px-4 space-y-4">
+          <Skeleton className="h-[200px] w-full rounded-2xl" />
+          <Skeleton className="h-[150px] w-full rounded-2xl" />
+        </div>
+      </div>
+    </PageContainer>
+  );
+  
   if (!trip) return <div className="min-h-screen pt-20 text-center text-muted-foreground">Perjalanan tidak ditemukan.</div>;
 
   return (
@@ -372,7 +412,12 @@ export default function TripDetailView() {
 
             <TabsContent value="budget" className="mt-0 outline-none flex flex-col gap-6">
               <TripBudgetTable rows={trip.budget} tripTitle={trip.title} participantCount={trip.participants?.length || trip.participant_count} isAdmin={isAdmin} onUpdateActual={handleUpdateActual} onAddBudget={handleAddBudget} />
-              {ledgerId ? <LedgerDashboard ledgerId={ledgerId} /> : <div className="text-center p-4">Memuat Ledger...</div>}
+              {ledgerId ? <LedgerDashboard ledgerId={ledgerId} /> : (
+                <div className="flex flex-col gap-4 mt-4">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-32 w-full rounded-2xl" />
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="bawaan" className="mt-0 outline-none">

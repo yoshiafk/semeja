@@ -385,28 +385,40 @@ export default function Profile() {
                     <span className="text-sm font-medium">{needsPasswordSetup ? 'Atur Password' : 'Ubah Password'}</span>
                   </div>
                   {!needsPasswordSetup && (
+                    <div className="flex flex-col">
+                      <label htmlFor="currentPassword" className="sr-only">Password lama</label>
+                      <Input
+                        id="currentPassword"
+                        type="password"
+                        placeholder="Password lama"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="h-10 text-sm bg-background rounded-lg"
+                      />
+                    </div>
+                  )}
+                  <div className="flex flex-col">
+                    <label htmlFor="newPassword" className="sr-only">Password baru</label>
                     <Input
+                      id="newPassword"
                       type="password"
-                      placeholder="Password lama"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Password baru"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
                       className="h-10 text-sm bg-background rounded-lg"
                     />
-                  )}
-                  <Input
-                    type="password"
-                    placeholder="Password baru"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="h-10 text-sm bg-background rounded-lg"
-                  />
-                  <Input
-                    type="password"
-                    placeholder="Konfirmasi password baru"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="h-10 text-sm bg-background rounded-lg"
-                  />
+                  </div>
+                  <div className="flex flex-col">
+                    <label htmlFor="confirmPassword" className="sr-only">Konfirmasi password baru</label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="Konfirmasi password baru"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="h-10 text-sm bg-background rounded-lg"
+                    />
+                  </div>
                   <Button
                     className="w-full h-10 rounded-lg text-sm"
                     disabled={savingPassword || !newPassword || newPassword !== confirmPassword}

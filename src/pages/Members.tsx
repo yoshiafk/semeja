@@ -10,6 +10,16 @@ import { Loader2, ShieldCheck, UserCheck, Trash2, CheckCircle2, Circle, Users, L
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Member {
   id: number;
@@ -50,6 +60,8 @@ export default function Members() {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [participations, setParticipations] = useState<Participation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [memberToDelete, setMemberToDelete] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -105,14 +117,18 @@ export default function Members() {
     }
   };
 
-  const deleteMember = async (targetId: number) => {
-    if (!confirm("Hapus warga ini? Data partisipasi juga akan hilang.")) return;
+  const confirmDeleteMember = async () => {
+    if (memberToDelete === null) return;
+    setIsDeleting(true);
     try {
-      await api.delete(`/members/${targetId}`);
-      setMembers(members.filter(m => m.id !== targetId));
+      await api.delete(`/members/${memberToDelete}`);
+      setMembers(members.filter(m => m.id !== memberToDelete));
       toast.success("Warga berhasil dihapus.");
     } catch (err) {
       toast.error("Gagal hapus: " + err);
+    } finally {
+      setIsDeleting(false);
+      setMemberToDelete(null);
     }
   };
 
@@ -285,8 +301,9 @@ export default function Members() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
+                        aria-label={`Hapus warga ${m.name}`}
                         className="size-7 text-muted-foreground/50 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
-                        onClick={() => deleteMember(m.id)}
+                        onClick={() => setMemberToDelete(m.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -298,6 +315,31 @@ export default function Members() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <AlertDialog open={memberToDelete !== null} onOpenChange={(open) => !open && setMemberToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus warga ini?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Data partisipasi juga akan hilang. Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDeleteMember();
+              }} 
+              className="bg-rose-500 hover:bg-rose-600 text-white"
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageContainer>
   );
 }

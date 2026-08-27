@@ -182,9 +182,9 @@ export default function ScheduleForm() {
           </div>
           
           <div className="space-y-3">
-            <Label>Pilih Hari</Label>
+            <Label htmlFor="dayId">Pilih Hari</Label>
             <Select value={dayId.toString()} onValueChange={(val) => setDayId(parseInt(val))}>
-              <SelectTrigger className="rounded-xl h-11 bg-muted/50 border-0">
+              <SelectTrigger id="dayId" className="rounded-xl h-11 bg-muted/50 border-0">
                 <SelectValue placeholder="Pilih hari perjalanan..." />
               </SelectTrigger>
               <SelectContent>
@@ -199,8 +199,9 @@ export default function ScheduleForm() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <Label>Waktu Mulai <span className="text-destructive">*</span></Label>
+              <Label htmlFor="timeStart">Waktu Mulai <span className="text-destructive">*</span></Label>
               <Input 
+                id="timeStart"
                 type="time" 
                 value={timeStart} 
                 onChange={(e) => setTimeStart(e.target.value)} 
@@ -209,8 +210,9 @@ export default function ScheduleForm() {
               />
             </div>
             <div className="space-y-3">
-              <Label>Waktu Selesai <span className="text-muted-foreground font-normal">(Opsional)</span></Label>
+              <Label htmlFor="timeEnd">Waktu Selesai <span className="text-muted-foreground font-normal">(Opsional)</span></Label>
               <Input 
+                id="timeEnd"
                 type="time" 
                 value={timeEnd} 
                 onChange={(e) => setTimeEnd(e.target.value)} 
@@ -220,8 +222,9 @@ export default function ScheduleForm() {
           </div>
 
           <div className="space-y-3">
-            <Label>Nama Kegiatan <span className="text-destructive">*</span></Label>
+            <Label htmlFor="name">Nama Kegiatan <span className="text-destructive">*</span></Label>
             <Input 
+              id="name"
               placeholder="Contoh: Makan Siang di Gudeg Yu Djum"
               value={name} 
               onChange={(e) => setName(e.target.value)} 
@@ -231,9 +234,9 @@ export default function ScheduleForm() {
           </div>
 
           <div className="space-y-3">
-            <Label>Kategori <span className="text-destructive">*</span></Label>
+            <Label htmlFor="activityType">Kategori <span className="text-destructive">*</span></Label>
             <Select value={activityType} onValueChange={(val: any) => setActivityType(val)}>
-              <SelectTrigger className="rounded-xl h-11 bg-muted/50 border-0">
+              <SelectTrigger id="activityType" className="rounded-xl h-11 bg-muted/50 border-0">
                 <SelectValue placeholder="Pilih kategori..." />
               </SelectTrigger>
               <SelectContent>
@@ -255,8 +258,9 @@ export default function ScheduleForm() {
           </div>
 
           <div className="space-y-3">
-            <Label>Link Google Maps</Label>
+            <Label htmlFor="mapsUrl">Link Google Maps</Label>
             <Input 
+              id="mapsUrl"
               placeholder="https://maps.app.goo.gl/..."
               value={mapsUrl} 
               onChange={(e) => setMapsUrl(e.target.value)} 
@@ -266,8 +270,9 @@ export default function ScheduleForm() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <Label>Nama Tempat</Label>
+              <Label htmlFor="location">Nama Tempat</Label>
               <Input 
+                id="location"
                 placeholder="Gudeg Yu Djum Wijilan"
                 value={location} 
                 onChange={(e) => setLocation(e.target.value)} 
@@ -275,8 +280,9 @@ export default function ScheduleForm() {
               />
             </div>
             <div className="space-y-3">
-              <Label>Area / Daerah</Label>
+              <Label htmlFor="area">Area / Daerah</Label>
               <Input 
+                id="area"
                 placeholder="Kraton, Jogja"
                 value={area} 
                 onChange={(e) => setArea(e.target.value)} 
@@ -286,8 +292,9 @@ export default function ScheduleForm() {
           </div>
           
           <div className="space-y-3">
-            <Label>Jam Buka / Operasional</Label>
+            <Label htmlFor="openingHours">Jam Buka / Operasional</Label>
             <Input 
+              id="openingHours"
               placeholder="06.00 - 22.00"
               value={openingHours} 
               onChange={(e) => setOpeningHours(e.target.value)} 
@@ -306,8 +313,9 @@ export default function ScheduleForm() {
           </div>
 
           <div className="space-y-3">
-            <Label>Catatan Khusus</Label>
+            <Label htmlFor="notes">Catatan Khusus</Label>
             <Textarea 
+              id="notes"
               placeholder="Contoh: Pesan meja atas nama Budi, parkir di seberang..."
               value={notes} 
               onChange={(e) => setNotes(e.target.value)} 
@@ -318,31 +326,31 @@ export default function ScheduleForm() {
           <div className="pt-2 space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-base">Highlight Utama (⭐)</Label>
+                <Label htmlFor="isHighlight" className="text-base">Highlight Utama (⭐)</Label>
                 <p className="text-xs text-muted-foreground">Tandai sebagai agenda penting</p>
               </div>
-              <Switch checked={isHighlight} onCheckedChange={setIsHighlight} />
+              <Switch id="isHighlight" checked={isHighlight} onCheckedChange={setIsHighlight} />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-base">Cash Only (💵)</Label>
+                <Label htmlFor="isCashOnly" className="text-base">Cash Only (💵)</Label>
                 <p className="text-xs text-muted-foreground">Tempat ini hanya menerima tunai</p>
               </div>
-              <Switch checked={isCashOnly} onCheckedChange={setIsCashOnly} />
+              <Switch id="isCashOnly" checked={isCashOnly} onCheckedChange={setIsCashOnly} />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-base">Perlu Booking (📌)</Label>
+                <Label htmlFor="requiresBooking" className="text-base">Perlu Booking (📌)</Label>
                 <p className="text-xs text-muted-foreground">Wajib reservasi sebelumnya</p>
               </div>
-              <Switch checked={requiresBooking} onCheckedChange={setRequiresBooking} />
+              <Switch id="requiresBooking" checked={requiresBooking} onCheckedChange={setRequiresBooking} />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-base">Opsional</Label>
+                <Label htmlFor="isOptional" className="text-base">Opsional</Label>
                 <p className="text-xs text-muted-foreground">Agenda ini bisa dilewati</p>
               </div>
-              <Switch checked={isOptional} onCheckedChange={setIsOptional} />
+              <Switch id="isOptional" checked={isOptional} onCheckedChange={setIsOptional} />
             </div>
           </div>
         </div>

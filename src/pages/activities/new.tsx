@@ -6,6 +6,9 @@ import { useMember } from "@/hooks/useMember";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Clock, MapPin, Tag, Users, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 export default function NewActivity() {
@@ -71,96 +74,105 @@ export default function NewActivity() {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-20">
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-foreground">Nama Kegiatan *</label>
-          <input
+          <label htmlFor="title" className="text-sm font-medium text-foreground">Nama Kegiatan *</label>
+          <Input
+            id="title"
             type="text"
             name="title"
             required
             value={formData.title}
             onChange={handleChange}
             placeholder="Contoh: Futsal Bareng"
-            className="w-full p-3 rounded-xl border border-border bg-card text-foreground"
+            className="w-full h-12 rounded-xl bg-card text-foreground"
           />
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-foreground">Deskripsi</label>
-          <textarea
+          <label htmlFor="description" className="text-sm font-medium text-foreground">Deskripsi</label>
+          <Textarea
+            id="description"
             name="description"
             value={formData.description}
             onChange={handleChange}
             placeholder="Detail kegiatan, rute, dll..."
             rows={3}
-            className="w-full p-3 rounded-xl border border-border bg-card text-foreground resize-none"
+            className="w-full p-3 rounded-xl bg-card text-foreground resize-none"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground flex items-center gap-1">
+            <label htmlFor="date" className="text-sm font-medium text-foreground flex items-center gap-1">
               <Calendar className="size-4 text-muted-foreground" /> Tanggal *
             </label>
-            <input
+            <Input
+              id="date"
               type="date"
               name="date"
               required
               value={formData.date}
               onChange={handleChange}
-              className="w-full p-3 rounded-xl border border-border bg-card text-foreground"
+              className="w-full h-12 rounded-xl bg-card text-foreground"
             />
           </div>
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground flex items-center gap-1">
+            <label htmlFor="time" className="text-sm font-medium text-foreground flex items-center gap-1">
               <Clock className="size-4 text-muted-foreground" /> Jam *
             </label>
-            <input
+            <Input
+              id="time"
               type="time"
               name="time"
               required
               value={formData.time}
               onChange={handleChange}
-              className="w-full p-3 rounded-xl border border-border bg-card text-foreground"
+              className="w-full h-12 rounded-xl bg-card text-foreground"
             />
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-foreground flex items-center gap-1">
+          <label htmlFor="location" className="text-sm font-medium text-foreground flex items-center gap-1">
             <MapPin className="size-4 text-muted-foreground" /> Lokasi
           </label>
-          <input
+          <Input
+            id="location"
             type="text"
             name="location"
             value={formData.location}
             onChange={handleChange}
             placeholder="Contoh: Lapangan SCBD"
-            className="w-full p-3 rounded-xl border border-border bg-card text-foreground"
+            className="w-full h-12 rounded-xl bg-card text-foreground"
           />
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-foreground flex items-center gap-1">
+          <label htmlFor="cost_type" className="text-sm font-medium text-foreground flex items-center gap-1">
             <Tag className="size-4 text-muted-foreground" /> Jenis Biaya *
           </label>
-          <select
+          <Select
             name="cost_type"
-            required
             value={formData.cost_type}
-            onChange={handleChange}
-            className="w-full p-3 rounded-xl border border-border bg-card text-foreground"
+            onValueChange={(val) => setFormData(prev => ({ ...prev, cost_type: val as CostType }))}
           >
-            <option value="free">Gratis</option>
-            <option value="fixed">Harga Pas (Per Orang)</option>
-            <option value="split">Bagi Rata (Dibagi Nanti)</option>
-          </select>
+            <SelectTrigger id="cost_type" className="w-full h-12 rounded-xl bg-card text-foreground border border-input">
+              <SelectValue placeholder="Pilih Jenis Biaya" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="free">Gratis</SelectItem>
+              <SelectItem value="fixed">Harga Pas (Per Orang)</SelectItem>
+              <SelectItem value="split">Bagi Rata (Dibagi Nanti)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {formData.cost_type !== "free" && (
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground">
+            <label htmlFor="cost_amount" className="text-sm font-medium text-foreground">
               {formData.cost_type === "fixed" ? "Harga Per Orang (Rp)" : "Estimasi/Total Biaya Sementara (Rp)"}
             </label>
-            <input
+            <Input
+              id="cost_amount"
               type="number"
               name="cost_amount"
               required
@@ -168,23 +180,24 @@ export default function NewActivity() {
               value={formData.cost_amount}
               onChange={handleChange}
               placeholder="0"
-              className="w-full p-3 rounded-xl border border-border bg-card text-foreground"
+              className="w-full h-12 rounded-xl bg-card text-foreground"
             />
           </div>
         )}
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-foreground flex items-center gap-1">
+          <label htmlFor="max_participants" className="text-sm font-medium text-foreground flex items-center gap-1">
             <Users className="size-4 text-muted-foreground" /> Batas Peserta (Opsional)
           </label>
-          <input
+          <Input
+            id="max_participants"
             type="number"
             name="max_participants"
             min="1"
             value={formData.max_participants}
             onChange={handleChange}
             placeholder="Biarkan kosong jika tanpa batas"
-            className="w-full p-3 rounded-xl border border-border bg-card text-foreground"
+            className="w-full h-12 rounded-xl bg-card text-foreground"
           />
         </div>
 

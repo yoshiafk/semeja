@@ -13,6 +13,7 @@ import { ReceiptUpload } from "@/components/ReceiptUpload";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { OCRReviewDialog } from "@/components/OCRReviewDialog";
 import { api } from "@/lib/api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function ActivityDetail() {
   const { id } = useParams<{ id: string }>();
@@ -384,18 +385,21 @@ export default function ActivityDetail() {
           <div className="flex items-center gap-3">
             <div className="flex flex-col gap-1 w-24 shrink-0">
               <label className="text-[10px] uppercase font-bold text-muted-foreground">Bawa Tamu?</label>
-              <select 
-                title="Bawa Tamu?"
-                className="w-full text-sm p-2 rounded-lg border border-border bg-card text-foreground"
-                value={guestsCount}
-                onChange={(e) => setGuestsCount(Number(e.target.value))}
+              <Select 
+                value={guestsCount.toString()}
+                onValueChange={(val) => setGuestsCount(Number(val))}
                 disabled={isFull || actionLoading}
               >
-                <option value={0}>Sendiri</option>
-                <option value={1}>+1 Tamu</option>
-                <option value={2}>+2 Tamu</option>
-                <option value={3}>+3 Tamu</option>
-              </select>
+                <SelectTrigger title="Bawa Tamu?" className="w-full text-sm h-[38px] rounded-lg bg-card text-foreground">
+                  <SelectValue placeholder="Tamu" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Sendiri</SelectItem>
+                  <SelectItem value="1">+1 Tamu</SelectItem>
+                  <SelectItem value="2">+2 Tamu</SelectItem>
+                  <SelectItem value="3">+3 Tamu</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button 
               className="flex-1 rounded-xl" 

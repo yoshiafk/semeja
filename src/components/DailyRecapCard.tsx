@@ -119,6 +119,7 @@ export function DailyRecapCard({ day, onRecord, onEdit, onDelete, isAdmin }: Dai
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={`Edit ${p.ingredient_name}`}
                         className="size-6 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/5"
                         onClick={() => onEdit(p)}
                       >
@@ -129,6 +130,7 @@ export function DailyRecapCard({ day, onRecord, onEdit, onDelete, isAdmin }: Dai
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={`Hapus ${p.ingredient_name}`}
                         className="size-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/5"
                         onClick={() => onDelete(p.id)}
                       >

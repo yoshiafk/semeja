@@ -28,6 +28,7 @@ export function UniversalFAB() {
         <DropdownMenuTrigger asChild>
           <Button
             size="icon"
+            aria-label="Menu aksi cepat"
             className={`size-14 rounded-full shadow-lg shadow-primary/30 transition-transform duration-300 ${open ? 'rotate-45' : ''}`}
           >
             <Plus className="size-6 stroke-[2.5px]" />

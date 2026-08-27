@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { exportShoppingListPDF } from "@/lib/pdf-export";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ReceiptUpload } from "@/components/ReceiptUpload";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { OCRReviewDialog } from "@/components/OCRReviewDialog";
@@ -73,10 +74,7 @@ interface CostSummary {
 
 export default function Costs() {
   const { member, isAdmin } = useMember();
-  const [data, setData] = useState<CostSummary | null>(null);
-  const [tripData, setTripData] = useState<TripDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [ledgers, setLedgers] = useState<any[]>([]);
+  const queryClient = useQueryClient();
   const [activeLedger, setActiveLedger] = useState<any | null>(null);
   const [isWASettlementOpen, setIsWASettlementOpen] = useState(false);
   const [waSettlementMsg, setWaSettlementMsg] = useState('');
@@ -126,10 +124,10 @@ export default function Costs() {
     }
   });
 
-  // Sync initial fetch into local state to keep the rest of the component's mutation logic intact
+  const ledgers = initData?.allLedgers || [];
+
   useEffect(() => {
     if (initData) {
-      setLedgers(initData.allLedgers);
       if (allIngredients.length === 0) setAllIngredients(initData.ings);
       if (allMembers.length === 0) setAllMembers(initData.membersList);
       
@@ -156,21 +154,9 @@ export default function Costs() {
     enabled: !!activeLedger
   });
 
-  // Sync active ledger data into state
-  useEffect(() => {
-    if (detailsData) {
-      setData(detailsData.summary);
-      setTripData(detailsData.trip);
-    } else {
-      setData(null);
-      setTripData(null);
-    }
-  }, [detailsData]);
-
-  // Aggregate loading states
-  useEffect(() => {
-    setLoading(isLedgersLoading || isDetailsLoading);
-  }, [isLedgersLoading, isDetailsLoading]);
+  const data = detailsData?.summary || null;
+  const tripData = detailsData?.trip || null;
+  const loading = isLedgersLoading || isDetailsLoading;
 
   const activePlanId = activeLedger?.type === 'meal_plan' ? activeLedger.reference_id : null;
   const ledgerId = activeLedger?.id || null;
@@ -277,8 +263,7 @@ export default function Costs() {
       });
       setManualSearchQuery("");
       
-      const summary = await api.get<CostSummary>(`/summary/${activePlanId}`);
-      setData(summary);
+      queryClient.invalidateQueries({ queryKey: ['ledger_details'] });
       setIsSaving(false);
     } catch (err: any) {
       toast.error("Gagal mencatat: " + (err.error || err.message));
@@ -361,8 +346,7 @@ export default function Costs() {
       }
       
       toast.success(`${successCount} item berhasil dicatat!`);
-      const summary = await api.get<CostSummary>(`/summary/${activePlanId}`);
-      setData(summary);
+      queryClient.invalidateQueries({ queryKey: ['ledger_details'] });
     } catch (err) {
       console.error("Import error:", err);
     } finally {
@@ -404,8 +388,7 @@ export default function Costs() {
       await api.delete(`/purchases/${id}`);
       toast.success("Catatan belanja berhasil dihapus");
       if (activePlanId) {
-        const summary = await api.get<CostSummary>(`/summary/${activePlanId}`);
-        setData(summary);
+        queryClient.invalidateQueries({ queryKey: ['ledger_details'] });
       }
     } catch (err: any) {
       toast.error("Gagal menghapus: " + (err.error || err.message));
@@ -414,11 +397,21 @@ export default function Costs() {
     }
   };
 
-  if (loading && !data) {
+  if (loading && !data && !tripData) {
     return (
       <PageContainer>
-        <div className="flex h-[60vh] items-center justify-center">
-          <Loader2 className="size-6 animate-spin text-primary" />
+        <div className="flex flex-col gap-5 md:flex-col md:gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-10 w-full sm:w-[260px] rounded-xl" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-48 md:col-span-2 rounded-2xl" />
+            <div className="grid grid-cols-2 md:grid-cols-1 gap-3">
+              <Skeleton className="h-24 rounded-2xl" />
+              <Skeleton className="h-24 rounded-2xl" />
+            </div>
+          </div>
         </div>
       </PageContainer>
     );
@@ -476,7 +469,12 @@ export default function Costs() {
                 />
                 <div className="flex flex-col gap-2">
                   <h2 className="text-lg font-bold text-foreground mt-4">Ringkasan Ledger Aktual</h2>
-                  {ledgerId ? <LedgerDashboard ledgerId={ledgerId} /> : <p className="text-sm text-gray-500">Memuat Ledger...</p>}
+                  {ledgerId ? <LedgerDashboard ledgerId={ledgerId} /> : (
+                    <div className="flex flex-col gap-4 mt-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-32 w-full rounded-2xl" />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -654,7 +652,12 @@ export default function Costs() {
                     )}
                   </div>
                   <div className="flex flex-col gap-2">
-                    {ledgerId ? <LedgerDashboard ledgerId={ledgerId} /> : <p className="text-sm text-gray-500">Memuat Ledger...</p>}
+                    {ledgerId ? <LedgerDashboard ledgerId={ledgerId} /> : (
+                      <div className="flex flex-col gap-4 mt-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-32 w-full rounded-2xl" />
+                      </div>
+                    )}
                   </div>
                 </div>
               </TabsContent>

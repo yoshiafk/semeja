@@ -18,6 +18,7 @@ export function PageHeader({ title, description, backTo, action }: PageHeaderPro
         <Button
           variant="ghost"
           size="icon"
+          aria-label="Kembali"
           onClick={() => {
             if (backTo === -1) navigate(-1);
             else navigate(backTo as string);

@@ -63,9 +63,10 @@ function ActivityCard({ activity, onClick }: { activity: Activity; onClick: () =
   }
 
   return (
-    <div 
+    <button 
+      type="button"
       onClick={onClick}
-      className="p-4 rounded-2xl border border-border/50 bg-card hover:border-primary/30 transition-all cursor-pointer shadow-sm"
+      className="w-full text-left p-4 rounded-2xl border border-border/50 bg-card hover:border-primary/30 transition-all cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
     >
       <div className="flex justify-between items-start mb-3">
         <h3 className="font-semibold text-lg text-foreground line-clamp-1">{activity.title}</h3>
@@ -102,6 +103,6 @@ function ActivityCard({ activity, onClick }: { activity: Activity; onClick: () =
           )}
         </div>
       </div>
-    </div>
+    </button>
   );
 }

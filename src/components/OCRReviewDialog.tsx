@@ -5,7 +5,9 @@ import { Checkbox } from "./ui/checkbox";
 import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { formatRupiah, cn } from "@/lib/utils";
-import { Receipt, ListCheck, ArrowRight, Store, Search, Info, Loader2, Users, Plus } from "lucide-react";
+import { Receipt, ListCheck, ArrowRight, Store, Search, Info, Loader2, Users, Plus, Check } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 interface OCRItem {
   name: string;
@@ -288,105 +290,119 @@ export const OCRReviewDialog: React.FC<OCRReviewDialogProps> = ({
                         >
                           <div className="flex items-start gap-3">
                             <Checkbox 
+                              id={`ocr-item-${idx}`}
                               checked={selectedIndices.includes(idx)} 
                               onCheckedChange={() => toggleItem(idx)}
                               className="mt-1"
                             />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-base font-bold text-foreground leading-tight truncate">
-                                {item.name}
-                              </p>
-                              <div className="flex items-center gap-2 mt-1.5">
-                                <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-md font-medium">
-                                  {item.quantity} {item.unit || 'pcs'}
-                                </span>
-                                {item.unitPrice && (
-                                  <span className="text-xs text-muted-foreground">
-                                    @{formatRupiah(item.unitPrice)}
+                            <label htmlFor={`ocr-item-${idx}`} className="flex-1 min-w-0 cursor-pointer flex items-start">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-base font-bold text-foreground leading-tight truncate">
+                                  {item.name}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-md font-medium">
+                                    {item.quantity} {item.unit || 'pcs'}
                                   </span>
-                                )}
+                                  {item.unitPrice && (
+                                    <span className="text-xs text-muted-foreground">
+                                      @{formatRupiah(item.unitPrice)}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-lg font-black text-primary">{formatRupiah(item.totalPrice)}</p>
-                            </div>
+                              <div className="text-right ml-2">
+                                <p className="text-lg font-black text-primary">{formatRupiah(item.totalPrice)}</p>
+                              </div>
+                            </label>
                           </div>
 
                           {/* Matching Search */}
                           <div className="pl-7 flex flex-col gap-1.5 relative">
-                            <div className="relative">
-                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground/60" />
-                              <Input
-                                placeholder="Cari bahan yang cocok..."
-                                value={searchQueries[idx] || ""}
-                                onChange={(e) => {
-                                  setSearchQueries(prev => ({ ...prev, [idx]: e.target.value }));
-                                  setActiveSearchIdx(idx);
-                                }}
-                                onFocus={() => setActiveSearchIdx(idx)}
-                                className={cn(
-                                  "h-10 pl-8 text-sm rounded-lg bg-white",
-                                  !matchedIngId && "border-amber-200 bg-amber-50/30",
-                                  matchedIngId === 'NEW' && "border-green-200 bg-green-50/30 text-green-700 font-medium"
-                                )}
-                              />
-                              
-                              {activeSearchIdx === idx && (
-                                <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-border rounded-xl shadow-xl max-h-48 overflow-y-auto py-1">
-                                  {(() => {
-                                    const query = searchQueries[idx]?.toLowerCase() || "";
-                                    const filtered = ingredients.filter(ing => 
-                                      ing.name.toLowerCase().includes(query)
-                                    ).slice(0, 5);
-
-                                    return (
-                                      <>
-                                        {filtered.map(ing => (
-                                          <button
-                                            key={ing.id}
-                                            className="w-full text-left px-3 py-2 text-xs hover:bg-primary/5 transition-colors flex items-center justify-between"
-                                            onClick={() => {
-                                              handleMatchChange(idx, ing.name);
-                                              setActiveSearchIdx(null);
-                                            }}
-                                          >
-                                            <span className="font-medium">{ing.name}</span>
-                                            <span className="text-[10px] text-muted-foreground">{ing.unit}</span>
-                                          </button>
-                                        ))}
-                                        
-                                        {(filtered.length === 0 || query.length > 2) && (
-                                          <button
-                                            className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 text-emerald-600 font-bold transition-colors flex items-center gap-2 border-t mt-1"
-                                            onClick={() => {
-                                              handleMatchChange(idx, "ADD_NEW");
-                                              setActiveSearchIdx(null);
-                                            }}
-                                          >
-                                            <Plus className="size-3" />
-                                            Tambah: "{searchQueries[idx]}" Sebagai Bahan Baru
-                                          </button>
-                                        )}
-                                        
-                                        {filtered.length === 0 && query.length <= 2 && (
-                                          <div className="px-3 py-2 text-[10px] text-muted-foreground italic text-center">
-                                            Ketik minimal 3 huruf untuk cari...
-                                          </div>
-                                        )}
-                                      </>
-                                    );
-                                  })()}
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Hidden backdrop to close suggestions */}
-                            {activeSearchIdx === idx && (
-                              <div 
-                                className="fixed inset-0 z-40" 
-                                onClick={() => setActiveSearchIdx(null)}
-                              />
-                            )}
+                            <Popover open={activeSearchIdx === idx} onOpenChange={(open) => setActiveSearchIdx(open ? idx : null)}>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={activeSearchIdx === idx}
+                                  className={cn(
+                                    "w-full justify-between h-10 font-normal px-3",
+                                    !matchedIngId && "border-amber-200 bg-amber-50/30",
+                                    matchedIngId === 'NEW' && "border-green-200 bg-green-50/30 text-green-700 font-medium"
+                                  )}
+                                >
+                                  <span className="truncate flex-1 text-left">
+                                    {matchedIngId === 'NEW' 
+                                      ? searchQueries[idx] || "Bahan Baru" 
+                                      : matchedIngId 
+                                        ? ingredients.find(i => i.id === matchedIngId)?.name 
+                                        : "Cari bahan yang cocok..."}
+                                  </span>
+                                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-full p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                                <Command>
+                                  <CommandInput 
+                                    placeholder="Cari bahan..." 
+                                    value={searchQueries[idx] || ""}
+                                    onValueChange={(val) => {
+                                      setSearchQueries(prev => ({ ...prev, [idx]: val }));
+                                    }}
+                                  />
+                                  <CommandList>
+                                    <CommandEmpty>
+                                      <div
+                                        className="w-full text-left px-2 py-2 text-sm hover:bg-emerald-50 text-emerald-600 font-bold transition-colors flex items-center cursor-pointer"
+                                        onClick={() => {
+                                          handleMatchChange(idx, "ADD_NEW");
+                                          setActiveSearchIdx(null);
+                                        }}
+                                      >
+                                        <Plus className="mr-2 size-4" />
+                                        Tambah: "{searchQueries[idx]}" Sebagai Bahan Baru
+                                      </div>
+                                    </CommandEmpty>
+                                    <CommandGroup>
+                                      {ingredients.map(ing => (
+                                        <CommandItem
+                                          key={ing.id}
+                                          value={ing.name}
+                                          onSelect={() => {
+                                            handleMatchChange(idx, ing.name);
+                                            setActiveSearchIdx(null);
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4 shrink-0",
+                                              matchedIngId === ing.id ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          {ing.name}
+                                          <span className="ml-auto text-[10px] text-muted-foreground">{ing.unit}</span>
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                    {searchQueries[idx] && searchQueries[idx].length > 2 && (
+                                      <CommandGroup>
+                                        <CommandItem
+                                          value={`ADD_NEW_${searchQueries[idx]}`}
+                                          onSelect={() => {
+                                            handleMatchChange(idx, "ADD_NEW");
+                                            setActiveSearchIdx(null);
+                                          }}
+                                          className="text-emerald-600 font-bold"
+                                        >
+                                          <Plus className="mr-2 size-4" />
+                                          Tambah: "{searchQueries[idx]}" Sebagai Bahan Baru
+                                        </CommandItem>
+                                      </CommandGroup>
+                                    )}
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
                             {!matchedIngId && (
                               <p className="text-[10px] text-amber-600 flex items-center gap-1 font-medium pl-1">
                                 <Info className="h-2.5 w-2.5" />

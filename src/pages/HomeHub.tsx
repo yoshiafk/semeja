@@ -11,11 +11,12 @@ import {
 import { getTodayParticipation, getTrips } from "@/lib/api";
 import type { TripSummary } from "@/types/trip";
 import { TripCountdownBanner } from "@/components/TripCountdownBanner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function HomeHub() {
   const { member, isAdmin } = useMember();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const { data: todayCount = 0 } = useQuery({
+  const { data: todayCount = 0, isLoading: isCountLoading } = useQuery({
     queryKey: ['today_participation'],
     queryFn: async () => {
       const { count } = await getTodayParticipation();
@@ -23,7 +24,7 @@ export default function HomeHub() {
     }
   });
 
-  const { data: latestTrip } = useQuery({
+  const { data: latestTrip, isLoading: isTripLoading } = useQuery({
     queryKey: ['latest_trip'],
     queryFn: async () => {
       const trips = await getTrips();
@@ -93,7 +94,9 @@ export default function HomeHub() {
         <div>
           <SectionLabel icon={Sparkles} label="Briefing Harian" />
           <div className="flex flex-col gap-3 mt-3">
-            {latestTrip ? (
+            {isTripLoading ? (
+              <Skeleton className="h-[90px] w-full rounded-2xl" />
+            ) : latestTrip ? (
               <Link to={`/trips/${latestTrip.slug}`} className="block transition-transform active:scale-[0.98]">
                 <TripCountdownBanner startDate={latestTrip.start_date} endDate={latestTrip.end_date} status={latestTrip.status} />
               </Link>
@@ -112,7 +115,9 @@ export default function HomeHub() {
               </Link>
             )}
             
-            {todayCount > 0 ? (
+            {isCountLoading ? (
+              <Skeleton className="h-[90px] w-full rounded-2xl" />
+            ) : todayCount > 0 ? (
               <Link to="/meals" className="flex items-center gap-4 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/15 transition-colors">
                 <div className="p-3 bg-orange-500/20 rounded-xl text-orange-600 dark:text-orange-400">
                   <UtensilsCrossed className="size-6" />

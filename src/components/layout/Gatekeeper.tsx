@@ -90,7 +90,7 @@ export function Gatekeeper({ onSuccess }: GatekeeperProps) {
               disabled={loading}
             />
             {error && (
-              <p className="text-[12px] font-semibold text-destructive animate-page-in">{error}</p>
+              <p role="alert" className="text-[12px] font-semibold text-destructive animate-page-in">{error}</p>
             )}
             <Button
               type="submit"

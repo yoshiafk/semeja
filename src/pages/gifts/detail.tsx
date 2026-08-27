@@ -21,6 +21,8 @@ import type { GiftDetail as GiftDetailType } from "@/lib/api";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn, formatRupiah } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 
 export default function GiftDetail() {
   const { id } = useParams<{ id: string }>();
@@ -234,12 +236,28 @@ export default function GiftDetail() {
               {isEditingDate ? (
                 <div className="flex items-center gap-2 bg-secondary/30 pl-3 pr-1 py-1 rounded-lg border border-border/40">
                   <Calendar className="size-4 text-primary" />
-                  <input
-                    type="date"
-                    value={editedDate}
-                    onChange={(e) => setEditedDate(e.target.value)}
-                    className="bg-transparent border-none text-xs font-semibold focus:ring-0 w-32"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "bg-transparent border-none text-xs font-semibold focus:ring-0 w-32 h-auto p-0 justify-start hover:bg-transparent",
+                          !editedDate && "text-muted-foreground"
+                        )}
+                      >
+                        {editedDate ? format(new Date(editedDate), "MMMM d, yyyy") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <ShadcnCalendar
+                        mode="single"
+                        selected={editedDate ? new Date(editedDate) : undefined}
+                        onSelect={(date) => setEditedDate(date ? format(date, "yyyy-MM-dd") : "")}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <div className="flex gap-1 ml-1">
                     <Button 
                       size="sm" 

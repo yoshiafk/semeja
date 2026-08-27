@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { PlanStatusBadge } from "@/components/PlanStatusBadge";
 import { RSVPCountdown } from "@/components/RSVPCountdown";
 import { DailyBriefingCard } from "@/components/DailyBriefingCard";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface MealMenuItem {
   id: number;
@@ -138,8 +139,32 @@ export default function Dashboard() {
   if (loading) {
     return (
       <PageContainer>
-        <div className="flex h-[60vh] items-center justify-center">
-          <Loader2 className="size-6 animate-spin text-primary" />
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Skeleton className="h-7 w-48 mb-2" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <Skeleton className="h-9 w-24" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-8 w-32 rounded-lg" />
+              <Skeleton className="h-8 w-24 rounded-lg" />
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-2xl border border-border/50 overflow-hidden">
+                <div className="h-12 bg-secondary/60 border-b border-border/50" />
+                <div className="p-4 space-y-4">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </PageContainer>
     );
