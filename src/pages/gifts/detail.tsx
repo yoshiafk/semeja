@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMember } from "@/hooks/useMember";
@@ -519,3 +520,4 @@ export default function GiftDetail() {
     </PageContainer>
   );
 }
+

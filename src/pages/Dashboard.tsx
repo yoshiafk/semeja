@@ -3,10 +3,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/button";
 import { useMember } from "@/hooks/useMember";
 import { cn, formatDate, formatDayName, formatShortDate } from "@/lib/utils";
-import { Loader2, Plus, Check, Moon, Settings } from "lucide-react";
+import { Check, Moon, Plus, Settings } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { PlanStatusBadge } from "@/components/PlanStatusBadge";
@@ -173,26 +174,13 @@ export default function Dashboard() {
   if (!plan) {
     return (
       <PageContainer>
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center flex flex-col gap-3 px-8">
-          <div className="size-14 rounded-2xl bg-muted flex items-center justify-center">
-            <Moon className="size-6 text-muted-foreground/70" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Belum ada jadwal buka puasa pekan ini</h2>
-            {isAdmin ? (
-              <div className="mt-4 flex flex-col items-center">
-                <Button 
-                  className="rounded-xl px-6"
-                  onClick={() => navigate('/meals/plan')}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Susun Jadwal Buka Puasa
-                </Button>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground/70 mt-1">Tunggu admin buat jadwal buka puasanya ya!</p>
-            )}
-          </div>
+        <div className="py-12">
+          <EmptyState 
+            icon={<Moon className="size-8" />} 
+            title="Belum ada jadwal pekan ini" 
+            description={isAdmin ? "Kamu belum menyusun jadwal makan bersama untuk minggu ini." : "Tunggu admin menyusun jadwal makan bersama, ya!"} 
+            action={isAdmin ? <Button className="rounded-xl px-6" onClick={() => navigate('/meals/plan')}><Plus className="mr-2 size-4"/>Susun Jadwal Sekarang</Button> : null} 
+          />
         </div>
       </PageContainer>
     );
@@ -394,3 +382,6 @@ export default function Dashboard() {
     </PageContainer>
   );
 }
+
+
+

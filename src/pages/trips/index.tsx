@@ -5,6 +5,7 @@ import { getTrips } from "@/lib/api";
 import type { TripSummary, TripDetail } from "@/types/trip";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { TripCountdownBlock } from "@/components/TripCountdownBanner";
 import { Button } from "@/components/ui/button";
 import { TripFormDialog } from "@/components/TripFormDialog";
@@ -50,7 +51,7 @@ export default function TripsList() {
         {loading ? (
           <div className="text-center py-10 text-muted-foreground animate-pulse">Memuat perjalanan...</div>
         ) : trips.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground">Belum ada perjalanan yang direncanakan.</div>
+          <EmptyState icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>} title="Belum ada perjalanan" description="Belum ada rencana perjalanan yang terdaftar. Yuk rencanakan liburan bareng-bareng!" />
         ) : (
           trips.map(trip => (
             <div key={trip.id} className="block group relative bg-card border rounded-3xl overflow-hidden shadow-sm p-5 hover:shadow-md transition-all">
@@ -119,3 +120,4 @@ export default function TripsList() {
     </PageContainer>
   );
 }
+

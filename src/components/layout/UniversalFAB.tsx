@@ -59,13 +59,13 @@ export function UniversalFAB() {
           )}
 
           <DropdownMenuItem asChild className="rounded-xl cursor-pointer p-3 focus:bg-primary/10 group">
-            <Link to="/finance/costs/new" className="flex items-center gap-3">
+            <Link to="/finance/costs" className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400">
                 <Wallet className="size-4" />
               </div>
               <div className="flex flex-col">
-                <span className="font-semibold text-sm">Catat Pengeluaran</span>
-                <span className="text-xs text-muted-foreground">Tambah biaya patungan</span>
+                <span className="font-semibold text-sm">Pusat Keuangan</span>
+                <span className="text-xs text-muted-foreground">Atur tagihan & biaya</span>
               </div>
             </Link>
           </DropdownMenuItem>
@@ -76,8 +76,8 @@ export function UniversalFAB() {
                 <Activity className="size-4" />
               </div>
               <div className="flex flex-col">
-                <span className="font-semibold text-sm">Buat Tugas Baru</span>
-                <span className="text-xs text-muted-foreground">Bagi tugas harian</span>
+                <span className="font-semibold text-sm">Buat Aktivitas</span>
+                <span className="text-xs text-muted-foreground">Acara atau kumpul bersama</span>
               </div>
             </Link>
           </DropdownMenuItem>
@@ -99,3 +99,4 @@ export function UniversalFAB() {
     </div>
   );
 }
+

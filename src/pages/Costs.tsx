@@ -20,7 +20,6 @@ import { LedgerDashboard } from "@/components/LedgerDashboard";
 import { WhatsAppPreviewDialog } from "@/components/WhatsAppPreviewDialog";
 import { formatWeeklySettlement } from "@/lib/whatsapp";
 import { useMember } from "@/hooks/useMember";
-import type { TripDetail } from "@/types/trip";
 import { TripBudgetTable } from "@/components/TripBudgetTable";
 
 
@@ -1307,3 +1306,4 @@ export default function Costs() {
     </PageContainer>
   );
 }
+

@@ -1,4 +1,5 @@
 import { PageContainer } from "@/components/layout/PageContainer";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { Activity } from "@/contexts/ActivityContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { format } from "date-fns";
@@ -33,14 +34,7 @@ export default function ActivitiesPage() {
           <Loader2 className="size-6 animate-spin text-primary" />
         </div>
       ) : activities.length === 0 ? (
-        <div className="text-center p-8 border border-border/50 rounded-2xl bg-card">
-          <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-            <Calendar className="size-6 text-primary" />
-          </div>
-          <h3 className="font-semibold text-foreground mb-1">Belum ada aktifitas</h3>
-          <p className="text-sm text-muted-foreground">Pantau terus untuk kegiatan seru selanjutnya!</p>
-        </div>
-      ) : (
+        <EmptyState icon={<Calendar className="size-8" />} title="Belum ada aktifitas" description="Pantau terus untuk kegiatan seru selanjutnya!" />) : (
         <div className="grid gap-4">
           {activities.map((activity) => (
             <ActivityCard key={activity.id} activity={activity} onClick={() => navigate(`/activities/${activity.id}`)} />
@@ -106,3 +100,4 @@ function ActivityCard({ activity, onClick }: { activity: Activity; onClick: () =
     </button>
   );
 }
+
