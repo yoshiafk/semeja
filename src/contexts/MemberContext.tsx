@@ -43,7 +43,8 @@ export const MemberProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const loadMember = useCallback(async (name: string, password?: string) => {
     try {
-      const data = await api.post<any>('/members', { name, password });
+      const houseKey = localStorage.getItem(HOUSE_KEY_STORAGE);
+      const data = await api.post<any>('/members', { name, password, houseKey: houseKey ? decodeData(houseKey) : undefined });
       
       // Handle the robust 200-level signal
       if (data.needsPassword) {
@@ -174,3 +175,5 @@ export const useMemberContext = () => {
   }
   return context;
 };
+
+
