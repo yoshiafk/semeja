@@ -77,18 +77,33 @@ router.post('/', requireAuth, async (req, res) => {
 // PUT to update gift
 router.put('/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
-  const { title, description, event_date, status } = req.body;
+  const allowedFields = ['title', 'description', 'event_date', 'status'];
+  
+  const updates = [];
+  const values = [];
+  let paramIndex = 1;
+  
+  for (const field of allowedFields) {
+    if (req.body[field] !== undefined) {
+      updates.push(`${field} = $${paramIndex}`);
+      values.push(req.body[field]);
+      paramIndex++;
+    }
+  }
+  
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+  
+  values.push(id);
   
   try {
     const { rows } = await pool.query(`
       UPDATE gifts 
-      SET title = COALESCE($1, title),
-          description = COALESCE($2, description),
-          event_date = COALESCE($3, event_date),
-          status = COALESCE($4, status)
-      WHERE id = $5
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
       RETURNING *
-    `, [title, description, event_date, status, id]);
+    `, values);
     
     if (rows.length === 0) return res.status(404).json({ error: 'Gift not found' });
     res.json(rows[0]);

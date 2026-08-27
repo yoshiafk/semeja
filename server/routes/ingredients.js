@@ -191,13 +191,15 @@ router.post('/sync-prices', requireAuth, requireAdmin, async (req, res) => {
         // Build single UPDATE query with CASE statements for batch update
         const ids = toUpdate.map(u => u.id);
         const priceCase = toUpdate.map((u, i) => `WHEN ${u.id} THEN $${i + 1}::int`).join(' ');
-        const canonicalCase = toUpdate
-          .map((u, i) => u.canonical_name ? `WHEN ${u.id} THEN $${toUpdate.length + i + 1}` : null)
-          .filter(Boolean)
+        
+        const withCanonical = toUpdate.filter(u => u.canonical_name);
+        const canonicalCase = withCanonical
+          .map((u, i) => `WHEN ${u.id} THEN $${toUpdate.length + i + 1}`)
           .join(' ');
+          
         const params = [
           ...toUpdate.map(u => Number(u.price)),
-          ...toUpdate.filter(u => u.canonical_name).map(u => u.canonical_name),
+          ...withCanonical.map(u => u.canonical_name),
         ];
         
         const canonicalUpdate = canonicalCase

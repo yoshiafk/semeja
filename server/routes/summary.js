@@ -324,7 +324,7 @@ router.get('/:mealPlanId', async (req, res) => {
         FROM purchases p
         JOIN ingredients i ON p.ingredient_id = i.id
         LEFT JOIN suppliers s ON p.supplier_id = s.id
-        WHERE p.meal_id = ANY($1::int[])
+        WHERE p.meal_id = ANY($1::int[]) OR (p.meal_plan_id = $2 AND p.meal_id IS NULL)
         UNION ALL
         SELECT p.id, pa.amount as total_price, p.quantity, p.purchased_at, p.created_at, p.ingredient_id,
                pa.meal_id, i.name as ingredient_name, s.name as supplier_name,
@@ -349,7 +349,7 @@ router.get('/:mealPlanId', async (req, res) => {
           'SELECT * FROM meal_menu_items WHERE meal_id = ANY($1::int[]) ORDER BY sort_order ASC',
           [mealIds]
         ),
-        pool.query(purchasesQuery, [mealIds]).catch(() => ({ rows: [] })) // catch if columns missing
+        pool.query(purchasesQuery, [mealIds, planId]).catch(() => ({ rows: [] })) // catch if columns missing
       ]);
 
       manualIngredientRows = ingredientsRes.rows;

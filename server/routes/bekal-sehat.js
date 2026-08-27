@@ -32,12 +32,17 @@ router.get('/bumbu-dasar', async (req, res) => {
   }
 });
 
+let lastSync = 0;
+
 // ── GET /api/bekal-sehat/plans ────────────────────────────────────────
 // Get all plans. Supports ?visibility=member to filter for member view.
 router.get('/plans', async (req, res) => {
   try {
     // Auto-transition statuses & auto-generate next week if needed
-    await syncPlanStatuses();
+    if (Date.now() - lastSync > 300000) {
+      lastSync = Date.now();
+      syncPlanStatuses().catch(err => console.error('Error in syncPlanStatuses:', err));
+    }
 
     const { visibility } = req.query;
     let statusFilter = '';

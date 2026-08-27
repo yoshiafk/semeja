@@ -27,6 +27,11 @@ router.post('/', requireAuth, async (req, res) => {
   if (!meal_id || !member_id) {
     return res.status(400).json({ error: 'meal_id and member_id required' });
   }
+
+  if (req.user.id !== parseInt(member_id, 10) && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+    return res.status(403).json({ error: 'Unauthorized to modify other members' });
+  }
+
   try {
     // Check if the meal has any menu items
     const { rows: items } = await pool.query(
@@ -56,11 +61,7 @@ router.post('/', requireAuth, async (req, res) => {
       const isDeadlinePassed = plan.rsvp_deadline && new Date() > new Date(plan.rsvp_deadline);
 
       if (isLocked || isDeadlinePassed) {
-        const { rows: memberRows } = await pool.query(
-          'SELECT role FROM members WHERE id = $1', [member_id]
-        );
-        role = memberRows[0]?.role;
-        const isAdmin = role === 'superadmin' || role === 'admin';
+        const isAdmin = req.user.role === 'superadmin' || req.user.role === 'admin';
 
         if (!isAdmin) {
           if (isLocked) {
@@ -94,6 +95,10 @@ router.post('/', requireAuth, async (req, res) => {
 
 // DELETE member leaves a day
 router.delete('/:mealId/:memberId', requireAuth, async (req, res) => {
+  if (req.user.id !== parseInt(req.params.memberId, 10) && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+    return res.status(403).json({ error: 'Unauthorized to modify other members' });
+  }
+
   try {
     await pool.query(
       'DELETE FROM participations WHERE meal_id = $1 AND member_id = $2',

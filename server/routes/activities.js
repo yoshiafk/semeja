@@ -81,24 +81,33 @@ router.post('/', requireAuth, async (req, res) => {
 // PUT to update activity
 router.put('/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
-  const { title, description, date, time, location, cost_type, cost_amount, max_participants, status, receipt_id } = req.body;
+  const allowedFields = ['title', 'description', 'date', 'time', 'location', 'cost_type', 'cost_amount', 'max_participants', 'status', 'receipt_id'];
+  
+  const updates = [];
+  const values = [];
+  let paramIndex = 1;
+  
+  for (const field of allowedFields) {
+    if (req.body[field] !== undefined) {
+      updates.push(`${field} = $${paramIndex}`);
+      values.push(req.body[field]);
+      paramIndex++;
+    }
+  }
+  
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+  
+  values.push(id);
   
   try {
     const { rows } = await pool.query(`
       UPDATE activities 
-      SET title = COALESCE($1, title),
-          description = COALESCE($2, description),
-          date = COALESCE($3, date),
-          time = COALESCE($4, time),
-          location = COALESCE($5, location),
-          cost_type = COALESCE($6, cost_type),
-          cost_amount = COALESCE($7, cost_amount),
-          max_participants = COALESCE($8, max_participants),
-          status = COALESCE($9, status),
-          receipt_id = COALESCE($10, receipt_id)
-      WHERE id = $11
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
       RETURNING *
-    `, [title, description, date, time, location, cost_type, cost_amount, max_participants, status, receipt_id, id]);
+    `, values);
     
     if (rows.length === 0) return res.status(404).json({ error: 'Activity not found' });
     res.json(rows[0]);
@@ -149,12 +158,25 @@ router.post('/:id/join', requireAuth, async (req, res) => {
 });
 
 // POST to record activity items
-router.post('/:id/items', requireAuth, requireAdmin, async (req, res) => {
+router.post('/:id/items', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { items } = req.body; // Array of { name, quantity, price }
   
   if (!Array.isArray(items)) {
     return res.status(400).json({ error: 'items must be an array' });
+  }
+
+  try {
+    const { rows: activityRows } = await pool.query('SELECT * FROM activities WHERE id = $1', [id]);
+    if (activityRows.length === 0) return res.status(404).json({ error: 'Activity not found' });
+    const activity = activityRows[0];
+    
+    if (req.user.role !== 'admin' && activity.created_by !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  } catch (error) {
+    console.error('Error verifying activity:', error);
+    return res.status(500).json({ error: 'Failed to verify activity' });
   }
 
   const client = await pool.connect();

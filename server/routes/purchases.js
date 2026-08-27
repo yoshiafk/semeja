@@ -337,6 +337,13 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
       console.warn('[price-sync] Failed to update price_per_unit during update:', syncErr.message);
     }
 
+    // Sync to Ledger
+    try {
+      await syncPurchaseToLedger(updatedPurchase.id, client);
+    } catch (syncErr) {
+      console.warn('[ledger-sync] Failed to sync to ledger:', syncErr.message);
+    }
+
     await client.query('COMMIT');
 
     // Return the complete record with joined names

@@ -26,7 +26,7 @@ async function syncPurchaseToLedger(purchaseId, clientOrPool = pool) {
   // Create expense
   const amount = parseInt(p.total_price);
   const { rows: eRows } = await clientOrPool.query(`
-    INSERT INTO expenses (ledger_id, description, amount, paid_by, category, metadata)
+    INSERT INTO expenses (ledger_id, description, amount, paid_by_member_id, category, metadata)
     VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING id
   `, [

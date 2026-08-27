@@ -39,7 +39,7 @@ router.post('/', requireAuth, upload.single('file'), async (req, res) => {
 });
 
 // GET - Download/View an attachment
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
 
   try {

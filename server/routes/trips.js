@@ -446,23 +446,34 @@ router.patch('/:slug/budget/:rowId', requireAuth, requireAdmin, async (req, res)
     return res.status(400).json({ error: 'actual_amount_rp number is required' });
   }
 
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
+    
     // Resolve trip id from slug
-    const tripRes = await pool.query('SELECT id FROM trips WHERE slug = $1', [slug]);
-    if (tripRes.rows.length === 0) return res.status(404).json({ error: 'Trip not found' });
+    const tripRes = await client.query('SELECT id FROM trips WHERE slug = $1', [slug]);
+    if (tripRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(404).json({ error: 'Trip not found' });
+    }
     const tripId = tripRes.rows[0].id;
 
-    const { rows } = await pool.query(`
+    const { rows } = await client.query(`
       UPDATE trip_budget_rows
       SET actual_amount_rp = $1
       WHERE id = $2
       RETURNING *
     `, [actual_amount_rp, rowId]);
 
-    if (rows.length === 0) return res.status(404).json({ error: 'Budget row not found' });
+    if (rows.length === 0) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(404).json({ error: 'Budget row not found' });
+    }
 
     // Recalculate total rows' actual_amount_rp by summing all non-total rows
-    const { rows: allRows } = await pool.query(
+    const { rows: allRows } = await client.query(
       'SELECT actual_amount_rp, is_accommodation FROM trip_budget_rows WHERE trip_id = $1 AND is_total_row = false',
       [tripId]
     );
@@ -472,19 +483,23 @@ router.patch('/:slug/budget/:rowId', requireAuth, requireAdmin, async (req, res)
       actualWith += (r.actual_amount_rp || 0);
       if (!r.is_accommodation) actualWithout += (r.actual_amount_rp || 0);
     });
-    await pool.query(
+    await client.query(
       'UPDATE trip_budget_rows SET actual_amount_rp = $1 WHERE trip_id = $2 AND is_total_row = true AND is_accommodation = true',
       [actualWith, tripId]
     );
-    await pool.query(
+    await client.query(
       'UPDATE trip_budget_rows SET actual_amount_rp = $1 WHERE trip_id = $2 AND is_total_row = true AND is_accommodation = false',
       [actualWithout, tripId]
     );
 
+    await client.query('COMMIT');
     res.json(rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Error updating budget actual:', err);
     res.status(500).json({ error: 'Failed to update budget' });
+  } finally {
+    client.release();
   }
 });
 
@@ -492,19 +507,29 @@ router.patch('/:slug/budget/:rowId', requireAuth, requireAdmin, async (req, res)
 router.delete('/:slug/budget/:rowId', requireAuth, requireAdmin, async (req, res) => {
   const { slug, rowId } = req.params;
 
+  const client = await pool.connect();
   try {
-    const tripRes = await pool.query('SELECT id FROM trips WHERE slug = $1', [slug]);
-    if (tripRes.rows.length === 0) return res.status(404).json({ error: 'Trip not found' });
+    await client.query('BEGIN');
+    const tripRes = await client.query('SELECT id FROM trips WHERE slug = $1', [slug]);
+    if (tripRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(404).json({ error: 'Trip not found' });
+    }
     const tripId = tripRes.rows[0].id;
 
-    const { rowCount } = await pool.query(
+    const { rowCount } = await client.query(
       'DELETE FROM trip_budget_rows WHERE id = $1 AND trip_id = $2 AND is_total_row = false',
       [rowId, tripId]
     );
-    if (rowCount === 0) return res.status(404).json({ error: 'Budget row not found' });
+    if (rowCount === 0) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(404).json({ error: 'Budget row not found' });
+    }
 
     // Recalculate totals after deletion
-    const { rows: allRows } = await pool.query(
+    const { rows: allRows } = await client.query(
       'SELECT amount_rp, actual_amount_rp, is_accommodation FROM trip_budget_rows WHERE trip_id = $1 AND is_total_row = false',
       [tripId]
     );
@@ -517,19 +542,23 @@ router.delete('/:slug/budget/:rowId', requireAuth, requireAdmin, async (req, res
         actualWithout += (r.actual_amount_rp || 0);
       }
     });
-    await pool.query(
+    await client.query(
       'UPDATE trip_budget_rows SET amount_rp = $1, actual_amount_rp = $2 WHERE trip_id = $3 AND is_total_row = true AND is_accommodation = true',
       [totalWith, actualWith, tripId]
     );
-    await pool.query(
+    await client.query(
       'UPDATE trip_budget_rows SET amount_rp = $1, actual_amount_rp = $2 WHERE trip_id = $3 AND is_total_row = true AND is_accommodation = false',
       [totalWithout, actualWithout, tripId]
     );
 
+    await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Error deleting budget row:', err);
     res.status(500).json({ error: 'Failed to delete budget row' });
+  } finally {
+    client.release();
   }
 });
 
@@ -542,17 +571,23 @@ router.post('/:slug/budget', requireAuth, requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'category is required' });
   }
 
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     // get trip id
-    const tripRes = await pool.query('SELECT id FROM trips WHERE slug = $1', [slug]);
-    if (tripRes.rows.length === 0) return res.status(404).json({ error: 'Trip not found' });
+    const tripRes = await client.query('SELECT id FROM trips WHERE slug = $1', [slug]);
+    if (tripRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(404).json({ error: 'Trip not found' });
+    }
     const tripId = tripRes.rows[0].id;
 
     // get max sort_order
-    const sortRes = await pool.query('SELECT MAX(sort_order) as max_sort FROM trip_budget_rows WHERE trip_id = $1 AND is_total_row = false', [tripId]);
+    const sortRes = await client.query('SELECT MAX(sort_order) as max_sort FROM trip_budget_rows WHERE trip_id = $1 AND is_total_row = false', [tripId]);
     const nextSort = (sortRes.rows[0].max_sort || 0) + 1;
 
-    const { rows } = await pool.query(`
+    const { rows } = await client.query(`
       INSERT INTO trip_budget_rows (trip_id, category, detail, amount_rp, is_accommodation, is_total_row, sort_order)
       VALUES ($1, $2, $3, $4, $5, false, $6)
       RETURNING *
@@ -560,7 +595,7 @@ router.post('/:slug/budget', requireAuth, requireAdmin, async (req, res) => {
 
     // Now recalculate total row
     // Get all current non-total rows
-    const { rows: allRows } = await pool.query('SELECT amount_rp, is_accommodation FROM trip_budget_rows WHERE trip_id = $1 AND is_total_row = false', [tripId]);
+    const { rows: allRows } = await client.query('SELECT amount_rp, is_accommodation FROM trip_budget_rows WHERE trip_id = $1 AND is_total_row = false', [tripId]);
     
     // We update both total rows: with accom and without accom
     let totalWith = 0;
@@ -570,13 +605,17 @@ router.post('/:slug/budget', requireAuth, requireAdmin, async (req, res) => {
       if (!r.is_accommodation) totalWithout += r.amount_rp;
     });
 
-    await pool.query('UPDATE trip_budget_rows SET amount_rp = $1 WHERE trip_id = $2 AND is_total_row = true AND is_accommodation = true', [totalWith, tripId]);
-    await pool.query('UPDATE trip_budget_rows SET amount_rp = $1 WHERE trip_id = $2 AND is_total_row = true AND is_accommodation = false', [totalWithout, tripId]);
+    await client.query('UPDATE trip_budget_rows SET amount_rp = $1 WHERE trip_id = $2 AND is_total_row = true AND is_accommodation = true', [totalWith, tripId]);
+    await client.query('UPDATE trip_budget_rows SET amount_rp = $1 WHERE trip_id = $2 AND is_total_row = true AND is_accommodation = false', [totalWithout, tripId]);
 
+    await client.query('COMMIT');
     res.status(201).json(rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Error adding budget row:', err);
     res.status(500).json({ error: 'Failed to add budget' });
+  } finally {
+    client.release();
   }
 });
 

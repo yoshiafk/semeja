@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
 
   try {
     const query = isAdmin 
-      ? 'SELECT id, name, role, device_id, last_login_at, last_ip, last_user_agent, last_location FROM members ORDER BY name'
+      ? 'SELECT id, name, role, last_login_at, last_ip, last_user_agent, last_location FROM members ORDER BY name'
       : 'SELECT id, name, role FROM members ORDER BY name';
     const { rows } = await pool.query(query);
     res.json(rows);
@@ -88,11 +88,16 @@ router.get('/me', async (req, res) => {
     // Update last login metadata
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const ua = req.headers['user-agent'];
-    const location = await getGeoLocation(ip);
-    await pool.query(
-      'UPDATE members SET last_login_at = NOW(), last_ip = $1, last_user_agent = $2, last_location = $3 WHERE id = $4',
-      [ip, ua, location, user.id]
-    );
+    
+    // Fire-and-forget login metadata update
+    getGeoLocation(ip)
+      .then(location => {
+        return pool.query(
+          'UPDATE members SET last_login_at = NOW(), last_ip = $1, last_user_agent = $2, last_location = $3 WHERE id = $4',
+          [ip, ua, location, user.id]
+        );
+      })
+      .catch(err => console.error('Failed to update login metadata:', err));
 
     res.json({ ...user, token: generateToken(user) });
   } catch (err) {
@@ -102,9 +107,13 @@ router.get('/me', async (req, res) => {
 
 // POST - register/login by name (upsert logic)
 router.post('/', loginLimiter, async (req, res) => {
-  const { name, password } = req.body;
+  const { name, password, houseKey } = req.body;
   const deviceId = req.headers['x-device-id'];
   
+  if (process.env.HOUSE_KEY && houseKey !== process.env.HOUSE_KEY) {
+    return res.status(403).json({ error: 'Invalid house key' });
+  }
+
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Nama diperlukan' });
   }
@@ -150,7 +159,7 @@ router.post('/', loginLimiter, async (req, res) => {
           }
         } else {
           // No password set yet
-          return res.json({ ...user, needsPasswordSetup: true, token: generateToken(user) });
+          return res.json({ ...user, needsPasswordSetup: true });
         }
       } else {
         // Standard member: bypass if device matches, otherwise just let them in (current behavior)

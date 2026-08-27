@@ -91,6 +91,17 @@ function parseIngredientText(text) {
 }
 
 /**
+ * Validate cookpad URL to prevent SSRF
+ */
+function isValidCookpadUrl(urlStr) {
+  try {
+    return new URL(urlStr).hostname === 'cookpad.com';
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
  * Scrape recipe data from Cookpad URL
  * Returns: { title, servings, ingredients: [{name, qty, unit}] }
  */
@@ -245,7 +256,7 @@ async function propagateToMeals(client, recipeId) {
  */
 router.post('/cookpad', requireAuth, requireAdmin, async (req, res) => {
   const { url, category } = req.body;
-  if (!url || !url.includes('cookpad.com')) {
+  if (!url || !isValidCookpadUrl(url)) {
     return res.status(400).json({ error: 'Valid Cookpad URL is required' });
   }
 
@@ -330,7 +341,7 @@ router.put('/rescrape/:recipeId', requireAuth, requireAdmin, async (req, res) =>
     
     const recipe = recipes[0];
     
-    if (!recipe.source_url || !recipe.source_url.includes('cookpad.com')) {
+    if (!recipe.source_url || !isValidCookpadUrl(recipe.source_url)) {
       return res.status(400).json({ error: 'Recipe does not have a valid Cookpad source URL' });
     }
     
